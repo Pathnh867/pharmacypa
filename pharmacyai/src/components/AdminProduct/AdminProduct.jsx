@@ -107,7 +107,7 @@ const AdminProduct = () => {
   const {data: dataDelete, isPending: isPendingDelete, isSuccess: isSuccessDelete, isError: isErrorDelete } = mutationDelete
   const queryProduct = useQuery({
       queryKey: ['product'],
-      queryFn: getAllProduct
+      queryFn: getAllProduct,
     });
   const {isPending:isPendingProduct, data:products} = queryProduct
   const renderAction = () => {
@@ -467,11 +467,11 @@ const AdminProduct = () => {
                         </Form>
                       </Loading>
           </DrawerComponents>
-          <ModalComponent title="Xóa người dùng" open={isModalOpenDelete} onCancel={handleCancelDelete} onOk={handleDeleteProduct}>
+          <Modal title="Xóa người dùng" open={isModalOpenDelete} onCancel={handleCancelDelete} onOk={handleDeleteProduct}>
               <Loading isPending={isPendingDelete }>
-                  <div>Bạn có chắc muốn xóa người dùng?</div>
+                  <div>Bạn có chắc muốn xóa sản phẩm?</div>
               </Loading>
-          </ModalComponent>
+          </Modal>
     </div>
   )
 }

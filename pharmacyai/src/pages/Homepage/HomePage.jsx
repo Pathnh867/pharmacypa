@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import TypeProduct from '../../components/TypeProduct/TypeProduct'
 
 import { WrapperButtonMore, WrapperProduct, WrapperTypeProduct } from './style'
@@ -14,26 +14,39 @@ import CardComponent from '../../components/CardComponents/CardComponent'
 import NavBarComponent from '../../components/NavBarComponents/NavBarComponent'
 import ButtonComponent from '../../components/ButtonComponents/ButtonComponent'
 import thuochome from '../../assets/img/thuocjpg.jpg'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import * as ProductService from '../../services/ProductService'
+import { useSelector } from 'react-redux'
+import Loading from '../../components/LoadingComponent/Loading'
+import { useDebounce } from '../../hooks/useDebounce'
 
 const HomePage = () => {
+  const searchProduct = useSelector((state) => state?.product?.search)
+  const searchDebounce = useDebounce(searchProduct, 1000)
+  const [pending, setPending] = useState(false)
+  const [limit, setLimit] = useState(6)
   const arr = ['TPCN', 'TBYT', 'DMP', 'CSCN']
   
-  const fetchProductAll = async () => {
-    const res =  await ProductService.getAllProduct()
-    console.log('res', res)
+  const fetchProductAll = async (context) => {
+    console.log('context', context)
+    const search = context?.queryKey && context?.queryKey[2]
+    const limit = context?.queryKey && context?.queryKey[1]
+    const res = await ProductService.getAllProduct(search, limit)
     return res
   }
-  const { isLoading, data: products } = useQuery({
-    queryKey: 'products',
+
+  
+  const { isPending, isFetching, data: products, isPlaceholderData } = useQuery({
+    queryKey: ['products', limit, searchDebounce],
     queryFn: fetchProductAll,
-    retry: 3,              
-    retryDelay: 1000,
+    retry: 3,
+    retryDelay: 50,
+    placeholderData: keepPreviousData(true) 
+    
   });
-  console.log('data', products)
+
   return (
-    <>
+    <Loading isPending={isPending || pending}>
        <div style={{ width:'1270px', margin:'0 auto' }}>
       <WrapperTypeProduct>
        {arr.map((item) => {
@@ -62,6 +75,7 @@ const HomePage = () => {
                   type={product.type}
                   selled={product.selled}
                   discount={product.discount}
+                  id={product._id}
                 />
               )
             })}
@@ -74,12 +88,13 @@ const HomePage = () => {
               width: '240px', height: '38px', borderRadius: '4px'
 
             }}
-              styleTextButton={{ fontWeight: 500 }} />
+              styleTextButton={{ fontWeight: 500 }}
+              onClick={() => setLimit((prev) => prev +6 ) } />
           </div>
         </div>
       </div>
     
-    </>
+    </Loading>
   )
 }
 

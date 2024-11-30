@@ -9,6 +9,7 @@ import * as UserService from '../../services/UserService'
 import {resetUser} from '../../redux/slide/userSlide'
 import Loading from '../LoadingComponent/Loading';
 import { useMutationHooks } from '../../hooks/useMutationHook';
+import { searchProduct } from '../../redux/slide/productSlide';
 const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   const mutation = useMutationHooks(
     data => UserService.loginUser(data)
@@ -16,6 +17,7 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   const navigate = useNavigate()
   const user = useSelector((state) => state.user)
   const dispatch = useDispatch()
+  const [search, setSearch] = useState('')
   const handleNavigateLogin = () => {
     navigate('/sign-in')
   }
@@ -38,7 +40,8 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   );
   
   const onSearch = (e) => {
-    console.log('e', e.target.value)
+    setSearch(e.target.value)
+    dispatch(searchProduct(e.target.value))
   }
 
   return (
