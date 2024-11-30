@@ -5,8 +5,9 @@ import { StarFilled } from '@ant-design/icons'
 import logo from '../..'
 import thuochome from '../../assets/img/thuocjpg.jpg'
 
-const CardComponent = () => {
-  return (
+const CardComponent = (props) => {
+    const {countInStock, description, image, name, price, rating, type, discount, selled} = props
+    return (
       <WrapperCardStyle
           hoverable
             
@@ -17,17 +18,17 @@ const CardComponent = () => {
           }}
           cover={<img src={thuochome} alt="image small" preview={false}/>}
         >
-          <StyleNameProduct>Panadol Extra</StyleNameProduct>
+          <StyleNameProduct>{name}</StyleNameProduct>
           <WrapperReportText>
               <span style={{marginRight:'4px'}}>
-                  <span>4.96</span> <StarFilled style={{ fontSize: '12px', color: 'yellow' }} />
+                    <span>{rating}</span> <StarFilled style={{ fontSize: '12px', color: 'yellow' }} />
               </span>
-              <span> | Đã bán 200+</span>
+              <span>| Đã bán {selled||100}</span>
               
           </WrapperReportText>
-          <WrapperPriceText><span style={{marginRight:'8px'}}>234.000vnđ/hộp</span>
+          <WrapperPriceText><span style={{marginRight:'8px'}}>{price}</span>
                   <WrapperDiscountText>
-                         -5%
+                         {discount || 5}%
                   </WrapperDiscountText> 
               </WrapperPriceText>
      </WrapperCardStyle>

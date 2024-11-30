@@ -40,3 +40,10 @@ export const WrapperHeaderCart = styled.span`
    color: #fff;
    gap: 10px;
 `
+export const WrapperContentPopup = styled.p`
+   cursor: pointer;
+   &:hover {
+      background:#4cb551;
+      color: #fff;
+   }
+`

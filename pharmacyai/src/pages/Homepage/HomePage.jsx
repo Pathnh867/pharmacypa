@@ -14,10 +14,24 @@ import CardComponent from '../../components/CardComponents/CardComponent'
 import NavBarComponent from '../../components/NavBarComponents/NavBarComponent'
 import ButtonComponent from '../../components/ButtonComponents/ButtonComponent'
 import thuochome from '../../assets/img/thuocjpg.jpg'
-
+import { useQuery } from '@tanstack/react-query'
+import * as ProductService from '../../services/ProductService'
 
 const HomePage = () => {
   const arr = ['TPCN', 'TBYT', 'DMP', 'CSCN']
+  
+  const fetchProductAll = async () => {
+    const res =  await ProductService.getAllProduct()
+    console.log('res', res)
+    return res
+  }
+  const { isLoading, data: products } = useQuery({
+    queryKey: 'products',
+    queryFn: fetchProductAll,
+    retry: 3,              
+    retryDelay: 1000,
+  });
+  console.log('data', products)
   return (
     <>
        <div style={{ width:'1270px', margin:'0 auto' }}>
@@ -35,16 +49,23 @@ const HomePage = () => {
         <div className="container" style={{height:'1000px', width: '1270px', margin:'0 auto'}}>
           <SliderComponents arrImages={[slide1, slide2, slide3, slide4, slide5, slide6, slide7]} />
           <WrapperProduct>
-            <CardComponent/>
-            <CardComponent/>
-            <CardComponent/>
-            <CardComponent/>
-            <CardComponent/>
-            <CardComponent />
-            <CardComponent />
-            <CardComponent />
-            <CardComponent />
-            <CardComponent/>
+            {products?.data?.map((product) => {
+              return (
+                <CardComponent
+                  key={product._id}
+                  countInStock={product.countInStock}
+                  description={product.description}
+                  image={product.image}
+                  name={product.name}
+                  price={product.price}
+                  rating={product.rating}
+                  type={product.type}
+                  selled={product.selled}
+                  discount={product.discount}
+                />
+              )
+            })}
+            
           </WrapperProduct>
           <div style={{width: '100%', display:'flex', justifyContent:'center', marginTop:'10px',}}>
             <WrapperButtonMore textButton="Xem Thêm" type="outline" styleButton={{

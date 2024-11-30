@@ -4,24 +4,28 @@ const { generalAccessToken, generalRefreshToken } = require("./JwtService");
 
 const createUser = (newUser) => {
     return new Promise(async (resolve, reject) => {
-        const { name, email, password, confirmPassword, phone } = newUser;
+        const { email, password, confirmPassword} = newUser;
         try {
             const checkUser = await User.findOne({
                 email: email
             })
             if (checkUser !== null) {
                 resolve({
-                    status: 'OK',
+                    status: 'ERR',
                     message: 'The email is already!'
                 })
                 return;
             }
+             if (password !== confirmPassword) {
+                resolve ({
+                    status: 'ERR',
+                    message: 'Passwords do not match!'
+            });
+        }
             const hash = bcrypt.hashSync(password, 10)
             const createdUser = await User.create({
-                name,
                 email,
-                password: hash,
-                phone
+                password: hash
             });
             if (createdUser) {
                 resolve({
@@ -39,48 +43,38 @@ const loginUser = (userLogin) => {
     return new Promise(async (resolve, reject) => {
         const { email, password } = userLogin
         try {
-            const checkUser = await User.findOne({ email })
+            const checkUser = await User.findOne({
+                email: email
+            })
             if (checkUser === null) {
                 resolve({
                     status: 'ERR',
                     message: 'The user is not defined!'
                 })
-                return;
             }
             
             const comparePassword = bcrypt.compareSync(password, checkUser.password)
+
             if (!comparePassword) {
                 resolve({
                     status: 'ERR',
                     message: 'The password or user is wrong!'
                 })
-                return;
             }
 
             const access_token = await generalAccessToken({
                 id: checkUser.id,
-                email: checkUser.email,
                 isAdmin: checkUser.isAdmin
             })
             const refresh_token = await generalRefreshToken({
                 id: checkUser.id,
-                email: checkUser.email,
                 isAdmin: checkUser.isAdmin
             })
-
-
-            console.log('User info:', {
-                id: checkUser.id,
-                email: checkUser.email,
-                isAdmin: checkUser.isAdmin
-            })
-
             resolve({
                 status: 'OK',
                 message: 'SUCCESS',
                 access_token,
-                refresh_token,
-                isAdmin: checkUser.isAdmin
+                refresh_token
             })
         } catch (e) {
             reject(e)
@@ -185,6 +179,3 @@ module.exports = {
 
     
 };
-//  Chuong 1 5 cau
-//Chuong 2 3 moi chuong 6 cau
-// Chuong 4 5 moi chuong 4 cau

@@ -3,10 +3,10 @@ const JWTService = require('../services/JwtService')
 
 const createUser = async (req, res) => {
     try {
-        const { name, email, password, confirmPassword, phone } = req.body
+        const { email, password, confirmPassword } = req.body
         const reg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
         const isCheckEmail = reg.test(email)
-        if (!name || !email || !password || !confirmPassword || !phone) {
+        if (!email || !password || !confirmPassword ) {
             return res.status(400).json({
                 status: 'ERR',
                 message:'The input is required'
@@ -33,32 +33,30 @@ const createUser = async (req, res) => {
 const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body
-
-        // Kiểm tra dữ liệu đầu vào
+        console.log('req.body')
+        const reg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
+        const isCheckEmail = reg.test(email)
+        console.log(email,password)
         if (!email || !password) {
             return res.status(400).json({
                 status: 'ERR',
                 message: 'Email và mật khẩu là bắt buộc'
             })
-        }
-
-        // Kiểm tra email hợp lệ
-        const reg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
-        const isCheckEmail = reg.test(email)
-        if (!isCheckEmail) {
+        } else if (!isCheckEmail) {
             return res.status(400).json({
                 status: 'ERR',
                 message: 'Email không hợp lệ'
             })
         }
-
-        // Gọi service login
-        const response = await UserService.loginUser({
-            email,
-            password
+        const response = await UserService.loginUser(req.body)
+        const {refresh_token, ...newReponse} = response
+        // console.log('response',response)
+        res.cookie('refresh_token', refresh_token, {
+            httpOnly: true,
+            secure: false,
+            samesite: 'strict'
         })
-        
-        return res.status(200).json(response)
+        return res.status(200).json(newReponse)
     } catch (e) {
         return res.status(404).json({
             message: e
@@ -129,7 +127,7 @@ const getDetailsUser = async (req, res) => {
 }
 const refreshToken = async (req, res) => {
     try {
-        const token = req.headers.token.split(' ')[1]
+        const token = req.cookies.refresh_token
         if (!token) {
              return res.status(400).json({
                 status: 'ERR',
@@ -138,6 +136,21 @@ const refreshToken = async (req, res) => {
         }
         const response = await JWTService.refreshTokenJWTService(token)
         return res.status(200).json(response)
+        
+    } catch (e) {
+        return res.status(404).json({
+            message: e
+        })
+    }
+}
+const logoutUser = async (req, res) => {
+    try {
+        res.clearCookie('refresh_token')
+        
+        return res.status(200).json({
+            status: 'OK',
+            message:'Logout Successfully'
+        })
     } catch (e) {
         return res.status(404).json({
             message: e
@@ -152,5 +165,6 @@ module.exports = {
     deleteUser,
     getAllUser,
     getDetailsUser,
-    refreshToken
+    refreshToken,
+    logoutUser
 }
