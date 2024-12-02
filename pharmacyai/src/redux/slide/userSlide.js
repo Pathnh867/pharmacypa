@@ -1,10 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit'
 
 const initialState = {
+    id: '',
     name: '',
     email: '',
+    phone: '',
     access_token: '',
-    isAdmin : false
+    isAdmin: false,
+    address: '',
+    city:'',
 }
 
 export const userSlide = createSlice({
@@ -12,12 +16,16 @@ export const userSlide = createSlice({
     initialState,
     reducers: {
         updateUser: (state, action) => {
-            const { name, email, access_token, isAdmin } = action.payload
+            const { _id= '' ,name='', email='', access_token='', isAdmin, city='', phone= '', address='' } = action.payload
             console.log('action', action)
             state.name = name || email;
             state.email = email;
             state.access_token = access_token;
             state.isAdmin = isAdmin;
+            state.city = city;
+            state.phone = phone;
+            state.address = address;
+            state.id= _id
         },
         resetUser: (state) => {
             state.name = '';

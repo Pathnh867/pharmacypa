@@ -18,12 +18,12 @@ const orderSchema = new mongoose.Schema({
         fullName: { type: String, required: true },
         address: { type: String, required: true },
         city: { type: String, required: true },
-        phone: { type:Number, required: true},
+        phone: { type: Number, required: true},
     },
     paymentMethod: { type: String, required: true },
     itemsPrice: { type: Number, required: true },
     shippingPrice: { type: Number, required: true },
-    taxPrice: {type:Number, required: true},
+    taxPrice: {type:Number, required: false},
     totalPrice: {type:Number, required: true},
     user: {type:mongoose.Schema.Types.ObjectId, ref: 'User' ,required: true},
     isPaid: {type: Boolean, default: false},
@@ -32,3 +32,5 @@ const orderSchema = new mongoose.Schema({
     deliverdAt:{type: Date}
     
 })
+const Order = mongoose.model('Order', orderSchema);
+module.exports = Order;

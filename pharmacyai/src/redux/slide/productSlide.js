@@ -5,7 +5,7 @@ const initialState = {
 }
 
 export const productSlide = createSlice({
-  name: 'counter',
+  name: 'product',
   initialState,
   reducers: {
     searchProduct: (state, action) => {

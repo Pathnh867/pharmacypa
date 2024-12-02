@@ -8,10 +8,18 @@ import ButtonComponent from '../ButtonComponents/ButtonComponent'
 import * as ProductService from '../../services/ProductService'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import Loading from '../LoadingComponent/Loading'
+import { useDispatch, useSelector } from 'react-redux'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { addOrderProduct } from '../../redux/slide/orderSlide'
+import { convertPrice } from '../../utils'
 
 
 const ProductDetailComponent = ({ idProduct }) => {
     const [numProduct, setNumProduct] = useState(1)
+    const user = useSelector((state) => state.user)
+    const navigate = useNavigate()
+    const location = useLocation()
+    const dispatch = useDispatch()
     const onChange = (value) => {
         setNumProduct(Number(value))
     }
@@ -38,6 +46,24 @@ const ProductDetailComponent = ({ idProduct }) => {
             return (
                 <StarFilled style={{fontSize: '12px', color:'rgb(235, 216,54)'}} />
             )
+        }
+    }
+    
+    const handleAddOrderProduct = () => {
+        console.log('user', user)
+        if (!user?.name) {
+            navigate('/sign-in', { state: location?.pathname })
+        } else {
+            dispatch(addOrderProduct({
+                orderItem: {
+                    name: productDetails?.name,
+                    amount: numProduct,
+                    image: productDetails?.image,
+                    price: productDetails?.price,
+                    discount: productDetails?.discount,
+                    product: productDetails?._id,
+                }
+            }))
         }
     }
 
@@ -91,7 +117,7 @@ const ProductDetailComponent = ({ idProduct }) => {
                         <WrapperStyleTextSell> Còn Hàng</WrapperStyleTextSell>
                     </div>
                     <WrapperPriceProduct>
-                        <WrapperPriceTextProduct>{productDetails?.price }</WrapperPriceTextProduct>
+                        <WrapperPriceTextProduct>{convertPrice(productDetails?.price) }</WrapperPriceTextProduct>
                     </WrapperPriceProduct>
                     <WrapperAddressProduct>
                         <span>Giao đến </span>
@@ -122,6 +148,7 @@ const ProductDetailComponent = ({ idProduct }) => {
                                 border: 'none',
                                 borderRadius: '4px'
                             }}
+                            onClick={handleAddOrderProduct}
                             textButton={'Mua 1 viên'}
                             styleTextButton={{color:'#fff', fontSize:'15px', fontWeight:'700'}}
                         >

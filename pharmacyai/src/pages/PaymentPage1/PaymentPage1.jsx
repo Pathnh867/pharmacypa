@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { WrapperCountOrder, WrapperInfo, WrapperInfodiv, WrapperInfospan, WrapperItemOrder, WrapperLeft, WrapperListOrder, WrapperPriceDiscount, WrapperRight, WrapperStyleHeader, WrapperTotal } from './style';
-import { Checkbox, Form, message, Modal } from 'antd';
+import { Checkbox, Form, message, Modal, Radio } from 'antd';
 import nuoc1 from '../../assets/img/nuoc1.jpg'
 import {CheckCircleOutlined, DeleteOutlined, MinusOutlined, PlusOutlined, StarFilled} from '@ant-design/icons'
 import { WrapperInputNumber } from '../../components/ProductDetailComponents/style';
@@ -13,9 +13,12 @@ import { useNavigate } from 'react-router-dom';
 import InputComponents from '../../components/InputComponents/InputComponents';
 import { useMutationHooks } from '../../hooks/useMutationHook';
 import * as UserService from '../../services/UserService'
+import * as OrderService from '../../services/OrderService'
+
 import Loading from '../../components/LoadingComponent/Loading';
 import { updateUser } from '../../redux/slide/userSlide';
-const OrderPage = () => {
+const PaymentPage1
+ = () => {
   const order = useSelector((state) => state.order)
   const navigate = useNavigate()
   const user = useSelector((state) => state.user)
@@ -28,41 +31,12 @@ const OrderPage = () => {
     address: '',
     city:''
   })
-
+  const [payment, setPayment] = useState('');
+  const handlePaymentMethodChange = (selectedPayment) => {
+    setPayment(selectedPayment);
+  };
   const [form] = Form.useForm();
   const dispatch = useDispatch()
-  const onChange = (e) => {
-    if (listChecked.includes(e.target.value)) {
-      const newListChecked = listChecked.filter((item) => item !== e.target.value)
-      setListChecked(newListChecked)
-    } else {
-      setListChecked([...listChecked, e.target.value])
-    }
-      
-  };
-  const handleChangeCount = (type, idProduct) => {
-    if (type === 'increase') {
-      dispatch(increaseAmount({ idProduct }))
-    } else {
-      dispatch(decreaseAmount({ idProduct }))
-    }
-  }
-
-  const handleDeleteOder = (idProduct) => {
-    dispatch(removeOrderProduct({idProduct}))
-  }
-  
-  const handleOnchangeCheckAll = (e) => {
-    if (e.target.checked) {
-      const newListChecked = []
-      order?.orderItems?.forEach((item) => {
-        newListChecked.push(item?.product)
-      })
-      setListChecked(newListChecked)
-    } else {
-      setListChecked([])
-    }
-  }
 
   useEffect(() => {
     dispatch(selectedOrder({ listChecked }))
@@ -81,7 +55,7 @@ const OrderPage = () => {
         phone: user?.phone
       })
     }
-  },[isOpenModalUpdateInfo])
+  },[isOpenModalUpdateInfo, user])
   const priceMemo = useMemo(() => {
     const result = order?.ordersItemSelected?.reduce((total, cur) => {
       return total + ((cur.price * cur.amount))
@@ -111,23 +85,42 @@ const OrderPage = () => {
   }, [priceMemo, DeliveryPriceMemo, priceDiscountMemo])
   
 
-  const handleRemoveAllOrder = () => {
-    if (listChecked?.length > 1 ) {
-      dispatch(removeAllOrderProduct({ listChecked }))
+  
+  const handleAddOrder = () => {
+    if (user?.access_token && order?.ordersItemSelected && user?.name && user?.address && user?.phone && user?.city && priceMemo && user?.id) {
+      mutationAddOrder.mutate(
+        {
+          token: user?.access_token, 
+          ordersItem: order?.ordersItemSelected,
+          fullName: user?.name, 
+          address: user?.address, 
+          phone: user?.phone, 
+          city: user?.city,
+          PaymentMethod: payment  ,  // Uncomment this line if 'payment' is defined
+          itemPrice: priceMemo, 
+          shippingPrice: DeliveryPriceMemo, 
+          totalPrice: TotalPriceMemo,
+          user: user?.id
+        },
+        {
+          onSuccess: () => {
+            message.success('Đặt hàng thành công');
+          }
+        }
+      );
     }
   }
+
   const handleAddCard = () => {
-     if (!order?.ordersItemSelected?.length) {
-      message.error('Vui lòng chọn sản phẩm')
-   } else if(!user?.phone || !user.name || !user.address || !user.city) {
-    setIsOpenModalUpdateInfo(true)
-     } else {
-      navigate('/payment',{state:{order, user}})
-    };
-
-   }
+    if (!order?.ordersItemSelected?.length) {
+     message.error('Vui lòng chọn sản phẩm')
+  } else if(!user?.phone || !user.name || !user.address || !user.city) {
+   setIsOpenModalUpdateInfo(true)
+    } else {
+      navigate('/payment')
+  }
+ }
   
-
   const mutationUpdate = useMutationHooks(
     (data) => {
       const { id, token, ...rests } = data
@@ -135,7 +128,15 @@ const OrderPage = () => {
       return res
     }
   )
-  const{isPending, data} = mutationUpdate
+  const mutationAddOrder = useMutationHooks(
+    (data) => {
+      const { token, ...rests } = data
+      const res = OrderService.createOrder( token, {...rests })
+      return res
+    }
+  )
+  const { isPending, data } = mutationUpdate
+  const {isPending: isPendingAddOrder} = mutationAddOrder
   const handleCancelUpdate = () => {
     setStateUserDetails({
       name: '',
@@ -173,47 +174,16 @@ const OrderPage = () => {
         <h3>Giỏ hàng</h3>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <WrapperLeft>
-            <WrapperStyleHeader>
-              <span style={{ display: 'inline-block', width: '390px' }} >
-                <Checkbox onChange={handleOnchangeCheckAll} checked={listChecked?.length === order?.orderItems?.length}></Checkbox>
-                <span> Tất cả ({order?.orderItems?.length} sản phẩm)</span>
-              </span>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>Đơn giá</span>
-                <span>Số lượng</span>
-                <span>Thành tiền</span>
-                <DeleteOutlined style={{cursor:'pointer'}} onClick={handleRemoveAllOrder}/>
-              </div>
-            </WrapperStyleHeader>
-            <WrapperListOrder>
-              {order?.orderItems?.map((order) => {
-                return (
-                        <WrapperItemOrder>
-                        <div style={{ width: '390px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Checkbox onChange={onChange} value={order?.product} checked={listChecked.includes(order?.product)}></Checkbox>
-                          <img src={order?.image} style={{ width: '77px', height: '79px', objectFit: 'cover' }} />
-                          <div style={{width:'260px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}> {order?.name} </div>
-                        </div>
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span>
-                              <span style={{ fontSize: '13px', color: '#242424' }}>{convertPrice(order?.price) }</span>
-                          </span>
-                          <WrapperCountOrder>
-                            <button style={{ border: 'none', background: 'transparent', cursor: 'pointer' }} onClick={() => handleChangeCount('decrease', order?.product)}>
-                              <MinusOutlined style={{color:'#000',fontSize:'10px'}}/>
-                            </button>
-                              <WrapperInputNumber defaultValue={order?.amount} value={order?.amount} size="small" />
-                            <button style={{ border: 'none', background: 'transparent', cursor: 'pointer' }} onClick={() => handleChangeCount('increase', order?.product)}>
-                              <PlusOutlined style={{color:'#000',fontSize:'10px'}}/>
-                            </button>
-                          </WrapperCountOrder>
-                      <span style={{ color: 'rgb(255, 66, 78)', fontSize: '13px', fontWeight: 500 }}>{convertPrice(order?.price * order?.amount).replace('/hộp',' ')}</span>
-                      <DeleteOutlined style={{ cursor: 'pointer' }} onClick={() => handleDeleteOder(order?.product)} />
-                        </div>
-                      </WrapperItemOrder>
-               )
-              })}
-            </WrapperListOrder>
+          <Form.Item label="Phương thức thanh toán">
+                <Radio.Group 
+                  onChange={(e) => handlePaymentMethodChange(e.target.value)}
+                  value={payment}
+                >
+                  <Radio value="COD">Thanh toán khi nhận hàng</Radio>
+                  <Radio value="Banking">Chuyển khoản ngân hàng</Radio>
+                  <Radio value="Momo">Ví điện tử Momo</Radio>
+              </Radio.Group>
+            </Form.Item>
           </WrapperLeft>
           <WrapperRight>
             <div style={{width:'100%'}}>
@@ -242,7 +212,7 @@ const OrderPage = () => {
               </WrapperTotal>
             </div>
             <ButtonComponent
-              onClick={() => handleAddCard()}
+              onClick={() => handleAddOrder()}
               size={40}
               styleButton={{
                 background: '#4cb551',
@@ -305,4 +275,4 @@ const OrderPage = () => {
   )
 }
 
-export default OrderPage
+export default PaymentPage1

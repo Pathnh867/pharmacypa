@@ -2,7 +2,7 @@ const Product = require("../models/ProductModel")
 
 const createProduct = (newProduct) => {
     return new Promise(async (resolve, reject) => {
-        const { name, image, type, price, countInStock, rating, description} = newProduct
+        const { name, image, type, price, countInStock, rating, description, discount} = newProduct
         try {
             const checkProduct = await Product.findOne({
                 name: name
@@ -21,7 +21,8 @@ const createProduct = (newProduct) => {
                 price,
                 countInStock,
                 rating,
-                description
+                description,
+                discount
             });
             if (createdProduct) {
                 resolve({
@@ -117,8 +118,14 @@ const getAllProduct = (limit, page, sort, filter) => {
                 return; // Thêm return để tránh thực hiện code phía dưới
             }
             
+            if (!limit) {
+                allProduct= await Product.find()
+            } else {
+                allProduct = await Product.find().limit(limit).skip(page * limit)
+
+            }
+
             // Trường hợp mặc định (không có sort và filter)
-            const allProduct = await Product.find().limit(limit).skip(page * limit)
             resolve({
                 status: 'OK',
                 message: 'Success',
@@ -158,12 +165,28 @@ const getdetailsProduct = (id) => {
         }
     });
 };
+const getAllType = () => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            
+            const allType = await Product.distinct("type")
+            resolve({
+                    status: 'OK',
+                    message: 'Success',
+                    data: allType
+                });
+        } catch (e) {
+            reject(e);
+             }
+    });
+};
 module.exports = {
     createProduct,
     updateProduct,
     getdetailsProduct,
     deleteProduct,
-    getAllProduct
+    getAllProduct,
+    getAllType
 };
 //  Chuong 1 5 cau
 //Chuong 2 3 moi chuong 6 cau
