@@ -17,6 +17,7 @@ const SignInPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const dispatch = useDispatch();
+  const [errorMessage, setErrorMessage] = useState('');
   
   const navigate = useNavigate()
   const mutation = useMutationHooks(
@@ -64,12 +65,19 @@ const SignInPage = () => {
       navigate('/sign-up')
     }
   const handleSignIn = () => {
-      mutation.mutate({
+    setErrorMessage('');
+    mutation.mutate({
         email,
         password
       })
     console.log('sign-in', email, password)
   }
+  useEffect(() => {
+    if (data?.status === 'ERR') {
+      setErrorMessage(data?.message || 'Đăng nhập thất bại, vui lòng thử lại');
+    }
+  }, [data]);
+
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.53)', height: '100vh' }}>
         <div style={{ width: '413px', height: '300px', borderRadius: '6px', background: '#fff', display: 'flex' }}>

@@ -122,7 +122,7 @@ const OrderPage = () => {
    } else if(!user?.phone || !user.name || !user.address || !user.city) {
     setIsOpenModalUpdateInfo(true)
      } else {
-      navigate('/payment',{state:{order, user}})
+      navigate('/payment',{state:{order, user,listChecked}})
     };
 
    }

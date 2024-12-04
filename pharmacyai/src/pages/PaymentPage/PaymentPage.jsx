@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Label, WrapperCountOrder, WrapperInfo, WrapperInfodiv, WrapperInfospan, WrapperItemOrder, WrapperLeft, WrapperListOrder, WrapperRadio, WrapperRight, WrapperStyleHeader, WrapperTotal } from './style';
-import { Checkbox, Form, message, Modal, Radio } from 'antd';
+import { Button, Checkbox, Form, message, Modal, Radio } from 'antd';
 import { DeleteOutlined, MinusOutlined, PlusOutlined, } from '@ant-design/icons'
 import { WrapperInputNumber } from '../../components/ProductDetailComponents/style';
 import { increaseAmount, decreaseAmount, removeOrderProduct, removeAllOrderProduct, selectedOrder } from '../../redux/slide/orderSlide';
@@ -13,13 +13,16 @@ import InputComponents from '../../components/InputComponents/InputComponents';
 import { useMutationHooks } from '../../hooks/useMutationHook';
 import * as UserService from '../../services/UserService'
 import * as OrderService from '../../services/OrderService'
+import * as PaymentService from '../../services/PaymentService'
 import Loading from '../../components/LoadingComponent/Loading';
 import { updateUser } from '../../redux/slide/userSlide';
+import { PayPalButton } from 'react-paypal-button-v2';
 const PaymentPage = () => {
   const location = useLocation()
   const { order, user } = location.state
   const [payment, setPayment] = useState('later_money');
   const navigate = useNavigate()
+  const [sdkReady, setSdkReady] = useState(false)
   console.log('user', user)
   const [isOpenModalUpdateInfo, setIsOpenModalUpdateInfo] = useState(false)
   const [listChecked, setListChecked] = useState([])
@@ -107,6 +110,27 @@ const PaymentPage = () => {
       return res
     }
   )
+  console.log('order', order)
+  const showConfirmationModal = () => {
+    const modal = Modal.info({
+      title: 'Đặt hàng thành công!',
+      content: (
+        <div>
+          <p>Cửa hàng xin chân thành cảm ơn bạn <strong>{user?.name}</strong></p>
+          <p>Cảm ơn bạn đã mua hàng! Bạn sẽ được chuyển đến trang chủ.</p>
+        </div>
+      ),
+      footer: [
+        <Button key="ok" type="primary" onClick={() => {
+          modal.destroy();  // Đóng modal
+          navigate('/');     // Chuyển hướng về trang chủ
+        }}>
+          OK
+        </Button>
+      ]
+    });
+  };
+
   const handleAddOrder = () => {
     if (user?.access_token && order?.ordersItemSelected && user?.name && user?.address && user?.phone && user?.city && priceMemo && user?.id) {
       mutationAddOrder.mutate(
@@ -121,11 +145,13 @@ const PaymentPage = () => {
           itemsPrice: priceMemo, 
           shippingPrice: DeliveryPriceMemo, 
           totalPrice: TotalPriceMemo,
-          user: user?.id
+          user: user?.id,
+          email: user?.email
         },
         {
           onSuccess: () => {
-            message.success('Đặt hàng thành công');
+            showConfirmationModal();
+            dispatch(removeAllOrderProduct());
           }
         }
       );
@@ -155,6 +181,26 @@ const PaymentPage = () => {
     }
   }
 
+  const onSuccessPaypal = (details, data) => {
+    mutationAddOrder.mutate(
+      {
+        token: user?.access_token, 
+        orderItems: order?.ordersItemSelected,
+        fullName: user?.name, 
+        address: user?.address, 
+        phone: user?.phone, 
+        city: user?.city,
+        paymentMethod: payment ,  // Uncomment this line if 'payment' is defined
+        itemsPrice: priceMemo, 
+        shippingPrice: DeliveryPriceMemo, 
+        totalPrice: TotalPriceMemo,
+        user: user?.id,
+        isPaid: true,
+        paidAt: details.update_time
+      })
+    console.log('details, data', details, data)
+  }
+
   const handleOnchangeDetails = (e) => {
     setStateUserDetails({
       ...stateUserDetails,
@@ -167,6 +213,28 @@ const PaymentPage = () => {
 
   }
 
+  const addPaypalScript = async () => {
+    const { data } = await PaymentService.getConfig()
+    const script = document.createElement('script')
+    script.type = 'text/javascript'
+    script.src = `https://www.paypal.com/sdk/js?client-id=${data}`
+    script.async = true;
+    script.onload = () => {
+      setSdkReady(true)
+    }
+    document.body.appendChild(script)
+  }
+
+  useEffect(() => {
+    if (!window.paypal) {
+      addPaypalScript()
+    
+    } else {
+      setSdkReady(true)
+    }
+      
+  }, [])
+  const paypalAmount = Number((TotalPriceMemo / 30000).toFixed(2));
   return (
     <div style={{ background: '#f5f5fa', width: '100%', height: '100vh' }}>
       <div style={{ height: '100vh', width: '100%', margin: '0 auto' }}>
@@ -207,21 +275,30 @@ const PaymentPage = () => {
                 </span>
               </WrapperTotal>
             </div>
-            <ButtonComponent
-              onClick={() => handleAddOrder()}
-              size={40}
-              styleButton={{
-                background: '#4cb551',
-                height: '48px',
-                width: '310px',
-                border: 'none',
-                borderRadius: '4px',
-                marginTop: '20px'
-              }}
-              textButton={'Đặt hàng'}
-              styleTextButton={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}
-            >
-            </ButtonComponent>
+              {payment === 'paypal' && sdkReady ? (
+              <div style={{width: '320px'}}>
+                <PayPalButton
+                  amount={paypalAmount}
+                  // shippingPreference="NO_SHIPPING" // default is "GET_FROM_FILE"
+                  onSuccess={onSuccessPaypal}
+                />
+              
+              </div>
+              ):(<ButtonComponent
+                onClick={() => handleAddOrder()}
+                size={40}
+                styleButton={{
+                  background: '#4cb551',
+                  height: '48px',
+                  width: '310px',
+                  border: 'none',
+                  borderRadius: '4px',
+                  marginTop: '20px'
+                }}
+                textButton={'Đặt hàng'}
+                styleTextButton={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}
+              >
+              </ButtonComponent>)}
           </WrapperRight>
         </div>
       </div>

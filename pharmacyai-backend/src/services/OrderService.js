@@ -2,7 +2,7 @@ const Order = require("../models/OrderProduct")
 
 const createOrder = (newOrder) => {
     return new Promise(async (resolve, reject) => {
-        const { orderItems, fullName, address, city, phone, itemsPrice, shippingPrice, totalPrice,paymentMethod, user} = newOrder;
+        const { orderItems, fullName, address, city, phone, itemsPrice, shippingPrice, totalPrice,paymentMethod, user,} = newOrder;
         try {
             
             const createdOrder = await Order.create({
@@ -17,7 +17,7 @@ const createOrder = (newOrder) => {
                 itemsPrice,
                 shippingPrice,
                 totalPrice,
-                user: user
+                user: user,
             });
             if (createdOrder) { resolve({
                 status: 'OK',
