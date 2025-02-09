@@ -53,9 +53,9 @@ const loginUser = async (req, res) => {
         // console.log('response',response)
         res.cookie('refresh_token', refresh_token, {
             httpOnly: true,
-            secure: true, // Bắt buộc phải TRUE khi dùng HTTPS
-            sameSite: "none", // Cho phép cookie hoạt động cross-origin
-            path: "/",
+            secure: false,
+            samesite: 'strict',
+            path: '/',
         })
         return res.status(200).json(...newReponse, refresh_token)
     } catch (e) {
