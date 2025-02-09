@@ -12,7 +12,7 @@ const port = process.env.PORT || 3001
 
 app.use(
     cors({
-      origin: "https://pharmacypa-r9v240nkt-pattys-projects-8a070dff.vercel.app", // Chỉ cho phép frontend gọi API
+      origin: "https://pharmacypa.vercel.app/sign-in", // Chỉ cho phép frontend gọi API
       credentials: true, // Quan trọng: Cho phép gửi cookie kèm request
       methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Các phương thức API được phép
       allowedHeaders: "Content-Type,Authorization", // Cho phép headers cần thiết
