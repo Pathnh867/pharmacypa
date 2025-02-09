@@ -12,7 +12,7 @@ const port = process.env.PORT || 3001
 
 app.use(
     cors({
-      origin: "*", // Chỉ cho phép frontend gọi API
+      origin: "https://pharmacypa.vercel.app", // Chỉ cho phép frontend gọi API
       credentials: true, // Quan trọng: Cho phép gửi cookie kèm request
       methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Các phương thức API được phép
       allowedHeaders: "Content-Type,Authorization", // Cho phép headers cần thiết
