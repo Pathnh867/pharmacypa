@@ -56,6 +56,7 @@ const loginUser = async (req, res) => {
             secure: false,
             samesite: 'strict',
             path: '/',
+            domain: "pharmacypa.onrender.com"
         })
         return res.status(200).json(...newReponse, refresh_token)
     } catch (e) {

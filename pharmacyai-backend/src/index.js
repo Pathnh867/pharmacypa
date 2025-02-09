@@ -10,12 +10,16 @@ dotenv.config()
 const app = express()
 const port = process.env.PORT || 3001
 
-app.use(cors())
+app.use(
+    cors({
+      origin: "https://pharmacypa.vercel.app/", // Thay bằng domain frontend của bạn
+      credentials: true, // Quan trọng: Cho phép cookie được gửi kèm
+    })
+  );
 app.use(bodyParser.json())
 app.use(cookieParser())
 app.use(express.json({limit: '50mb'}));
-app.use(express.urlencoded({limit: '50mb'}));
-
+app.use(express.urlencoded({ limit: '50mb' }));
 routes(app);
 
 mongoose.connect(`${process.env.MONGO_DB}`)
