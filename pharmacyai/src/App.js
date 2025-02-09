@@ -24,7 +24,7 @@ function App() {
   }, [])
 
   const handleDecode = () => {
-    let storageData = localStorage.getItem('access_token')
+    let storageData = user?.access_token || localStorage.getItem('access_token')
     let decode = {}
     if (storageData && isJsonString(storageData)) {
       storageData = JSON.parse(storageData)
@@ -37,9 +37,17 @@ function App() {
 UserService.axiosJWT.interceptors.request.use(async (config) => {
     const currentTime = new Date()
     const { decode } = handleDecode()
+    let storageRefreshToken = localStorage.getItem('refresh_token')
+    const refreshToken = JSON.parse(storageRefreshToken)
+    const decodeRefreshToken = jwtDecode(refreshToken)
     if (decode?.exp < currentTime.getTime() / 1000) {
-      const data = await UserService.refreshToken()
-      config.headers['token'] = `Bearer ${data?.access_token}`
+      if (decodeRefreshToken?.exp > currentTime.getTime() / 1000) {
+        const data = await UserService.refreshToken(refreshToken)
+        config.headers['token'] = `Bearer ${data?.access_token}`
+      } else {
+        dispatch(updateUser())
+      }
+      
     }
     return config;
   },(err) => {
@@ -48,9 +56,11 @@ UserService.axiosJWT.interceptors.request.use(async (config) => {
 
 
   
-const handlegetDetailsUser = async (id, token) => {
+  const handlegetDetailsUser = async (id, token) => {
+    let storageRefreshToken = localStorage.getItem('refresh_token')
+    const refreshToken = JSON.parse(storageRefreshToken)
     const res = await UserService.getDetailsUser(id, token)
-    dispatch(updateUser({ ...res?.data, access_token: token }))
+    dispatch(updateUser({ ...res?.data, access_token: token, refreshToken: refreshToken }))
     
 }
   

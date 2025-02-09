@@ -26,16 +26,16 @@ const SignInPage = () => {
   const { data, isPending, isSuccess } = mutation
 
   useEffect(() => {
-    console.log('location', location)
     
     if (isSuccess) {
       if (location?.state) {
        navigate(location?.state)
       } else {
         navigate('/');
-     }
-     if (isSuccess && data?.access_token) {
-      localStorage.setItem('access_token', JSON.stringify(data.access_token));
+      }
+      localStorage.setItem('access_token', JSON.stringify(data?.access_token));
+      localStorage.setItem('refresh_token', JSON.stringify(data?.refresh_token));
+     if (data?.access_token) {
       const decode = jwtDecode(data.access_token);
       if (decode?.id) {
         handlegetDetailsUser(decode.id, data.access_token);
@@ -45,14 +45,10 @@ const SignInPage = () => {
   }, [isSuccess, data])
   
   const handlegetDetailsUser = async (id, token) => {
-    try {
-      const res = await UserService.getDetailsUser(id, token);
-      dispatch(updateUser({ ...res?.data, access_token: token }));
-      
-    } catch (error) {
-      console.error('Error fetching user details:', error);
-    }
-    
+    const storage = localStorage.getItem('refresh_token')
+    const refreshToken = JSON.parse(storage)
+    const res = await UserService.getDetailsUser(id, token)
+    dispatch(updateUser({ ...res?.data, access_token: token, refreshToken}))
   }
   console.log('mutation', mutation)
   const handleOnchangeEmail = (value) => {
