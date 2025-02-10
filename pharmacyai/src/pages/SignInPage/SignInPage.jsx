@@ -36,9 +36,9 @@ const SignInPage = () => {
       localStorage.setItem('access_token', JSON.stringify(data?.access_token));
       localStorage.setItem('refresh_token', JSON.stringify(data?.refresh_token));
      if (data?.access_token) {
-      const decode = jwtDecode(data.access_token);
+      const decode = jwtDecode(data?.access_token);
       if (decode?.id) {
-        handlegetDetailsUser(decode.id, data.access_token);
+        handlegetDetailsUser(decode?.id, data?.access_token);
       }
     }
     }

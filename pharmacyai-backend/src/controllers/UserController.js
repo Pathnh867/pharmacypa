@@ -57,7 +57,7 @@ const loginUser = async (req, res) => {
             samesite: 'strict',
             path: '/',
         })
-        return res.status(200).json(...newReponse, refresh_token)
+        return res.status(200).json({...newReponse, refresh_token})
     } catch (e) {
         return res.status(404).json({
             message: e
