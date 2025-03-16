@@ -534,21 +534,45 @@ const AdminUser = () => {
               <InputComponents value={stateUserDetails.address} onChange={handleOnchangeDetails} name="address" />
             </Form.Item>
 
-            <Form.Item
-                label="Quyền hạn"
-                name="isAdmin"
-              >
-                <Radio.Group 
-                  value={stateUserDetails.isAdmin ? "admin" : "user"}
-                  onChange={(e) => {
-                    console.log('Radio changed:', e.target.value);
-                    handleChangeSelectDetails(e.target.value);
-                  }}
-                >
-                  <Radio value="user">Người dùng</Radio>
-                  <Radio value="admin">Quản trị viên</Radio>
-                </Radio.Group>
-              </Form.Item>
+            <Form.Item label="Quyền hạn" name="isAdmin">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div>
+                  <input 
+                    type="radio" 
+                    id="user-role" 
+                    name="role-radio" 
+                    checked={!stateUserDetails.isAdmin} 
+                    onChange={() => {
+                      console.log('Setting isAdmin to false');
+                      setStateUserDetails({
+                        ...stateUserDetails,
+                        isAdmin: false
+                      });
+                    }}
+                    style={{ marginRight: '8px' }}
+                  />
+                  <label htmlFor="user-role">Người dùng</label>
+                </div>
+                
+                <div>
+                  <input 
+                    type="radio" 
+                    id="admin-role" 
+                    name="role-radio" 
+                    checked={stateUserDetails.isAdmin} 
+                    onChange={() => {
+                      console.log('Setting isAdmin to true');
+                      setStateUserDetails({
+                        ...stateUserDetails,
+                        isAdmin: true
+                      });
+                    }}
+                    style={{ marginRight: '8px' }}
+                  />
+                  <label htmlFor="admin-role">Quản trị viên</label>
+                </div>
+              </div>
+            </Form.Item>
 
             <Form.Item
               label="Hình ảnh"
