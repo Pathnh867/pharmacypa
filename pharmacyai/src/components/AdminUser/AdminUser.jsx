@@ -71,7 +71,7 @@ const AdminUser = () => {
 
   // Lấy tất cả người dùng
   const getAllUsers = async () => {
-    const res = await UserService.getAllUser()
+    const res = await UserService.getAllUser(user?.access_token)
     return res
   }
 
@@ -318,11 +318,16 @@ const AdminUser = () => {
 
   // Submit form cập nhật
   const onUpdateUser = () => {
-    mutationUpdate.mutate({ id: rowSelected, token: user?.access_token, ...stateUserDetails }, {
-      onSettled: () => {
-        queryUsers.refetch()
-      }
-    })
+    // Chuẩn bị dữ liệu trước khi gửi
+    const dataToUpdate = {
+      ...stateUserDetails,
+      phone: stateUserDetails.phone ? String(stateUserDetails.phone) : undefined
+    };
+    
+    // Xóa các trường không cần thiết
+    delete dataToUpdate.refresh_token;
+    
+    mutationUpdate.mutate({ id: rowSelected, token: user?.access_token, ...dataToUpdate });
   }
 
   return (
@@ -600,10 +605,6 @@ const AdminUser = () => {
             <Button 
               type="primary"
               htmlType="submit" 
-              onClick={() => {
-                console.log('Form values:', form.getFieldsValue());
-                console.log('State user details:', stateUserDetails);
-              }}
             >
               Cập nhật
             </Button>
