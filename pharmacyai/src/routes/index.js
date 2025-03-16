@@ -8,6 +8,7 @@ import SignUpPage from "../pages/SignUpPage/SignUpPage";
 import ProductDetailPage from "../pages/ProductDetailPage/ProductDetailPage";
 import AdminPage from "../pages/AdminPage/AdminPage";
 import PaymentPage from "../pages/PaymentPage/PaymentPage";
+import ProfilePage from "../pages/Profile/ProfilePage";
 // import PaymentPage from "../pages/Payment/PaymentPage";
 
 export const routes = [
@@ -63,5 +64,10 @@ export const routes = [
         path: '*',
         page: NotFoundPage
     },
-
+    {
+        path: '/profile-user',
+        page: ProfilePage,
+        isShowHeader: true,
+        
+    },
 ]
