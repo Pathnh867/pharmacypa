@@ -463,22 +463,34 @@ const AdminUser = () => {
               label="Hình ảnh"
               name="avatar"
             >
-              <WrapperUploadFile onChange={handleOnchangeAvatar} maxCount={1}>
-                <Button>Chọn ảnh</Button>
-                {stateUser?.avatar && (
-                  <img 
-                    src={stateUser?.avatar} 
-                    style={{
-                      height: '60px',
-                      width: '60px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      marginLeft: '10px'
-                    }} 
-                    alt="avatar" 
-                  />
-                )}
-              </WrapperUploadFile>
+              <WrapperUploadFile 
+                  onChange={handleOnchangeAvatar} 
+                  maxCount={1}
+                  customRequest={({ onSuccess }) => setTimeout(() => onSuccess("ok"), 0)} // Ngăn upload tự động
+                  beforeUpload={(file) => {
+                    const isImage = file.type.startsWith('image/');
+                    if (!isImage) {
+                      message.error('Bạn chỉ có thể tải lên file hình ảnh!');
+                      return false;
+                    }
+                    return true;
+                  }}
+                >
+                  <Button>Chọn ảnh</Button>
+                  {stateUser?.avatar && (
+                    <img 
+                      src={stateUser?.avatar} 
+                      style={{
+                        height: '60px',
+                        width: '60px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        marginLeft: '10px'
+                      }} 
+                      alt="avatar" 
+                    />
+                  )}
+                </WrapperUploadFile>
             </Form.Item>
 
             <Form.Item wrapperCol={{ offset: 20, span: 16 }}>
@@ -583,22 +595,34 @@ const AdminUser = () => {
               label="Hình ảnh"
               name="avatar"
             >
-              <WrapperUploadFile onChange={handleOnchangeAvatarDetails} maxCount={1}>
-                <Button>Chọn ảnh</Button>
-                {stateUserDetails?.avatar && (
-                  <img 
-                    src={stateUserDetails?.avatar} 
-                    style={{
-                      height: '60px',
-                      width: '60px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      marginLeft: '10px'
-                    }} 
-                    alt="avatar" 
-                  />
-                )}
-              </WrapperUploadFile>
+              <WrapperUploadFile 
+                  onChange={handleOnchangeAvatarDetails} 
+                  maxCount={1}
+                  customRequest={({ onSuccess }) => setTimeout(() => onSuccess("ok"), 0)} // Ngăn upload tự động
+                  beforeUpload={(file) => {
+                    const isImage = file.type.startsWith('image/');
+                    if (!isImage) {
+                      message.error('Bạn chỉ có thể tải lên file hình ảnh!');
+                      return false;
+                    }
+                    return true;
+                  }}
+                >
+                  <Button>Chọn ảnh</Button>
+                  {stateUserDetails?.avatar && (
+                    <img 
+                      src={stateUserDetails?.avatar} 
+                      style={{
+                        height: '60px',
+                        width: '60px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        marginLeft: '10px'
+                      }} 
+                      alt="avatar" 
+                    />
+                  )}
+                </WrapperUploadFile>
             </Form.Item>
 
             <Form.Item wrapperCol={{ offset: 20, span: 16 }}>
