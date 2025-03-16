@@ -1,5 +1,5 @@
 import { Badge, Col, Input, Popover } from 'antd'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { WrapperHeader, WrapperTextHeader, WrapperHeaderAccount, WrapperTextCart, WrapperHeaderCart, WrapperTextHeaderSmall, WrapperContentPopup } from './style'
 import { UserOutlined, DownCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import ButtonInputSearch from '../ButtonInputSearch/ButtonInputSearch'
@@ -17,6 +17,7 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   const navigate = useNavigate()
   const user = useSelector((state) => state.user)
   const dispatch = useDispatch()
+  const [userName, setUserName] = userState('')
   const order = useSelector((state) => state.order)
   const [search, setSearch] = useState('')
   const handleNavigateLogin = () => {
@@ -30,6 +31,10 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
     dispatch(resetUser())
     
   }
+
+  useEffect(() => {
+    setUserName(user?.name)
+  }, [user?.name])
   const content = (
     <div>
       <WrapperContentPopup onClick={handleLogout}> Đăng xuất </WrapperContentPopup>
@@ -49,7 +54,7 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
     <div style={{width:'100%',background:'#4cb551' , display:'flex', justifyContent:'center',}}>
         <WrapperHeader style={{ justifyContent: isHiddenCart && isHiddenSearch ? 'space-between' : 'unset'}} >
             <Col span={5}>
-                <WrapperTextHeader>SMART PHARMACY</WrapperTextHeader>
+                <WrapperTextHeader>NHÀ THUỐC TIỆN LỢI</WrapperTextHeader>
             </Col>
             {!isHiddenSearch && (
               
@@ -69,10 +74,10 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
                   <Loading isPending={isPending}>
                     <WrapperHeaderAccount>
                       <UserOutlined style={{fontSize: '30px'}}/>
-                      {user?.name ? (
+                      {user?.access_token ? (
                         <>
                           <Popover content = {content} trigger="click" >
-                            <div style={{cursor: 'pointer'}}>{user.name}</div>
+                            <div style={{cursor: 'pointer'}}>{userName?.length ? userName : user?.email}</div>
                           </Popover>
                         </>
                       ) : (
