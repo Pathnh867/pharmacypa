@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { WrapperContentProfile, WrapperHeader, WrapperInput, WrapperLabel } from './style'
+import { WrapperContentProfile, WrapperHeader, WrapperInput, WrapperLabel, WrapperUploadFile } from './style'
 import InputForm from '../../components/InputForm/InputForm'
 import ButtonComponent from '../../components/ButtonComponents/ButtonComponent'
 import * as UserService from '../../services/UserService'
@@ -7,6 +7,9 @@ import { useMutationHooks } from '../../hooks/useMutationHook'
 import * as message from '../../components/Message/Message'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateUser } from '../../redux/slide/userSlide'
+import { Button, Upload } from 'antd'
+import {UploadOutlined } from '@ant-design/icons'
+import { getBase64 } from '../../utils'
 const ProfilePage = () => {
     const [email, setEmail] = useState('')
     const [name, setName] = useState('')
@@ -60,8 +63,12 @@ const ProfilePage = () => {
         setAddress(value)
     }
 
-    const handleOnchangeAvatar = (value) => {
-        setAvatar(value)
+    const handleOnchangeAvatar = async ({ filelist }) => {
+        const file = filelist[0]
+        if (!file.url && !file.preview) {
+            file.preview = await getBase64(file.originFileObj)
+        }
+        setAvatar(file.preview)
     }
 
     const handleUpdate = () => {
@@ -147,7 +154,18 @@ const ProfilePage = () => {
                 </WrapperInput>
                 <WrapperInput>
                     <WrapperLabel htmlFor='avatar'>Hình đại diện</WrapperLabel>
-                    <InputForm style={{ width: '300px' }} id="avatar" value={avatar} onChange={handleOnchangeAvatar} />
+                    <WrapperUploadFile onChange={handleOnchangeAvatar} maxCount = {1}> 
+                        <Button icon={<UploadOutlined />}> Chọn ảnh </Button>
+                    </WrapperUploadFile>
+                    {avatar && (
+                        <img src={avatar} style={{
+                            height: '60px',
+                            width: '60px',
+                            borderRadius: '50px',
+                            objectFit:'cover'
+                        }} alt="avatar"/>
+                    )}
+                    {/* <InputForm style={{ width: '300px' }} id="avatar" value={avatar} onChange={handleOnchangeAvatar} /> */}
                     <ButtonComponent
                             onClick={handleUpdate}
                             size={40}

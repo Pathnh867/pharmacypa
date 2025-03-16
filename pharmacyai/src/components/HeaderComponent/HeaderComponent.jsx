@@ -18,6 +18,7 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   const user = useSelector((state) => state.user)
   const dispatch = useDispatch()
   const [userName, setUserName] = useState('')
+  const [userAvatar, setUserAvatar] = useState('')
   const order = useSelector((state) => state.order)
   const [search, setSearch] = useState('')
   const handleNavigateLogin = () => {
@@ -34,7 +35,8 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
 
   useEffect(() => {
     setUserName(user?.name)
-  }, [user?.name])
+    setUserAvatar(user?.avatar)
+  }, [user?.name, user?.avatar])
   const content = (
     <div>
       <WrapperContentPopup onClick={handleLogout}> Đăng xuất </WrapperContentPopup>
@@ -73,7 +75,17 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
             <Col span={6} style={{display: 'flex', gap: '54px', alignItems: 'center'}}>
                   <Loading isPending={isPending}>
                     <WrapperHeaderAccount>
-                      <UserOutlined style={{fontSize: '30px'}}/>
+                      {userAvatar ?(
+                        <img src={userAvatar} alt="avatar" style={{
+                          height: '30px',
+                          width: '30px',
+                          borderRadius: '50px',
+                          objectFit:'cover'
+                      }} />
+                      ): (
+                        <UserOutlined style={{fontSize: '30px'}}/>
+                      )}
+                      
                       {user?.access_token ? (
                         <>
                           <Popover content = {content} trigger="click" >
