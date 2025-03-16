@@ -132,10 +132,22 @@ const AdminProduct = () => {
       </div>
     )
   }
-  const getTypeName = (typeId) => {
-    const foundType = typeProduct?.data?.data?.find(type => type._id === typeId);
-    return foundType ? foundType.name : typeId;
-  }
+  const getTypeName = (type) => {
+    // Nếu type là một đối tượng với thuộc tính name, trả về name
+    if (type && typeof type === 'object' && type.name) {
+      return type.name;
+    }
+    
+    // Nếu type là một ID (string), tìm trong danh sách types
+    if (typeof type === 'string') {
+      const foundType = typeProduct?.data?.data?.find(t => t._id === type);
+      return foundType ? foundType.name : type;
+    }
+    
+    // Trường hợp khác, trả về giá trị an toàn
+    return String(type || '') || 'Không xác định';
+  };
+  
   console.log('type', typeProduct)
   const columns = [
         {
@@ -379,6 +391,27 @@ const AdminProduct = () => {
       message.error('Tạo loại sản phẩm mới thất bại');
     }
   }
+  const handleAddTypeDetails = async () => {
+    try {
+      if (stateProductDetails.type) {
+        // Gọi API tạo Type mới
+        const res = await ProductService.createType({ name: stateProductDetails.type });
+        if (res.status === 'OK') {
+          // Cập nhật lại giá trị type trong form details bằng ID vừa tạo
+          setStateProductDetails({
+            ...stateProductDetails,
+            type: res.data._id
+          });
+          // Refresh danh sách Type
+          typeProduct.refetch();
+          message.success('Tạo loại sản phẩm mới thành công');
+          setTypeSelect(''); // Đóng ô input
+        }
+      }
+    } catch (error) {
+      message.error('Tạo loại sản phẩm mới thất bại');
+    }
+  }
 
   return (
       <div>
@@ -532,7 +565,7 @@ const AdminProduct = () => {
                                     name="type" 
                                     placeholder="Nhập tên loại mới"
                                   /> 
-                                  <Button onClick={handleAddType}>Tạo loại mới</Button>
+                                  <Button onClick={handleAddTypeDetails}>Tạo loại mới</Button>
                                 </div>
                               )}
                           </Form.Item>
