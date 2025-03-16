@@ -318,36 +318,45 @@ const AdminUser = () => {
   }
 
   // Submit form cập nhật
-  const onUpdateUser = () => {
-    // Chuẩn bị dữ liệu...
-    
-    mutationUpdate.mutate(
-      { id: rowSelected, token: user?.access_token, ...dataToUpdate },
-      {
-        onSuccess: (data) => {
-          message.success('Cập nhật thành công!');
-          
-          // Cập nhật cache
-          queryClient.setQueryData(['users'], (oldData) => {
-            if (!oldData || !oldData.data) return oldData;
-            
-            return {
-              ...oldData,
-              data: oldData.data.map(item => 
-                item._id === rowSelected ? { ...item, ...dataToUpdate } : item
-              )
-            };
-          });
-          
-          // Đóng drawer
-          handleCloseDrawer();
-        },
-        onError: (error) => {
-          // Xử lý lỗi...
-        }
-      }
-    );
+  // Submit form cập nhật
+const onUpdateUser = () => {
+  // Chuẩn bị dữ liệu trước khi gửi
+  const dataToUpdate = {
+    ...stateUserDetails,
+    phone: stateUserDetails.phone ? String(stateUserDetails.phone) : undefined
   };
+  
+  // Xóa các trường không cần thiết
+  delete dataToUpdate.refresh_token;
+  
+  mutationUpdate.mutate(
+    { id: rowSelected, token: user?.access_token, ...dataToUpdate },
+    {
+      onSuccess: (data) => {
+        message.success('Cập nhật thành công!');
+        
+        // Cập nhật cache
+        queryClient.setQueryData(['users'], (oldData) => {
+          if (!oldData || !oldData.data) return oldData;
+          
+          return {
+            ...oldData,
+            data: oldData.data.map(item => 
+              item._id === rowSelected ? { ...item, ...dataToUpdate } : item
+            )
+          };
+        });
+        
+        // Đóng drawer
+        handleCloseDrawer();
+      },
+      onError: (error) => {
+        console.error('Update error:', error);
+        message.error('Lỗi khi cập nhật: ' + (error.message || 'Không rõ lỗi'));
+      }
+    }
+  );
+};
   
 
 
