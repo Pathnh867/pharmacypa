@@ -46,7 +46,7 @@ const AdminUser = () => {
   const mutation = useMutationHooks(
     (data) => {
       const { name, email, password, phone, address, avatar, isAdmin } = data
-      const res = UserService.createUser({ name, email, password, phone, address, avatar, isAdmin })
+      const res = UserService.signupUser({ name, email, password, phone, address, avatar, isAdmin })
       return res
     }
   )
