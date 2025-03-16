@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { WrapperContentProfile, WrapperHeader, WrapperInput, WrapperLabel } from './style'
 import InputForm from '../../components/InputForm/InputForm'
 import ButtonComponent from '../../components/ButtonComponents/ButtonComponent'
 import * as UserService from '../../services/UserService'
 import { useMutationHooks } from '../../hooks/useMutationHook'
 import * as message from '../../components/Message/Message'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { updateUser } from '../../redux/slide/userSlide'
 const ProfilePage = () => {
     const [email, setEmail] = useState('')

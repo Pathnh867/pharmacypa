@@ -17,7 +17,7 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   const navigate = useNavigate()
   const user = useSelector((state) => state.user)
   const dispatch = useDispatch()
-  const [userName, setUserName] = userState('')
+  const [userName, setUserName] = useState('')
   const order = useSelector((state) => state.order)
   const [search, setSearch] = useState('')
   const handleNavigateLogin = () => {
