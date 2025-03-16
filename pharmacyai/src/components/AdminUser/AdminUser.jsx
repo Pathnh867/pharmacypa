@@ -10,7 +10,7 @@ import * as UserService from '../../services/UserService'
 import { useMutationHooks } from '../../hooks/useMutationHook'
 import Loading from '../LoadingComponent/Loading'
 import * as message from '../Message/Message'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import DrawerComponents from '../DrawerComponents/DrawerComponents'
 import { useSelector } from 'react-redux'
 
@@ -20,6 +20,7 @@ const AdminUser = () => {
   const [isOpenDrawer, setIsOpenDrawer] = useState(false)
   const [isPendingUpdate, setIsPendingUpdate] = useState(false)
   const [isModalOpenDelete, setIsModalOpenDelete] = useState(false)
+  const queryClient = useQueryClient();
   
   const user = useSelector((state) => state?.user)
   
@@ -318,17 +319,37 @@ const AdminUser = () => {
 
   // Submit form cập nhật
   const onUpdateUser = () => {
-    // Chuẩn bị dữ liệu trước khi gửi
-    const dataToUpdate = {
-      ...stateUserDetails,
-      phone: stateUserDetails.phone ? String(stateUserDetails.phone) : undefined
-    };
+    // Chuẩn bị dữ liệu...
     
-    // Xóa các trường không cần thiết
-    delete dataToUpdate.refresh_token;
-    
-    mutationUpdate.mutate({ id: rowSelected, token: user?.access_token, ...dataToUpdate });
-  }
+    mutationUpdate.mutate(
+      { id: rowSelected, token: user?.access_token, ...dataToUpdate },
+      {
+        onSuccess: (data) => {
+          message.success('Cập nhật thành công!');
+          
+          // Cập nhật cache
+          queryClient.setQueryData(['users'], (oldData) => {
+            if (!oldData || !oldData.data) return oldData;
+            
+            return {
+              ...oldData,
+              data: oldData.data.map(item => 
+                item._id === rowSelected ? { ...item, ...dataToUpdate } : item
+              )
+            };
+          });
+          
+          // Đóng drawer
+          handleCloseDrawer();
+        },
+        onError: (error) => {
+          // Xử lý lỗi...
+        }
+      }
+    );
+  };
+  
+
 
   return (
     <div>
