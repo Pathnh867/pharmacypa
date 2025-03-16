@@ -4,7 +4,7 @@ const TypeController = require('../controllers/TypeController');
 
 
 // Thêm routes cho Type
-router.post('/type/create', TypeController.createType);
-router.get('/type/get-all', TypeController.getAllType);
+router.post('/create', TypeController.createType);
+router.get('/get-all', TypeController.getAllType);
 
 module.exports = router
