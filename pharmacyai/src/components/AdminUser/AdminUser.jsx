@@ -627,11 +627,19 @@ const AdminUser = () => {
 
             <Form.Item wrapperCol={{ offset: 20, span: 16 }}>
             <Button 
-              type="primary"
-              htmlType="submit" 
-            >
-              Cập nhật
-            </Button>
+                type="primary"
+                onClick={() => {
+                  // Kiểm tra giá trị form
+                  console.log('Form values before submit:', form.getFieldsValue());
+                  console.log('Current user details:', stateUserDetails);
+                  console.log('Selected row ID:', rowSelected);
+                  
+                  // Gọi trực tiếp hàm cập nhật
+                  onUpdateUser();
+                }}
+              >
+                Cập nhật
+              </Button>
             </Form.Item>
           </Form>
         </Loading>
