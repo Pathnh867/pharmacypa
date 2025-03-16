@@ -63,7 +63,7 @@ const ProfilePage = () => {
         setAddress(value)
     }
 
-    const handleOnchangeAvatar = async({ fileList }) => {
+    const handleOnchangeAvatar = async ({ fileList }) => {
         const file = fileList[0]
         if (!file.url && !file.preview) {
             file.preview = await getBase64(file.originFileObj)
@@ -161,7 +161,7 @@ const ProfilePage = () => {
                         <img src={avatar} style={{
                             height: '60px',
                             width: '60px',
-                            borderRadius: '50px',
+                            borderRadius: '50%',
                             objectFit:'cover'
                         }} alt="avatar"/>
                     )}

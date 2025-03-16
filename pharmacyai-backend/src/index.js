@@ -12,16 +12,18 @@ const port = process.env.PORT || 3001
 
 app.use(
     cors({
-      origin: "https://pharmacypa.vercel.app", // Chỉ cho phép frontend gọi API
+      origin: ["https://pharmacypa.vercel.app","http://localhost:3000"], // Chỉ cho phép frontend gọi API
       credentials: true, // Quan trọng: Cho phép gửi cookie kèm request
       methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Các phương thức API được phép
       allowedHeaders: "Content-Type,Authorization, token", // Cho phép headers cần thiết
     })
   );
+
+app.use(express.json({limit: '50mb'}));
+app.use(express.urlencoded({ limit: '50mb' }));
+
 app.use(bodyParser.json())
 app.use(cookieParser())
-app.use(express.json({limit: '500mb'}));
-app.use(express.urlencoded({ limit: '500mb' }));
 routes(app);
 
 mongoose.connect(`${process.env.MONGO_DB}`)
