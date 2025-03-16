@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { WrapperHeader } from './style'
-import { Button, Form, Modal, Select } from 'antd'
+import { Button, Form, Modal, Radio, Select } from 'antd'
 import { DeleteOutlined, EditOutlined, PlusCircleOutlined } from '@ant-design/icons'
 import TableComponent from '../TableComponents/TableComponent'
 import InputComponents from '../InputComponents/InputComponents'
@@ -442,18 +442,17 @@ const AdminUser = () => {
             </Form.Item>
 
             <Form.Item
-              label="Quyền hạn"
-              name="isAdmin"
-            >
-              <Select
-                defaultValue="user"
-                onChange={handleChangeSelect}
-                options={[
-                  { value: 'user', label: 'Người dùng' },
-                  { value: 'admin', label: 'Quản trị viên' },
-                ]}
-              />
-            </Form.Item>
+                label="Quyền hạn"
+                name="isAdmin"
+              >
+                <Radio.Group 
+                  value={stateUser.isAdmin ? "admin" : "user"}
+                  onChange={(e) => handleChangeSelect(e.target.value)}
+                >
+                  <Radio value="user">Người dùng</Radio>
+                  <Radio value="admin">Quản trị viên</Radio>
+                </Radio.Group>
+              </Form.Item>
 
             <Form.Item
               label="Hình ảnh"
@@ -536,18 +535,20 @@ const AdminUser = () => {
             </Form.Item>
 
             <Form.Item
-              label="Quyền hạn"
-              name="isAdmin"
-            >
-              <Select
-                defaultValue={stateUserDetails.isAdmin ? "admin" : "user"}
-                onChange={handleChangeSelectDetails}
-                options={[
-                  { value: 'user', label: 'Người dùng' },
-                  { value: 'admin', label: 'Quản trị viên' },
-                ]}
-              />
-            </Form.Item>
+                label="Quyền hạn"
+                name="isAdmin"
+              >
+                <Radio.Group 
+                  value={stateUserDetails.isAdmin ? "admin" : "user"}
+                  onChange={(e) => {
+                    console.log('Radio changed:', e.target.value);
+                    handleChangeSelectDetails(e.target.value);
+                  }}
+                >
+                  <Radio value="user">Người dùng</Radio>
+                  <Radio value="admin">Quản trị viên</Radio>
+                </Radio.Group>
+              </Form.Item>
 
             <Form.Item
               label="Hình ảnh"
@@ -572,9 +573,16 @@ const AdminUser = () => {
             </Form.Item>
 
             <Form.Item wrapperCol={{ offset: 20, span: 16 }}>
-              <Button type="primary" htmlType="submit">
-                Cập nhật
-              </Button>
+            <Button 
+              type="primary"
+              htmlType="submit" 
+              onClick={() => {
+                console.log('Form values:', form.getFieldsValue());
+                console.log('State user details:', stateUserDetails);
+              }}
+            >
+              Cập nhật
+            </Button>
             </Form.Item>
           </Form>
         </Loading>
