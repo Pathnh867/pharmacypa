@@ -37,31 +37,23 @@ const updateProduct = async (req, res) => {
         })
     }
 }
-const getdetailsProduct = (id) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const product = await Product.findById({
-                _id: id
-            }).populate("type", "name") // Chỉ lấy trường name từ type
-
-            if (product === null) {
-                resolve({
-                    status: 'OK',
-                    message: 'The product is not defined!'
-                })
-                return;
-            }
-
-            resolve({
-                status: 'OK',
-                message: 'SUCCESS',
-                data: product
-            });
-        } catch (e) {
-            reject(e);
+const getdetailsProduct = async (req, res) => {
+    try {
+        const productId = req.params.id
+        if (!productId) {
+             return res.status(400).json({
+                status: 'ERR',
+                message:'The productId is required'
+            })
         }
-    });
-};
+        const response = await ProductService.getdetailsProduct(productId)
+        return res.status(200).json(response)
+    } catch (e) {
+        return res.status(404).json({
+            message: e
+        })
+    }
+}
 const deleteProduct = async (req, res) => {
     try {
         const productId = req.params.id
@@ -79,77 +71,18 @@ const deleteProduct = async (req, res) => {
         })
     }
 }
-const getAllProduct = (limit, page, sort, filter) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const totalProduct = await Product.countDocuments()
-            let allProduct;
-            
-            // Thêm .populate('type', 'name') vào các truy vấn để lấy thông tin type
-            
-            // Trường hợp có filter
-            if (filter) {
-                const label = filter[0];
-                const allobjectfilter = await Product.find({[label]:{'$regex':filter[1]}})
-                    .populate('type', 'name')
-                    .limit(limit)
-                    .skip(page * limit)
-                    
-                resolve({
-                    status: 'OK',
-                    message: 'Success',
-                    data: allobjectfilter,
-                    total: totalProduct,
-                    pageCurrent: Number(page + 1),
-                    totalPage: Math.ceil(totalProduct/limit)
-                });
-                return;
-            }
-            
-            // Trường hợp có sort
-            if (sort) {
-                const objectSort = {}
-                objectSort[sort[1]] = sort[0]
-                const allProductSort = await Product.find()
-                    .populate('type', 'name')
-                    .limit(limit)
-                    .skip(page * limit)
-                    .sort(objectSort)
-                    
-                resolve({
-                    status: 'OK',
-                    message: 'Success',
-                    data: allProductSort,
-                    total: totalProduct,
-                    pageCurrent: Number(page + 1),
-                    totalPage: Math.ceil(totalProduct/limit)
-                });
-                return;
-            }
-            
-            // Trường hợp mặc định
-            if (!limit) {
-                allProduct = await Product.find().populate('type', 'name')
-            } else {
-                allProduct = await Product.find()
-                    .populate('type', 'name')
-                    .limit(limit)
-                    .skip(page * limit)
-            }
-
-            resolve({
-                status: 'OK',
-                message: 'Success',
-                data: allProduct,
-                total: totalProduct,
-                pageCurrent: Number(page + 1),
-                totalPage: Math.ceil(totalProduct/limit)
-            });
-        } catch (e) {
-            reject(e);
-        }
-    });
-};
+const getAllProduct = async (req, res) => {
+    try {
+        const { limit, page, sort, filter } = req.query
+        console.log('Controller hit:', { limit, page, sort, filter });
+        const response = await ProductService.getAllProduct(Number(limit)||null, Number(page)||0,sort, filter)
+        return res.status(200).json(response)
+    } catch (e) {
+        return res.status(404).json({
+            message: e
+        })
+    }
+}
 const getAllType = async (req, res) => {
     try {
         const response = await ProductService.getAllType()
