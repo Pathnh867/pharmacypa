@@ -44,6 +44,11 @@ export const deleteProduct = async (id, access_token) => {
     return res.data
 }
 export const getAllTypeProduct = async () => {
-    const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all-type`)
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/type/get-all`)
+    return res.data
+}
+
+export const createType = async (data) => {
+    const res = await axios.post(`${process.env.REACT_APP_API_URL}/type/create`, data)
     return res.data
 }

@@ -132,7 +132,10 @@ const AdminProduct = () => {
       </div>
     )
   }
-
+  const getTypeName = (typeId) => {
+    const foundType = typeProduct?.data?.data?.find(type => type._id === typeId);
+    return foundType ? foundType.name : typeId;
+  }
   console.log('type', typeProduct)
   const columns = [
         {
@@ -186,6 +189,7 @@ const AdminProduct = () => {
         {
             title: 'Type',
             dataIndex: 'type',
+            render: (typeId) => getTypeName(typeId)
         },
         {
             title: 'Actions',
@@ -325,17 +329,54 @@ const AdminProduct = () => {
   }
 
   const handleChangeSelect = (value) => {
-    if (value !== 'add_type') {
+    if (value === 'add_type') {
+      setTypeSelect('add_type');
       setStateProduct({
         ...stateProduct,
-        type: value
-      })
-        
+        type: '' // Xóa giá trị type hiện tại để người dùng nhập mới
+      });
     } else {
-      setStateProduct(prevState => ({
-        ...prevState,
-        type: value
-      }));
+      setTypeSelect('');
+      setStateProduct({
+        ...stateProduct,
+        type: value // Giá trị là ID của Type
+      });
+    }
+  }
+  const handleChangeSelectDetails = (value) => {
+    if (value === 'add_type') {
+      setTypeSelect('add_type');
+      setStateProductDetails({
+        ...stateProductDetails,
+        type: '' // Xóa giá trị type hiện tại để người dùng nhập mới
+      });
+    } else {
+      setTypeSelect('');
+      setStateProductDetails({
+        ...stateProductDetails,
+        type: value // Giá trị là ID của Type
+      });
+    }
+  }
+  const handleAddType = async () => {
+    try {
+      if (stateProduct.type) {
+        // Gọi API tạo Type mới
+        const res = await ProductService.createType({ name: stateProduct.type });
+        if (res.status === 'OK') {
+          // Cập nhật lại giá trị type trong form bằng ID vừa tạo
+          setStateProduct({
+            ...stateProduct,
+            type: res.data._id
+          });
+          // Refresh danh sách Type
+          typeProduct.refetch();
+          message.success('Tạo loại sản phẩm mới thành công');
+          setTypeSelect(''); // Đóng ô input
+        }
+      }
+    } catch (error) {
+      message.error('Tạo loại sản phẩm mới thất bại');
     }
   }
 
@@ -377,13 +418,21 @@ const AdminProduct = () => {
                     rules={[{ required: true, message: 'Hãy nhập loại sản phẩm' }]}
                   >
                     <Select
-                    name="type"
-                    onChange={handleChangeSelect}
-                    options={renderOptions(typeProduct?.data?.data)}
-                    value={stateProduct.type}
+                      name="type"
+                      onChange={handleChangeSelect}
+                      options={renderOptions(typeProduct?.data?.data)}
+                      value={stateProduct.type}
                     />
-                    {typeSelect ==='add_type' && (
-                      <InputComponents value={stateProduct.type} onChange={handleOnchange} name="type" /> 
+                    {typeSelect === 'add_type' && (
+                      <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                        <InputComponents 
+                          value={stateProduct.type} 
+                          onChange={handleOnchange} 
+                          name="type" 
+                          placeholder="Nhập tên loại mới"
+                        /> 
+                        <Button onClick={handleAddType}>Tạo loại mới</Button>
+                      </div>
                     )}
                   </Form.Item>
                   <Form.Item
@@ -419,7 +468,7 @@ const AdminProduct = () => {
                     name="discount"
                     rules={[{ required: true, message: 'Nhập giảm giá sản phẩm' }]}
                   >
-                    <InputComponents value={stateProduct.rating} onChange={handleOnchange} name="discount" />
+                    <InputComponents value={stateProduct.discount} onChange={handleOnchange} name="discount" />
                   </Form.Item>
                   <Form.Item
                     label="Hình ảnh sản phẩm"
@@ -469,15 +518,23 @@ const AdminProduct = () => {
                               name="type"
                               rules={[{ required: true, message: 'Hãy nhập loại sản phẩm' }]}
                             >
-                              <Select
+                             <Select
                                 name="type"
-                                onChange={handleChangeSelect}
+                                onChange={handleChangeSelectDetails}
                                 options={renderOptions(typeProduct?.data?.data)}
-                                value={stateProduct.type}
-                                />
-                                {typeSelect ==='add_type' && (
-                                  <InputComponents value={stateProduct.type} onChange={handleOnchange} name="type" /> 
-                                )}
+                                value={stateProductDetails.type}
+                              />
+                              {typeSelect === 'add_type' && (
+                                <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                                  <InputComponents 
+                                    value={stateProductDetails.type} 
+                                    onChange={handleOnchangeDetails} 
+                                    name="type" 
+                                    placeholder="Nhập tên loại mới"
+                                  /> 
+                                  <Button onClick={handleAddType}>Tạo loại mới</Button>
+                                </div>
+                              )}
                           </Form.Item>
                           <Form.Item
                               label="Số lượng tồn kho"

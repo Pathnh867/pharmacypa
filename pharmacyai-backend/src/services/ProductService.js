@@ -168,16 +168,17 @@ const getdetailsProduct = (id) => {
 const getAllType = () => {
     return new Promise(async (resolve, reject) => {
         try {
-            
-            const allType = await Product.distinct("type")
+            // Thay đổi từ Product.distinct sang Type.find
+            const TypeModel = require('../models/TypeModel');
+            const allType = await TypeModel.find({});
             resolve({
-                    status: 'OK',
-                    message: 'Success',
-                    data: allType
-                });
+                status: 'OK',
+                message: 'Success',
+                data: allType
+            });
         } catch (e) {
             reject(e);
-             }
+        }
     });
 };
 module.exports = {
