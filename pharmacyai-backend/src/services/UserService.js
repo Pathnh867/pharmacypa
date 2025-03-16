@@ -87,7 +87,7 @@ const updateUser = (id, data) => {
             const checkUser = await User.findById(id)
             if (checkUser === null) {
                 resolve({
-                    status: 'OK',
+                    status: 'ERR',
                     message: 'The user is not defined!'
                 })
                 return;

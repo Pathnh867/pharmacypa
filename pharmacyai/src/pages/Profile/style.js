@@ -3,8 +3,8 @@ import styled from "styled-components";
 
 export const WrapperHeader = styled.h1`
     color: #000;
-    font-size: 18px;
-    margin: 4px 0;
+    font-size: 20px;
+    margin: 24px 531px;
 
 `
 export const WrapperContentProfile = styled.div`
