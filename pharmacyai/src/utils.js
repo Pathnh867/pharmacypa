@@ -33,22 +33,28 @@ export function getItem(label, key, icon, children, type) {
         type,
     };
 }
+const safeTypeData = typeProduct?.data?.data || [];
 export const renderOptions = (arr) => {
-    let results = []
-    if (arr) {
-        results = arr?.map((opt) => {
-            return {
-                value: opt,
-                label: opt
-            }
-        })
+    let results = [];
+    if (arr && Array.isArray(arr)) {
+      results = arr.map((opt) => {
+        // Đảm bảo opt có cấu trúc mong đợi
+        if (!opt || typeof opt !== 'object') return null;
+        
+        return {
+          value: opt._id || '',
+          label: opt.name || 'Unknown Type'
+        };
+      }).filter(Boolean); // Loại bỏ các giá trị null/undefined
     }
+    
     results.push({
-        label: 'Thêm loại sản phẩm',
-        value: 'add_type'
-    })
-    return results
-}
+      value: 'add_type',
+      label: 'Thêm loại mới'
+    });
+    
+    return results;
+  };
 
 export const convertPrice = (price) => {
     try {

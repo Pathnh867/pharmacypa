@@ -147,6 +147,8 @@ const AdminProduct = () => {
     // Trường hợp khác, trả về giá trị an toàn
     return String(type || '') || 'Không xác định';
   };
+
+  const safeTypeData = typeProduct?.data?.data || [];
   
   console.log('type', typeProduct)
   const columns = [
@@ -453,8 +455,8 @@ const AdminProduct = () => {
                     <Select
                       name="type"
                       onChange={handleChangeSelect}
-                      options={renderOptions(typeProduct?.data?.data)}
-                      value={stateProduct.type}
+                      options={typeProduct?.data?.data ? renderOptions(typeProduct.data.data) : []} // Kiểm tra dữ liệu tồn tại
+                      value={stateProduct.type || ''} // Đảm bảo luôn có giá trị
                     />
                     {typeSelect === 'add_type' && (
                       <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
