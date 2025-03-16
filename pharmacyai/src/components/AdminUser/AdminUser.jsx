@@ -1,475 +1,596 @@
 import React, { useEffect, useState } from 'react'
 import { WrapperHeader } from './style'
-import { Button, Form, Modal } from 'antd'
-import {DeleteOutlined, EditOutlined, PlusCircleOutlined} from '@ant-design/icons'
+import { Button, Form, Modal, Select } from 'antd'
+import { DeleteOutlined, EditOutlined, PlusCircleOutlined } from '@ant-design/icons'
 import TableComponent from '../TableComponents/TableComponent'
 import InputComponents from '../InputComponents/InputComponents'
 import { WrapperUploadFile } from './style'
 import { getBase64 } from '../../utils'
-import * as ProductService from '../../services/ProductService'
+import * as UserService from '../../services/UserService'
 import { useMutationHooks } from '../../hooks/useMutationHook'
 import Loading from '../LoadingComponent/Loading'
 import * as message from '../Message/Message'
 import { useQuery } from '@tanstack/react-query'
 import DrawerComponents from '../DrawerComponents/DrawerComponents'
 import { useSelector } from 'react-redux'
+
 const AdminUser = () => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [rowSelected, setRowSelected] = useState('');
-    const [isOpenDrawer, setIsOpenDrawer] = useState(false);
-    const [isPendingUpdate, setIsPendingUpdate] = useState(false);
-    const [isModalOpenDelete, setIsModalOpenDelete] = useState(false);
-    const user = useSelector((state)=> state?.user)
-    
-    const [stateProduct, setStateProduct] = useState({
-      name: '',
-      image: '',
-      type: '',
-      price: '',
-      countInStock:'',
-      rating: '',
-      description:''
-    })
-    const [stateProductDetails, setStateProductDetails] = useState({
-      name: '',
-      image: '',
-      type: '',
-      price: '',
-      countInStock:'',
-      rating: '',
-      description:''
-    })
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [rowSelected, setRowSelected] = useState('')
+  const [isOpenDrawer, setIsOpenDrawer] = useState(false)
+  const [isPendingUpdate, setIsPendingUpdate] = useState(false)
+  const [isModalOpenDelete, setIsModalOpenDelete] = useState(false)
   
-    const [form] = Form.useForm();
-    const mutation = useMutationHooks(
-      (data) => {
-        const { name, image, type, price, countInStock, rating, description } = data
-        const res = ProductService.createProduct({ name, image, type, price, countInStock, rating, description })
-        return res
-      }
-    )
-    const mutationUpdate = useMutationHooks(
-      (data) => {
-        const { id, token, ...rests } = data
-        const res = ProductService.updateProduct(id, token, { ...rests })
-        return res
-      },
-    )
+  const user = useSelector((state) => state?.user)
   
-    const mutationDelete  = useMutationHooks(
-      (data) => {
-        const { id, token } = data
-        const res = ProductService.updateProduct(id, token)
-        return res
-      },
-    )
+  const [stateUser, setStateUser] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    avatar: '',
+    isAdmin: false
+  })
+  const [stateUserDetails, setStateUserDetails] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    avatar: '',
+    isAdmin: false
+  })
+
+  const [form] = Form.useForm()
   
-    const getAllProduct = async () => {
-      const res = await ProductService.getAllProduct()
+  // Mutation hook để tạo người dùng mới
+  const mutation = useMutationHooks(
+    (data) => {
+      const { name, email, password, phone, address, avatar, isAdmin } = data
+      const res = UserService.createUser({ name, email, password, phone, address, avatar, isAdmin })
       return res
     }
-  
-    const fetchGetDetailsProduct = async (rowSelected) => {
-      const res = await ProductService.getDetailsProduct(rowSelected)
-      if (res?.data) {
-        setStateProductDetails({
-          name: res?.data?.name,
-          image: res?.data?.image,
-          type: res?.data?.type,
-          price: res?.data?.price,
-          countInStock: res?.data?.countInStock,
-          rating: res?.data?.rating,
-          description:res?.data?.description
-        })
-      }
-      setIsPendingUpdate(false)
-    }
-    useEffect(() => {
-      form.setFieldsValue(stateProductDetails)
-    }, [form, stateProductDetails])
-    
-    useEffect(() => {
-      if (rowSelected) {
-        setIsPendingUpdate(true)
-        fetchGetDetailsProduct(rowSelected)
-      }
-      
-    }, [rowSelected])
-  
-    const handleDetailsProduct = () => {
-      setIsOpenDrawer(true)
-    }
-  
-    const { data, isPending, isSuccess, isError } = mutation
-    const { data: dataUpdated, isPending: isPendingUpdated, isSuccess: isSuccessUpdated, isError: isErrorUpdated } = mutationUpdate
-    const {data: dataDelete, isPending: isPendingDelete, isSuccess: isSuccessDelete, isError: isErrorDelete } = mutationDelete
-    const queryProduct = useQuery({
-        queryKey: ['product'],
-        queryFn: getAllProduct
-      });
-    const {isPending:isPendingProduct, data:products} = queryProduct
-    const renderAction = () => {
-      return (
-        <div>
-          <DeleteOutlined style={{color:'red', fontSize:'30px', cursor:'pointer'}} />
-          <EditOutlined style={{color:'#4cb551', fontSize:'30px', cursor:'pointer'}} onClick={handleDetailsProduct} />
-        </div>
-      )
-    }
-    const columns = [
-          {
-              title: 'Name',
-              dataIndex: 'name',
-              render: (text) => <a>{text}</a>,
-              sorter: (a,b) => a.name.length - b.name.length
-          },
-          {
-              title: 'Price',
-              dataIndex: 'price',
-              sorter: (a,b) => a.price - b.price,
-              filters: [
-                      {
-                        text: '>= 100',
-                        value: '>=',
-                      },
-                      {
-                        text: '<=100',
-                        value: '<=',
-                      },
-                    ],
-              onFilter: (value, record) => {
-              if(value==='>='){
-                  return record.price >=100
-                }
-                return record.price <=100
-              },
-          },
-          {
-              title: 'Rating',
-              dataIndex: 'rating',
-              sorter: (a,b) => a.rating - b.rating,
-              filters: [
-                      {
-                        text: '>= 3',
-                        value: '>=',
-                      },
-                      {
-                        text: '<=3',
-                        value: '<=',
-                      },
-                    ],
-              onFilter: (value, record) => {
-                  if(value==='>='){
-                      return Number(record.rating) >=3
-                    }
-                    return  Number(record.rating) <=3
-              },
-          },
-          {
-              title: 'Type',
-              dataIndex: 'type',
-          },
-          {
-              title: 'Actions',
-              dataIndex: 'actions',
-              render: renderAction
-          },
-      ];
-      
-  
-    const dataTable = products?.data?.length && products?.data?.map((product) => {
-          return {...product, key: product._id}
-    })
-    
-    useEffect(() => {
-      if (isSuccessDelete && dataDelete?.status === 'OK') {
-        message.success()
-        handleCancelDelete()
-      } else if (isErrorDelete) {
-        message.error()
-      }
-    }, [isSuccessDelete])
-    const handleCloseDrawer = () => {
-      setIsOpenDrawer(false);
-      setStateProductDetails({
-        name: '',
-        image: '',
-        type: '',
-        price: '',
-        countInStock: '',
-        rating: '',
-        description: ''
-      })
-      form.resetFields()
-    };
-  
-    useEffect(() => {
-      if (isSuccess && data?.status === 'OK') {
-        message.success()
-        handleCancel()
-      } else if (isError) {
-        message.error()
-      }
-    }, [isSuccess])
-  
-    useEffect(() => {
-      if (isSuccessUpdated && dataUpdated?.status === 'OK') {
-        message.success()
-        handleCloseDrawer()
-      } else if (isErrorUpdated) {
-        message.error()
-      }
-    }, [isSuccessUpdated])
-  
-    const handleCancelDelete = () => {
-      setIsModalOpenDelete(false)
-    }
-    const handleDeleteProduct = () => {
-      mutationDelete.mutate({ id: rowSelected, token: user?.access_token }, {
-        onSettled: () => {
-          queryProduct.refetch()
-        }
+  )
+
+  // Mutation hook để cập nhật thông tin người dùng
+  const mutationUpdate = useMutationHooks(
+    (data) => {
+      const { id, token, ...rests } = data
+      const res = UserService.updateUser(id, token, { ...rests })
+      return res
+    },
+  )
+
+  // Mutation hook để xóa người dùng
+  const mutationDelete = useMutationHooks(
+    (data) => {
+      const { id, token } = data
+      const res = UserService.deleteUser(id, token)
+      return res
+    },
+  )
+
+  // Lấy tất cả người dùng
+  const getAllUsers = async () => {
+    const res = await UserService.getAllUser()
+    return res
+  }
+
+  // Lấy chi tiết người dùng
+  const fetchGetDetailsUser = async (rowSelected) => {
+    const res = await UserService.getDetailsUser(rowSelected, user?.access_token)
+    if (res?.data) {
+      setStateUserDetails({
+        name: res?.data?.name,
+        email: res?.data?.email,
+        phone: res?.data?.phone,
+        address: res?.data?.address,
+        avatar: res?.data?.avatar,
+        isAdmin: res?.data?.isAdmin
       })
     }
+    setIsPendingUpdate(false)
+  }
+
+  useEffect(() => {
+    form.setFieldsValue(stateUserDetails)
+  }, [form, stateUserDetails])
   
-    const handleCancel = () => {
-      setIsModalOpen(false);
-      setStateProduct({
-        name: '',
-        image: '',
-        type: '',
-        price: '',
-        countInStock:'',
-        rating: '',
-        description:''
-      })
-      form.resetFields()
-    };
-   
-    const onFinish = () => {
-      mutation.mutate(stateProduct, {
-        onSettled: () => {
-          queryProduct.refetch()
-        }
-      })
+  useEffect(() => {
+    if (rowSelected) {
+      setIsPendingUpdate(true)
+      fetchGetDetailsUser(rowSelected)
     }
-    const handleOnchange = (e) => {
-      setStateProduct({
-        ...stateProduct,
-        [e.target.name]: e.target.value
-      })
-    }
-    const handleOnchangeDetails = (e) => {
-      setStateProductDetails({
-        ...stateProductDetails,
-        [e.target.name]: e.target.value
-      })
-    }
-    const handleOnchangeAvatar = async ({ fileList }) => {
-      const file = fileList[0]
-      if (!file.url && !file.preview) {
-        file.preview = await getBase64(file.originFileObj)
-      }
-      setStateProduct({
-        ...stateProduct,
-        image: file.preview
-      })
-    }
-    const handleOnchangeAvatarDetails = async ({ fileList }) => {
-      const file = fileList[0]
-      if (!file.url && !file.preview) {
-        file.preview = await getBase64(file.originFileObj)
-      }
-      setStateProductDetails({
-        ...stateProductDetails,
-        image: file.preview
-      })
-    }
+  }, [rowSelected])
+
+  const handleDetailsUser = () => {
+    setIsOpenDrawer(true)
+  }
+
+  // Trạng thái và data từ các mutation hooks
+  const { data, isPending, isSuccess, isError } = mutation
+  const { data: dataUpdated, isPending: isPendingUpdated, isSuccess: isSuccessUpdated, isError: isErrorUpdated } = mutationUpdate
+  const { data: dataDelete, isPending: isPendingDelete, isSuccess: isSuccessDelete, isError: isErrorDelete } = mutationDelete
   
-    const onUpdateProduct = () => {
-      mutationUpdate.mutate({ id: rowSelected, token: user?.access_token, ...stateProductDetails }, {
-        onSettled: () => {
-          queryProduct.refetch()
-         }
-       })
-    }
+  // Query để lấy danh sách người dùng
+  const queryUsers = useQuery({
+    queryKey: ['users'],
+    queryFn: getAllUsers,
+  })
   
-  return (
+  const { isPending: isPendingUsers, data: users } = queryUsers
+
+  // Render các nút hành động
+  const renderAction = () => {
+    return (
       <div>
-          <WrapperHeader>Quản lý người dùng</WrapperHeader>
-          <div style={{marginTop:'10px'}}>
-              <Button style={{height:'150px', width:'150px', borderRadius:'6px',borderStyle:'dashed'}}><PlusCircleOutlined style={{fontSize:'60px'}} /></Button>
-          </div>
-          <div style={{marginTop:'20px'}}>
-              <TableComponent columns={columns} isPending={isPendingProduct} data={dataTable} onRow={(record,rowIndex)=> {
-                return {
-                  onClick: event => {
-                    setRowSelected(record._id)
-                  }
-                }
-              }} />
-          </div>
-          <Modal forceRender title="Tạo sản phẩm" open={isModalOpen} onCancel={handleCancel} footer={null}>
-             <Loading isPending={isPending}>
-                <Form
-                name="basic"
-                labelCol={{ span: 8 }}
-                wrapperCol={{ span: 16 }}
-                onFinish={onFinish}
-                autoComplete="on"
-                form={form}
-              >
-                <Form.Item
-                    label="Tên sản phẩm"
-                    name="name"
-                    rules={[{ required: true, message: 'Hãy nhập tên sản phẩm' }]}
-                  >
-                    <InputComponents value={stateProduct.name} onChange={handleOnchange} name="name" />
-                  </Form.Item>
-                  <Form.Item
-                    label="Loại sản phẩm"
-                    name="type"
-                    rules={[{ required: true, message: 'Hãy nhập loại sản phẩm' }]}
-                  >
-                    <InputComponents value={stateProduct.type} onChange={handleOnchange} name="type" />
-                  </Form.Item>
-                  <Form.Item
-                    label="Số lượng tồn kho"
-                    name="countInStock"
-                    rules={[{ required: true, message: 'Hãy nhập số lượng tồn kho' }]}
-                  >
-                    <InputComponents value={stateProduct.countInStock} onChange={handleOnchange} name="countInStock" />
-                  </Form.Item>
-                  <Form.Item
-                    label="Giá sản phẩm"
-                    name="price"
-                    rules={[{ required: true, message: 'Hãy nhập giá sản phẩm' }]}
-                  >
-                    <InputComponents  value={stateProduct.price} onChange={handleOnchange} name="price"/>
-                  </Form.Item>
-                  <Form.Item
-                    label="Miêu tả sản phẩm"
-                    name="description"
-                    rules={[{ required: true, message: 'Hãy nhập miêu tả sản phẩm' }]}
-                  >
-                    <InputComponents value={stateProduct.description} onChange={handleOnchange} name="description" />
-                  </Form.Item>
-                  <Form.Item
-                    label="Đánh giá sản phẩm"
-                    name="rating"
-                    rules={[{ required: true, message: 'Nhập' }]}
-                  >
-                    <InputComponents value={stateProduct.rating} onChange={handleOnchange} name="rating" />
-                  </Form.Item>
-                  <Form.Item
-                    label="Hình ảnh sản phẩm"
-                    name="image"
-                    rules={[{ required: true, message: 'Nhập hình ảnh sản phẩm' }]}
-                  >
-                    <WrapperUploadFile onChange = {handleOnchangeAvatar} maxCount={1}>
-                      <Button>Chọn ảnh</Button>
-                      {stateProduct?.image && (
-                        <img src={stateProduct?.image} style={{
-                          height:'60px',
-                          width: '60px',
-                          borderRadius: '50%',
-                          objectFit:'cover',
-                          marginLeft: '10px'
-                        }} alt="avatar" />
-                      )}
-                    </WrapperUploadFile>
-                  </Form.Item>
-                  <Form.Item wrapperCol={{offset: 20, span: 16}}>
-                        <Button type="primary" htmlType="submit">
-                          Submit
-                        </Button>
-                      </Form.Item>
-              </Form>
-             </Loading>
-          </Modal>
-          <DrawerComponents title='Chi tiết sản phẩm' isOpen={isOpenDrawer} onClose={()=> setIsOpenDrawer(false)} width='90%'>
-                    <Loading isPending={isPendingUpdate}>
-                        <Form
-                          name="Thay đổi sản phẩm"
-                          labelCol={{ span: 4 }}
-                          wrapperCol={{ span: 15 }}
-                          onFinish={onUpdateProduct}
-                          autoComplete="on"
-                          form={form}
-                        >
-                          <Form.Item
-                              label="Tên sản phẩm"
-                              name="name"
-                              rules={[{ required: true, message: 'Hãy nhập tên sản phẩm' }]}
-                            >
-                              <InputComponents value={stateProductDetails.name} onChange={handleOnchangeDetails} name="name" />
-                          </Form.Item>
-                          <Form.Item
-                              label="Loại sản phẩm"
-                              name="type"
-                              rules={[{ required: true, message: 'Hãy nhập loại sản phẩm' }]}
-                            >
-                              <InputComponents value={stateProductDetails.type} onChange={handleOnchangeDetails} name="type" />
-                          </Form.Item>
-                          <Form.Item
-                              label="Số lượng tồn kho"
-                              name="countInStock"
-                              rules={[{ required: true, message: 'Hãy nhập số lượng tồn kho' }]}
-                            >
-                              <InputComponents value={stateProductDetails.countInStock} onChange={handleOnchangeDetails} name="countInStock" />
-                          </Form.Item>
-                          <Form.Item
-                              label="Giá sản phẩm"
-                              name="price"
-                              rules={[{ required: true, message: 'Hãy nhập giá sản phẩm' }]}
-                            >
-                              <InputComponents  value={stateProductDetails.price} onChange={handleOnchangeDetails} name="price"/>
-                          </Form.Item>
-                          <Form.Item
-                              label="Miêu tả sản phẩm"
-                              name="description"
-                              rules={[{ required: true, message: 'Hãy nhập miêu tả sản phẩm' }]}
-                            >
-                              <InputComponents value={stateProductDetails.description} onChange={handleOnchangeDetails} name="description" />
-                          </Form.Item>
-                          <Form.Item
-                              label="Đánh giá sản phẩm"
-                              name="rating"
-                              rules={[{ required: true, message: 'Nhập' }]}
-                            >
-                              <InputComponents value={stateProductDetails.rating} onChange={handleOnchangeDetails} name="rating" />
-                          </Form.Item>
-                          <Form.Item
-                              label="Hình ảnh sản phẩm"
-                              name="image"
-                              rules={[{ required: true, message: 'Nhập hình ảnh sản phẩm' }]}
-                            >
-                              <WrapperUploadFile onChange = {handleOnchangeAvatarDetails} maxCount={1}>
-                                <Button>Chọn ảnh</Button>
-                                {stateProductDetails?.image && (
-                                  <img src={stateProductDetails?.image} style={{
-                                    height:'60px',
-                                    width: '60px',
-                                    borderRadius: '50%',
-                                    objectFit:'cover',
-                                    marginLeft: '10px'
-                                  }} alt="avatar" />
-                                )}
-                              </WrapperUploadFile>
-                          </Form.Item>
-                          <Form.Item wrapperCol={{offset: 20, span: 16}}>
-                                  <Button type="primary" htmlType="submit">
-                                    Lưu
-                                  </Button>
-                          </Form.Item>
-                        </Form>
-                      </Loading>
-          </DrawerComponents>
-          <Modal title="Xóa người dùng" open={isModalOpenDelete} onCancel={handleCancelDelete} onOk={handleDeleteProduct}>
-              <Loading isPending={isPendingDelete}>
-                  <div>Bạn có chắc muốn xóa người dùng?</div>
-              </Loading>
-          </Modal>
+        <DeleteOutlined style={{ color: 'red', fontSize: '30px', cursor: 'pointer' }} onClick={() => setIsModalOpenDelete(true)} />
+        <EditOutlined style={{ color: '#4cb551', fontSize: '30px', cursor: 'pointer' }} onClick={handleDetailsUser} />
+      </div>
+    )
+  }
+
+  // Định nghĩa các cột cho bảng
+  const columns = [
+    {
+      title: 'Tên',
+      dataIndex: 'name',
+      render: (text) => <a>{text}</a>,
+      sorter: (a, b) => a.name?.length - b.name?.length
+    },
+    {
+      title: 'Email',
+      dataIndex: 'email',
+      sorter: (a, b) => a.email?.length - b.email?.length
+    },
+    {
+      title: 'Địa chỉ',
+      dataIndex: 'address',
+    },
+    {
+      title: 'Số điện thoại',
+      dataIndex: 'phone',
+    },
+    {
+      title: 'Admin',
+      dataIndex: 'isAdmin',
+      render: (isAdmin) => (isAdmin ? 'Có' : 'Không')
+    },
+    {
+      title: 'Hành động',
+      dataIndex: 'actions',
+      render: renderAction
+    },
+  ]
+
+  // Format dữ liệu cho bảng
+  const dataTable = users?.data?.length && users?.data?.map((user) => {
+    return { ...user, key: user._id }
+  })
+
+  // Xử lý xóa người dùng
+  useEffect(() => {
+    if (isSuccessDelete && dataDelete?.status === 'OK') {
+      message.success()
+      handleCancelDelete()
+    } else if (isErrorDelete) {
+      message.error()
+    }
+  }, [isSuccessDelete])
+
+  // Đóng drawer chi tiết
+  const handleCloseDrawer = () => {
+    setIsOpenDrawer(false)
+    setStateUserDetails({
+      name: '',
+      email: '',
+      phone: '',
+      address: '',
+      avatar: '',
+      isAdmin: false
+    })
+    form.resetFields()
+  }
+
+  // Xử lý tạo người dùng thành công
+  useEffect(() => {
+    if (isSuccess && data?.status === 'OK') {
+      message.success()
+      handleCancel()
+    } else if (isError) {
+      message.error()
+    }
+  }, [isSuccess])
+
+  // Xử lý cập nhật người dùng thành công
+  useEffect(() => {
+    if (isSuccessUpdated && dataUpdated?.status === 'OK') {
+      message.success()
+      handleCloseDrawer()
+    } else if (isErrorUpdated) {
+      message.error()
+    }
+  }, [isSuccessUpdated])
+
+  // Đóng modal xóa
+  const handleCancelDelete = () => {
+    setIsModalOpenDelete(false)
+  }
+  
+  // Xác nhận xóa người dùng
+  const handleDeleteUser = () => {
+    mutationDelete.mutate({ id: rowSelected, token: user?.access_token }, {
+      onSettled: () => {
+        queryUsers.refetch()
+      }
+    })
+  }
+
+  // Đóng modal tạo
+  const handleCancel = () => {
+    setIsModalOpen(false)
+    setStateUser({
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      phone: '',
+      address: '',
+      avatar: '',
+      isAdmin: false
+    })
+    form.resetFields()
+  }
+ 
+  // Submit form tạo người dùng
+  const onFinish = () => {
+    const params = {
+      name: stateUser.name,
+      email: stateUser.email,
+      password: stateUser.password,
+      confirmPassword: stateUser.confirmPassword,
+      phone: stateUser.phone,
+      address: stateUser.address,
+      avatar: stateUser.avatar,
+      isAdmin: stateUser.isAdmin,
+    }
+    mutation.mutate(params, {
+      onSettled: () => {
+        queryUsers.refetch()
+      }
+    })
+  }
+
+  // Xử lý thay đổi input trong form tạo
+  const handleOnchange = (e) => {
+    setStateUser({
+      ...stateUser,
+      [e.target.name]: e.target.value
+    })
+  }
+
+  // Xử lý thay đổi input trong form cập nhật
+  const handleOnchangeDetails = (e) => {
+    setStateUserDetails({
+      ...stateUserDetails,
+      [e.target.name]: e.target.value
+    })
+  }
+
+  // Xử lý thay đổi avatar
+  const handleOnchangeAvatar = async ({ fileList }) => {
+    const file = fileList[0]
+    if (!file.url && !file.preview) {
+      file.preview = await getBase64(file.originFileObj)
+    }
+    setStateUser({
+      ...stateUser,
+      avatar: file.preview
+    })
+  }
+
+  // Xử lý thay đổi avatar trong form cập nhật
+  const handleOnchangeAvatarDetails = async ({ fileList }) => {
+    const file = fileList[0]
+    if (!file.url && !file.preview) {
+      file.preview = await getBase64(file.originFileObj)
+    }
+    setStateUserDetails({
+      ...stateUserDetails,
+      avatar: file.preview
+    })
+  }
+
+  // Xử lý thay đổi trạng thái admin
+  const handleChangeSelect = (value) => {
+    setStateUser({
+      ...stateUser,
+      isAdmin: value === 'admin'
+    })
+  }
+
+  // Xử lý thay đổi trạng thái admin trong form cập nhật
+  const handleChangeSelectDetails = (value) => {
+    setStateUserDetails({
+      ...stateUserDetails,
+      isAdmin: value === 'admin'
+    })
+  }
+
+  // Submit form cập nhật
+  const onUpdateUser = () => {
+    mutationUpdate.mutate({ id: rowSelected, token: user?.access_token, ...stateUserDetails }, {
+      onSettled: () => {
+        queryUsers.refetch()
+      }
+    })
+  }
+
+  return (
+    <div>
+      <WrapperHeader>Quản lý người dùng</WrapperHeader>
+      <div style={{ marginTop: '10px' }}>
+        <Button 
+          style={{ height: '150px', width: '150px', borderRadius: '6px', borderStyle: 'dashed' }} 
+          onClick={() => setIsModalOpen(true)}
+        >
+          <PlusCircleOutlined style={{ fontSize: '60px' }} />
+        </Button>
+      </div>
+      <div style={{ marginTop: '20px' }}>
+        <TableComponent 
+          columns={columns} 
+          isPending={isPendingUsers} 
+          data={dataTable} 
+          onRow={(record, rowIndex) => {
+            return {
+              onClick: event => {
+                setRowSelected(record._id)
+              }
+            }
+          }} 
+        />
+      </div>
+      
+      {/* Modal tạo người dùng */}
+      <Modal 
+        forceRender 
+        title="Tạo người dùng" 
+        open={isModalOpen} 
+        onCancel={handleCancel} 
+        footer={null}
+      >
+        <Loading isPending={isPending}>
+          <Form
+            name="basic"
+            labelCol={{ span: 8 }}
+            wrapperCol={{ span: 16 }}
+            onFinish={onFinish}
+            autoComplete="on"
+            form={form}
+          >
+            <Form.Item
+              label="Tên người dùng"
+              name="name"
+              rules={[{ required: true, message: 'Hãy nhập tên người dùng' }]}
+            >
+              <InputComponents value={stateUser.name} onChange={handleOnchange} name="name" />
+            </Form.Item>
+
+            <Form.Item
+              label="Email"
+              name="email"
+              rules={[
+                { required: true, message: 'Hãy nhập email' },
+                { type: 'email', message: 'Email không hợp lệ' }
+              ]}
+            >
+              <InputComponents value={stateUser.email} onChange={handleOnchange} name="email" />
+            </Form.Item>
+
+            <Form.Item
+              label="Mật khẩu"
+              name="password"
+              rules={[
+                { required: true, message: 'Hãy nhập mật khẩu' },
+                { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' }
+              ]}
+            >
+              <InputComponents 
+                value={stateUser.password} 
+                onChange={handleOnchange} 
+                name="password" 
+                type="password"
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="Xác nhận mật khẩu"
+              name="confirmPassword"
+              dependencies={['password']}
+              rules={[
+                { required: true, message: 'Hãy xác nhận mật khẩu' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('password') === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('Mật khẩu xác nhận không khớp'));
+                  },
+                }),
+              ]}
+            >
+              <InputComponents 
+                value={stateUser.confirmPassword} 
+                onChange={handleOnchange} 
+                name="confirmPassword" 
+                type="password"
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="Số điện thoại"
+              name="phone"
+            >
+              <InputComponents value={stateUser.phone} onChange={handleOnchange} name="phone" />
+            </Form.Item>
+
+            <Form.Item
+              label="Địa chỉ"
+              name="address"
+            >
+              <InputComponents value={stateUser.address} onChange={handleOnchange} name="address" />
+            </Form.Item>
+
+            <Form.Item
+              label="Quyền hạn"
+              name="isAdmin"
+            >
+              <Select
+                defaultValue="user"
+                onChange={handleChangeSelect}
+                options={[
+                  { value: 'user', label: 'Người dùng' },
+                  { value: 'admin', label: 'Quản trị viên' },
+                ]}
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="Hình ảnh"
+              name="avatar"
+            >
+              <WrapperUploadFile onChange={handleOnchangeAvatar} maxCount={1}>
+                <Button>Chọn ảnh</Button>
+                {stateUser?.avatar && (
+                  <img 
+                    src={stateUser?.avatar} 
+                    style={{
+                      height: '60px',
+                      width: '60px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      marginLeft: '10px'
+                    }} 
+                    alt="avatar" 
+                  />
+                )}
+              </WrapperUploadFile>
+            </Form.Item>
+
+            <Form.Item wrapperCol={{ offset: 20, span: 16 }}>
+              <Button type="primary" htmlType="submit">
+                Tạo
+              </Button>
+            </Form.Item>
+          </Form>
+        </Loading>
+      </Modal>
+      
+      {/* Drawer chi tiết người dùng */}
+      <DrawerComponents 
+        title='Chi tiết người dùng' 
+        isOpen={isOpenDrawer} 
+        onClose={() => setIsOpenDrawer(false)} 
+        width='90%'
+      >
+        <Loading isPending={isPendingUpdated || isPendingUpdate}>
+          <Form
+            name="basic"
+            labelCol={{ span: 4 }}
+            wrapperCol={{ span: 15 }}
+            onFinish={onUpdateUser}
+            autoComplete="on"
+            form={form}
+          >
+            <Form.Item
+              label="Tên người dùng"
+              name="name"
+              rules={[{ required: true, message: 'Hãy nhập tên người dùng' }]}
+            >
+              <InputComponents value={stateUserDetails.name} onChange={handleOnchangeDetails} name="name" />
+            </Form.Item>
+
+            <Form.Item
+              label="Email"
+              name="email"
+              rules={[
+                { required: true, message: 'Hãy nhập email' },
+                { type: 'email', message: 'Email không hợp lệ' }
+              ]}
+            >
+              <InputComponents value={stateUserDetails.email} onChange={handleOnchangeDetails} name="email" disabled />
+            </Form.Item>
+
+            <Form.Item
+              label="Số điện thoại"
+              name="phone"
+            >
+              <InputComponents value={stateUserDetails.phone} onChange={handleOnchangeDetails} name="phone" />
+            </Form.Item>
+
+            <Form.Item
+              label="Địa chỉ"
+              name="address"
+            >
+              <InputComponents value={stateUserDetails.address} onChange={handleOnchangeDetails} name="address" />
+            </Form.Item>
+
+            <Form.Item
+              label="Quyền hạn"
+              name="isAdmin"
+            >
+              <Select
+                defaultValue={stateUserDetails.isAdmin ? "admin" : "user"}
+                onChange={handleChangeSelectDetails}
+                options={[
+                  { value: 'user', label: 'Người dùng' },
+                  { value: 'admin', label: 'Quản trị viên' },
+                ]}
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="Hình ảnh"
+              name="avatar"
+            >
+              <WrapperUploadFile onChange={handleOnchangeAvatarDetails} maxCount={1}>
+                <Button>Chọn ảnh</Button>
+                {stateUserDetails?.avatar && (
+                  <img 
+                    src={stateUserDetails?.avatar} 
+                    style={{
+                      height: '60px',
+                      width: '60px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      marginLeft: '10px'
+                    }} 
+                    alt="avatar" 
+                  />
+                )}
+              </WrapperUploadFile>
+            </Form.Item>
+
+            <Form.Item wrapperCol={{ offset: 20, span: 16 }}>
+              <Button type="primary" htmlType="submit">
+                Cập nhật
+              </Button>
+            </Form.Item>
+          </Form>
+        </Loading>
+      </DrawerComponents>
+      
+      {/* Modal xác nhận xóa */}
+      <Modal 
+        title="Xóa người dùng" 
+        open={isModalOpenDelete} 
+        onCancel={handleCancelDelete} 
+        onOk={handleDeleteUser}
+      >
+        <Loading isPending={isPendingDelete}>
+          <div>Bạn có chắc muốn xóa người dùng này?</div>
+        </Loading>
+      </Modal>
     </div>
   )
 }
