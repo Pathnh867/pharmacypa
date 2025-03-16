@@ -43,6 +43,6 @@ export const WrapperHeaderCart = styled.span`
 export const WrapperContentPopup = styled.p`
    cursor: pointer;
    &:hover {
-      background:#4cb551;
+      color:#4cb551;
    }
 `
