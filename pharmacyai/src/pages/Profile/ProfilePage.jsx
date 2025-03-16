@@ -11,6 +11,7 @@ import { Button, Upload } from 'antd'
 import {UploadOutlined } from '@ant-design/icons'
 import { getBase64 } from '../../utils'
 const ProfilePage = () => {
+    const user = useSelector((state) => state.user)
     const [email, setEmail] = useState('')
     const [name, setName] = useState('')
     const [address, setAddress] = useState('')
@@ -23,7 +24,7 @@ const ProfilePage = () => {
             UserService.updateUser(id, data, access_token)
         }
     )
-    const dispatch = useDispatch
+    const dispatch = useDispatch()
     const {data, isPending, isSuccess, isError} = mutation
     useEffect(() => {
         setEmail(user?.email)
@@ -40,13 +41,12 @@ const ProfilePage = () => {
         } else if (isError) {
             message.error()
         }
-    })
+    }, [isSuccess, isError, user])
 
     const handlegetDetailsUser = async (id, token) => {
         const res = await UserService.getDetailsUser(id, token)
         dispatch(updateUser({...res?.data, access_token: token}))
       }
-    const user = useSelector ((state) => state.user)
     const handleOnchangeEmail = (value) => {
         setEmail(value)
     }
@@ -63,8 +63,8 @@ const ProfilePage = () => {
         setAddress(value)
     }
 
-    const handleOnchangeAvatar = async ({ filelist }) => {
-        const file = filelist[0]
+    const handleOnchangeAvatar = async({ fileList }) => {
+        const file = fileList[0]
         if (!file.url && !file.preview) {
             file.preview = await getBase64(file.originFileObj)
         }
@@ -72,7 +72,7 @@ const ProfilePage = () => {
     }
 
     const handleUpdate = () => {
-        UserService({id: user?.id, email, name, phone, address, avatar, access_token: user?.access_token })
+        mutation.mutate({id: user?.id, email, name, phone, address, avatar, access_token: user?.access_token })
         
     }
 
