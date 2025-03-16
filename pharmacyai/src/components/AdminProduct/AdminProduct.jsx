@@ -133,18 +133,15 @@ const AdminProduct = () => {
     )
   }
   const getTypeName = (type) => {
-    // Nếu type là một đối tượng với thuộc tính name, trả về name
     if (type && typeof type === 'object' && type.name) {
       return type.name;
     }
     
-    // Nếu type là một ID (string), tìm trong danh sách types
     if (typeof type === 'string') {
       const foundType = typeProduct?.data?.data?.find(t => t._id === type);
       return foundType ? foundType.name : type;
     }
     
-    // Trường hợp khác, trả về giá trị an toàn
     return String(type || '') || 'Không xác định';
   };
 

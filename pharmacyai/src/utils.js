@@ -35,21 +35,28 @@ export function getItem(label, key, icon, children, type) {
 }
 export const renderOptions = (arr) => {
     let results = []
-    if (arr) {
-        results = arr?.map((opt) => {
-            return {
-                value: opt,
-                label: opt
-            }
-        })
+    if (arr && Array.isArray(arr)) {
+      results = arr.map((opt) => {
+        // Kiểm tra nếu opt là object
+        if (typeof opt === 'object' && opt !== null) {
+          return {
+            value: opt._id || opt.id,
+            label: opt.name
+          }
+        }
+        // Nếu opt là string hoặc primitive
+        return {
+          value: opt,
+          label: String(opt)
+        }
+      })
     }
     results.push({
-        label: 'Thêm loại sản phẩm',
-        value: 'add_type'
+      label: 'Thêm loại sản phẩm',
+      value: 'add_type'
     })
     return results
-}
-
+  }
 export const convertPrice = (price) => {
     try {
         const result = price?.toLocaleString().replace(',', '.',)
