@@ -19,7 +19,7 @@
       setEmail(value)
     }
     const mutation = useMutationHooks(
-      data => UserService.signupUser(data)
+      data => UserService.signupUser(data, null)
     )
     const { data, isPending, isSuccess, isError } = mutation
     useEffect(() => {
@@ -42,8 +42,26 @@
       navigate('/sign-in')
     }
     const handleSignUp = () => {
-      mutation.mutate({email, password, confirmPassword})
-      
+      // Kiểm tra email hợp lệ
+      const emailRegex = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/;
+      if (!emailRegex.test(email)) {
+        message.error('Email không hợp lệ');
+        return;
+      }
+    
+      // Kiểm tra mật khẩu đủ mạnh
+      if (password.length < 6) {
+        message.error('Mật khẩu phải có ít nhất 6 ký tự');
+        return;
+      }
+    
+      // Kiểm tra mật khẩu và xác nhận mật khẩu
+      if (password !== confirmPassword) {
+        message.error('Mật khẩu và xác nhận mật khẩu không khớp');
+        return;
+      }
+    
+      mutation.mutate({email, password, confirmPassword});
     }
     return (
       <div style={{ display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.53)', height:'100vh'}}>
