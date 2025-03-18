@@ -75,13 +75,18 @@ const OrderPage = () => {
   useEffect(() => {
     if (isOpenModalUpdateInfo) {
       setStateUserDetails({
-        city: user?.city,
-        name: user?.name,
-        address: user?.address,
-        phone: user?.phone
-      })
+        name: user?.name || '',
+        phone: user?.phone || '',
+        address: user?.address || '',
+        city: user?.city || ''
+      });
     }
-  },[isOpenModalUpdateInfo])
+  }, [isOpenModalUpdateInfo, user]);
+  useEffect(() => {
+    if (form && stateUserDetails) {
+      form.setFieldsValue(stateUserDetails);
+    }
+  }, [form, stateUserDetails]);
   const priceMemo = useMemo(() => {
     const result = order?.ordersItemSelected?.reduce((total, cur) => {
       return total + ((cur.price * cur.amount))
@@ -116,29 +121,49 @@ const OrderPage = () => {
       dispatch(removeAllOrderProduct({ listChecked }))
     }
   }
-  const handleAddCard = () => {
-    // Thêm log để kiểm tra
-    console.log("User info check:", {
-      name: user?.name, 
-      phone: user?.phone, 
-      address: user?.address, 
-      city: user?.city
+  // Sửa đổi hàm handleAddCard
+const handleAddCard = () => {
+  // Log thông tin người dùng để debug
+  console.log("User info:", {
+    name: user?.name, 
+    phone: user?.phone, 
+    address: user?.address, 
+    city: user?.city
+  });
+
+  if (!order?.ordersItemSelected?.length) {
+    message.error('Vui lòng chọn sản phẩm');
+  } else if (
+    !user?.name || String(user?.name).trim() === '' ||
+    !user?.phone || String(user?.phone).trim() === '' ||
+    !user?.address || String(user?.address).trim() === '' ||
+    !user?.city || String(user?.city).trim() === ''
+  ) {
+    // Trước khi hiện modal, cập nhật state với thông tin hiện có
+    setStateUserDetails({
+      name: user?.name || '',
+      phone: user?.phone || '',
+      address: user?.address || '',
+      city: user?.city || ''
     });
-  
-    if (!order?.ordersItemSelected?.length) {
-      message.error('Vui lòng chọn sản phẩm')
-    } else if(
-      !user?.phone || user?.phone === '' || user?.phone === null ||
-      !user?.name || user?.name === '' || user?.name === null ||
-      !user?.address || user?.address === '' || user?.address === null ||
-      !user?.city || user?.city === '' || user?.city === null
-    ) {
-      setIsOpenModalUpdateInfo(true)
-    } else {
-      navigate('/payment', {state: {order, user, listChecked}})
-    };
+    
+    // Hiển thị thông báo cụ thể về thông tin còn thiếu
+    let missingFields = [];
+    if (!user?.name || String(user?.name).trim() === '') missingFields.push('tên');
+    if (!user?.phone || String(user?.phone).trim() === '') missingFields.push('số điện thoại');
+    if (!user?.address || String(user?.address).trim() === '') missingFields.push('địa chỉ');
+    if (!user?.city || String(user?.city).trim() === '') missingFields.push('thành phố');
+    
+    if (missingFields.length > 0) {
+      message.info(`Vui lòng cập nhật ${missingFields.join(', ')} để tiếp tục đặt hàng`);
+    }
+    
+    setIsOpenModalUpdateInfo(true);
+  } else {
+    navigate('/payment', { state: { order, user, listChecked } });
   }
-  
+};
+
 
   const mutationUpdate = useMutationHooks(
     (data) => {
@@ -271,48 +296,54 @@ const OrderPage = () => {
           </WrapperRight>
         </div>
       </div>
-      <Modal title="Cập nhật thông tin người dùng" open={isOpenModalUpdateInfo} onCancel={handleCancelUpdate} onOk={handleUpdateInforUser}>
+      <Modal 
+            title="Cập nhật thông tin người dùng" 
+            open={isOpenModalUpdateInfo} 
+            onCancel={handleCancelUpdate} 
+            onOk={handleUpdateInforUser}
+          >
             <Loading isPending={isPending}>
+              <div style={{ marginBottom: '15px', color: '#ff4d4f' }}>
+                * Vui lòng điền đầy đủ các trường bắt buộc
+              </div>
               <Form
                 name="basic"
                 labelCol={{ span: 4 }}
                 wrapperCol={{ span: 30 }}
-                // onFinish={onFinish}
                 autoComplete="on"
                 form={form}
               >
-                    <Form.Item
-                        label="Tên người dùng"
-                        name="name"
-                        rules={[{ required: true, message: 'Hãy nhập tên sản phẩm' }]}
-                      >
-                        <InputComponents value={stateUserDetails.name} onChange={handleOnchangeDetails} name="name" />
-                      </Form.Item>
-                      <Form.Item
-                        label="Số điện thoại"
-                        name="phone"
-                        rules={[{ required: true, message: 'Hãy nhập số điện thoại' }]}
-                      >
-                        <InputComponents value={stateUserDetails.phone} onChange={handleOnchangeDetails} name="phone" />
-                      </Form.Item>
-                      <Form.Item
-                        label="Địa chỉ"
-                        name="address"
-                        rules={[{ required: true, message: 'Hãy nhập địa chỉ' }]}
-                      >
-                        <InputComponents value={stateUserDetails.address} onChange={handleOnchangeDetails} name="address" />
-                      </Form.Item>
-                      <Form.Item
-                        label="Thành phố"
-                        name="city"
-                        rules={[{ required: true, message: 'Hãy nhập thành phố của bạn' }]}
-                      >
-                        <InputComponents  value={stateUserDetails.city} onChange={handleOnchangeDetails} name="city"/>
-                      </Form.Item>
-                      
-                  </Form>
-              </Loading>
-      </Modal>
+                <Form.Item
+                  label="Tên người dùng"
+                  name="name"
+                  rules={[{ required: true, message: 'Hãy nhập tên người dùng' }]}
+                >
+                  <InputComponents value={stateUserDetails.name} onChange={handleOnchangeDetails} name="name" />
+                </Form.Item>
+                <Form.Item
+                  label="Số điện thoại"
+                  name="phone"
+                  rules={[{ required: true, message: 'Hãy nhập số điện thoại' }]}
+                >
+                  <InputComponents value={stateUserDetails.phone} onChange={handleOnchangeDetails} name="phone" />
+                </Form.Item>
+                <Form.Item
+                  label="Địa chỉ"
+                  name="address"
+                  rules={[{ required: true, message: 'Hãy nhập địa chỉ' }]}
+                >
+                  <InputComponents value={stateUserDetails.address} onChange={handleOnchangeDetails} name="address" />
+                </Form.Item>
+                <Form.Item
+                  label="Thành phố"
+                  name="city"
+                  rules={[{ required: true, message: 'Hãy nhập thành phố của bạn' }]}
+                >
+                  <InputComponents value={stateUserDetails.city} onChange={handleOnchangeDetails} name="city"/>
+                </Form.Item>
+              </Form>
+            </Loading>
+          </Modal>
     </div>
   )
 }
