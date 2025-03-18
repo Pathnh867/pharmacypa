@@ -117,15 +117,27 @@ const OrderPage = () => {
     }
   }
   const handleAddCard = () => {
-     if (!order?.ordersItemSelected?.length) {
+    // Thêm log để kiểm tra
+    console.log("User info check:", {
+      name: user?.name, 
+      phone: user?.phone, 
+      address: user?.address, 
+      city: user?.city
+    });
+  
+    if (!order?.ordersItemSelected?.length) {
       message.error('Vui lòng chọn sản phẩm')
-   } else if(!user?.phone || !user.name || !user.address || !user.city) {
-    setIsOpenModalUpdateInfo(true)
-     } else {
-      navigate('/payment',{state:{order, user,listChecked}})
+    } else if(
+      !user?.phone || user?.phone === '' || user?.phone === null ||
+      !user?.name || user?.name === '' || user?.name === null ||
+      !user?.address || user?.address === '' || user?.address === null ||
+      !user?.city || user?.city === '' || user?.city === null
+    ) {
+      setIsOpenModalUpdateInfo(true)
+    } else {
+      navigate('/payment', {state: {order, user, listChecked}})
     };
-
-   }
+  }
   
 
   const mutationUpdate = useMutationHooks(
