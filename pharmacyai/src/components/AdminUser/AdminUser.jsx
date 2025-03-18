@@ -27,6 +27,8 @@ const AdminUser = () => {
   const [stateUser, setStateUser] = useState({
     name: '',
     email: '',
+    password: '',
+    confirmPassword: '',
     phone: '',
     address: '',
     avatar: '',
@@ -45,13 +47,15 @@ const AdminUser = () => {
   
   // Mutation hook để tạo người dùng mới
   const mutation = useMutationHooks(
-    (data) => {
-      const { name, email, password, phone, address, avatar, isAdmin } = data
-      const res = UserService.signupUser({ name, email, password, phone, address, avatar, isAdmin })
-      return res
-    }
-  )
-
+  (data) => {
+    const { name, email, password, confirmPassword, phone, address, avatar, isAdmin } = data
+    // Nếu đang tạo user là admin thì cần gửi token
+    return UserService.signupUser(
+      { name, email, password, confirmPassword, phone, address, avatar, isAdmin },
+      isAdmin ? user?.access_token : null
+    );
+  }
+)
   // Mutation hook để cập nhật thông tin người dùng
   const mutationUpdate = useMutationHooks(
     (data) => {
@@ -244,6 +248,11 @@ const AdminUser = () => {
  
   // Submit form tạo người dùng
   const onFinish = () => {
+    if (!stateUser.email || !stateUser.password || !stateUser.confirmPassword) {
+      message.error('Vui lòng điền đầy đủ thông tin bắt buộc');
+      return;
+    }
+    
     const params = {
       name: stateUser.name,
       email: stateUser.email,
@@ -252,15 +261,25 @@ const AdminUser = () => {
       phone: stateUser.phone,
       address: stateUser.address,
       avatar: stateUser.avatar,
-      isAdmin: stateUser.isAdmin,
+      isAdmin: stateUser.isAdmin
     }
+    
     mutation.mutate(params, {
-      onSettled: () => {
-        queryUsers.refetch()
+      onSuccess: (data) => {
+        if (data.status === 'OK') {
+          message.success('Tạo người dùng thành công');
+          handleCancel();
+          queryUsers.refetch();
+        } else {
+          message.error(data.message || 'Tạo người dùng thất bại');
+        }
+      },
+      onError: (error) => {
+        console.error('Error creating user:', error);
+        message.error('Lỗi khi tạo người dùng: ' + (error.message || 'Không xác định'));
       }
-    })
+    });
   }
-
   // Xử lý thay đổi input trong form tạo
   const handleOnchange = (e) => {
     setStateUser({

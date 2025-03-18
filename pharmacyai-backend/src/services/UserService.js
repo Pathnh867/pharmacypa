@@ -4,34 +4,72 @@ const { generalAccessToken, generalRefreshToken } = require("./JwtService");
 
 const createUser = (newUser) => {
     return new Promise(async (resolve, reject) => {
-        const { email, password, confirmPassword} = newUser;
+        const { email, password, confirmPassword, name, phone, address, avatar, isAdmin } = newUser;
         try {
+            // Kiểm tra email đã tồn tại
             const checkUser = await User.findOne({
                 email: email
-            })
+            });
             if (checkUser !== null) {
                 resolve({
                     status: 'ERR',
-                    message: 'The email is already!'
-                })
+                    message: 'Email này đã được sử dụng!'
+                });
                 return;
             }
-             if (password !== confirmPassword) {
-                resolve ({
+            
+            // Kiểm tra mật khẩu khớp
+            if (password !== confirmPassword) {
+                resolve({
                     status: 'ERR',
-                    message: 'Passwords do not match!'
-            });
-        }
-            const hash = bcrypt.hashSync(password, 10)
-            const createdUser = await User.create({
+                    message: 'Mật khẩu không khớp!'
+                });
+                return;
+            }
+            
+            // Mã hóa mật khẩu
+            const hash = bcrypt.hashSync(password, 10);
+            
+            // Tạo đối tượng user với các trường bắt buộc và tùy chọn
+            const userData = {
                 email,
-                password: hash
-            });
+                password: hash,
+                isAdmin: isAdmin || false
+            };
+            
+            // Thêm các trường tùy chọn nếu có
+            if (name) userData.name = name;
+            if (phone) userData.phone = phone;
+            if (address) userData.address = address;
+            if (avatar) userData.avatar = avatar;
+            
+            // Tạo user
+            const createdUser = await User.create(userData);
+            
             if (createdUser) {
+                // Tạo tokens
+                const access_token = await generalAccessToken({
+                    id: createdUser.id,
+                    isAdmin: createdUser.isAdmin
+                });
+                
+                const refresh_token = await generalRefreshToken({
+                    id: createdUser.id,
+                    isAdmin: createdUser.isAdmin
+                });
+                
+                // Chuyển đổi thành object để có thể xóa trường password
+                const userObject = createdUser.toObject();
+                delete userObject.password;
+                
                 resolve({
                     status: 'OK',
                     message: 'SUCCESS',
-                    data: createdUser
+                    data: {
+                        ...userObject,
+                        access_token,
+                        refresh_token
+                    }
                 });
             }
         } catch (e) {
@@ -39,6 +77,7 @@ const createUser = (newUser) => {
         }
     });
 };
+
 const loginUser = (userLogin) => {
     return new Promise(async (resolve, reject) => {
         const { email, password } = userLogin

@@ -3,33 +3,48 @@ const JWTService = require('../services/JwtService')
 
 const createUser = async (req, res) => {
     try {
-        const { email, password, confirmPassword } = req.body
-        const reg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
-        const isCheckEmail = reg.test(email)
-        if (!email || !password || !confirmPassword ) {
+        const { email, password, confirmPassword, name, phone, address, avatar } = req.body;
+        
+        // Kiểm tra các trường bắt buộc
+        const reg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/;
+        const isCheckEmail = reg.test(email);
+        
+        if (!email || !password || !confirmPassword) {
             return res.status(400).json({
                 status: 'ERR',
-                message:'The input is required'
-            })
+                message: 'Email, mật khẩu và xác nhận mật khẩu là bắt buộc'
+            });
         } else if (!isCheckEmail) {
             return res.status(400).json({
                 status: 'ERR',
-                message:'Email không hợp lệ'
-            })
+                message: 'Email không hợp lệ'
+            });
         } else if (password !== confirmPassword) {
             return res.status(400).json({
                 status: 'ERR',
-                message:'Mật khẩu và xác nhận mật khẩu không khớp'
-            })
+                message: 'Mật khẩu và xác nhận mật khẩu không khớp'
+            });
         }
-        const response = await UserService.createUser(req.body)
-        return res.status(200).json(response)
+        
+        // Phân quyền: Kiểm tra xem request có phải từ admin không
+        // Chỉ admin mới có thể tạo tài khoản admin khác
+        const isAdminRequest = req.headers.token && req.user?.isAdmin;
+        
+        // Nếu không phải admin, đảm bảo isAdmin = false
+        if (!isAdminRequest) {
+            req.body.isAdmin = false;
+        }
+        
+        // Gọi service để tạo người dùng
+        const response = await UserService.createUser(req.body);
+        return res.status(200).json(response);
     } catch (e) {
-        return res.status(404).json({
-            message: e
-        })
+        return res.status(500).json({
+            status: 'ERR',
+            message: e.message || 'Lỗi server'
+        });
     }
-}
+};
 const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body

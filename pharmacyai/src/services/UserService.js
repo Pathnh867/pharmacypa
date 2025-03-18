@@ -13,11 +13,18 @@ export const loginUser = async (data) => {
     return res.data;
 };
 
-export const signupUser = async (data) => {
+export const signupUser = async (data, token = null) => {
+    const config = { withCredentials: true };
+    
+    // Thêm token vào header nếu có
+    if (token) {
+        config.headers = { token: `Bearer ${token}` };
+    }
+    
     const res = await axios.post(
         `${process.env.REACT_APP_API_URL}/user/sign-up`,
         data,
-        { withCredentials: true }
+        config
     );
     return res.data;
 };
