@@ -184,26 +184,43 @@ const handleAddCard = () => {
   }
   console.log('data',data)
   const handleUpdateInforUser = () => {
-    console.log('stateUse',stateUserDetails)
-    const { name, phone , address, city } = stateUserDetails
+    const { name, phone, address, city } = stateUserDetails;
+    
+    // Tạo đối tượng dữ liệu mới, không bao gồm refresh_token
+    const updateData = {
+      name,
+      phone,
+      address,
+      city
+    };
+    
     if (name && phone && address && city) {
-      mutationUpdate.mutate({ id: user?.id, token: user?.access_token, ...stateUserDetails }, {
-        onSuccess: () => {
-          dispatch(updateUser({name, address, city, phone}))
-          setIsOpenModalUpdateInfo(false)
+      mutationUpdate.mutate(
+        { id: user?.id, token: user?.access_token, ...updateData },
+        {
+          onSuccess: (data) => {
+            if (data?.status === 'OK') {
+              // Chỉ cập nhật các trường đã thay đổi, giữ nguyên token
+              dispatch(updateUser({
+                ...user,
+                name,
+                phone,
+                address,
+                city
+              }));
+              message.success('Cập nhật thành công!');
+              setIsOpenModalUpdateInfo(false);
+            }
+          },
+          onError: (error) => {
+            console.error('Lỗi cập nhật:', error);
+            message.error('Có lỗi xảy ra: ' + (error.message || 'Không xác định'));
+            // Không tự động đăng xuất khi có lỗi
+          }
         }
-      })
+      );
     }
-  }
-
-  const handleOnchangeDetails = (e) => {
-    setStateUserDetails({
-      ...stateUserDetails,
-      [e.target.name]: e.target.value
-    })
-  
-  }
-
+  };
   return (
     <div style= {{background:'#f5f5fa', width:'100%', height:'100vh'}}>
       <div style= {{height:'100vh', width:'100%', margin:'0 auto'}}>
