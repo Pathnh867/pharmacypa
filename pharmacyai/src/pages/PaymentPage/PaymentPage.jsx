@@ -16,6 +16,7 @@ import * as OrderService from '../../services/OrderService'
 import * as PaymentService from '../../services/PaymentService'
 import Loading from '../../components/LoadingComponent/Loading';
 import { updateUser } from '../../redux/slide/userSlide';
+
 const PaymentPage = () => {
   const location = useLocation()
   const { order, user } = location.state || {}
@@ -167,6 +168,37 @@ const PaymentPage = () => {
       {
         onSuccess: (data) => {
           if (data?.status === 'OK') {
+            // Chuẩn bị dữ liệu chi tiết sản phẩm
+            const items = order?.ordersItemSelected?.map(item => ({
+              item_id: item.product,
+              item_name: item.name,
+              price: Number(item.price),
+              quantity: Number(item.amount),
+              // Thêm thông tin sản phẩm khác nếu có
+            }));
+            
+            // Gửi sự kiện purchase vào dataLayer cho GTM
+            window.dataLayer = window.dataLayer || [];
+            
+            // Xóa dữ liệu ecommerce trước đó (quan trọng)
+            window.dataLayer.push({
+              ecommerce: null
+            });
+            
+            // Gửi sự kiện purchase
+            window.dataLayer.push({
+              event: 'purchase',
+              ecommerce: {
+                transaction_id: data?.data?._id || Date.now().toString(),
+                value: Number(TotalPriceMemo),
+                tax: 0,
+                shipping: Number(DeliveryPriceMemo),
+                currency: 'VND',
+                items: items
+              }
+            });
+            
+            // Hiển thị thông báo thành công và xóa sản phẩm khỏi giỏ hàng
             showConfirmationModal();
             dispatch(removeAllOrderProduct({ listChecked: order?.ordersItemSelected.map(item => item.product) }));
           } else {
