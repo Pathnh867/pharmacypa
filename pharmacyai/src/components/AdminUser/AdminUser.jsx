@@ -349,6 +349,12 @@ const AdminUser = () => {
       isAdmin: stateUserDetails.isAdmin
     };
     
+    const handleOnchangeDetails = (e) => {
+      setStateUserDetails({
+        ...stateUserDetails,
+        [e.target.name]: e.target.value
+      })
+    }
     // Đảm bảo không gửi các thông tin xác thực
     console.log('Dữ liệu sẽ gửi:', dataToUpdate);
     
