@@ -1,5 +1,5 @@
 import { Col, Image, InputNumber, Rate, Row } from 'antd'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import imageProduct from '../../assets/img/thuoc.jpg'
 import imageProductSmall from '../../assets/img/thuoc1.jpg'
 import { WrapperAddressProduct, WrapperBtnQualityProduct, WrapperInputNumber, WrapperPriceProduct, WrapperPriceTextProduct, WrapperQualityProduct, WrapperStyleColImage, WrapperStyleImageSmall, WrapperStyleNameProduct, WrapperStyleTextSell } from './style'
@@ -42,7 +42,7 @@ const ProductDetailComponent = ({ idProduct }) => {
     }
 
     const renderStar = (num) => {
-        for ( const i = 0; i < num; i++) {
+        for (let i = 0; i < num; i++) {
             return (
                 <StarFilled style={{fontSize: '12px', color:'rgb(235, 216,54)'}} />
             )
@@ -54,6 +54,28 @@ const ProductDetailComponent = ({ idProduct }) => {
         if (!user?.name) {
             navigate('/sign-in', { state: location?.pathname })
         } else {
+            // Đẩy sự kiện add_to_cart vào dataLayer
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                ecommerce: null  // Xóa dữ liệu ecommerce trước đó
+            });
+            
+            window.dataLayer.push({
+                event: 'add_to_cart',
+                ecommerce: {
+                    currency: 'VND',
+                    value: Number(productDetails?.price) * numProduct,
+                    items: [{
+                        item_id: productDetails?._id,
+                        item_name: productDetails?.name,
+                        price: Number(productDetails?.price),
+                        item_category: productDetails?.type || '',
+                        discount: Number(productDetails?.discount || 0),
+                        quantity: numProduct
+                    }]
+                }
+            });
+            
             dispatch(addOrderProduct({
                 orderItem: {
                     name: productDetails?.name,
@@ -73,6 +95,42 @@ const ProductDetailComponent = ({ idProduct }) => {
         enabled: !!idProduct
         // placeholderData: keepPreviousData(true) 
     });
+    
+    // Thêm useEffect để đẩy thông tin sản phẩm vào dataLayer khi có dữ liệu
+    useEffect(() => {
+        if (productDetails) {
+            // Xóa dữ liệu ecommerce trước đó
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                ecommerce: null
+            });
+            
+            // Đẩy dữ liệu chi tiết sản phẩm vào dataLayer
+            window.dataLayer.push({
+                event: 'view_item',
+                ecommerce: {
+                    currency: 'VND',
+                    value: Number(productDetails.price),
+                    items: [{
+                        item_id: productDetails._id,
+                        item_name: productDetails.name,
+                        price: Number(productDetails.price),
+                        item_category: productDetails.type || '',
+                        discount: Number(productDetails.discount || 0),
+                        quantity: 1
+                    }]
+                },
+                // Thêm các biến tùy chỉnh để dễ dàng truy cập
+                productId: productDetails._id,
+                productName: productDetails.name,
+                productPrice: productDetails.price,
+                productCategory: productDetails.type || ''
+            });
+            
+            console.log('Product data pushed to dataLayer:', productDetails.name);
+        }
+    }, [productDetails]);
+    
     console.log('productDetails', productDetails)
     return (
       <Loading isPending={isPending}>
