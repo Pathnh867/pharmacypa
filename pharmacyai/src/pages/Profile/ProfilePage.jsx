@@ -8,7 +8,7 @@ import InputForm from '../../components/InputForm/InputForm'
 import ButtonComponent from '../../components/ButtonComponents/ButtonComponent'
 import * as UserService from '../../services/UserService'
 import { useMutationHooks } from '../../hooks/useMutationHook'
-import * as message from '../../components/Message/Message'
+import { message } from 'antd'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateUser } from '../../redux/slide/userSlide'
 import { Button, Upload, Tabs, Typography, Avatar, Divider, Alert, Tooltip } from 'antd';
