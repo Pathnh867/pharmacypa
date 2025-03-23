@@ -7,7 +7,7 @@ import { useMutationHooks } from '../../hooks/useMutationHook'
 import * as message from '../../components/Message/Message'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateUser } from '../../redux/slide/userSlide'
-import { Button, Upload, Tabs } from 'antd'
+import { Button, Upload, Tabs, Typography } from 'antd';
 import { UploadOutlined, UserOutlined, ContactsOutlined } from '@ant-design/icons'
 import { getBase64 } from '../../utils'
 import AddressManagement from '../AddressManagement/AddressManagement'
