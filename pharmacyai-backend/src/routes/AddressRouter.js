@@ -1,4 +1,5 @@
-// routes/AddressRouter.js
+// Tạo file routes/AddressRouter.js
+
 const express = require("express");
 const router = express.Router();
 const AddressController = require('../controllers/AddressController');

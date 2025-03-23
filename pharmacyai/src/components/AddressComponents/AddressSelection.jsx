@@ -14,10 +14,11 @@ import {
 import { 
   PlusOutlined, 
   EditOutlined, 
-  UserOutlined, 
-  PhoneOutlined, 
+  DeleteOutlined, 
+  HomeOutlined, 
   EnvironmentOutlined, 
-  HomeOutlined 
+  UserOutlined, 
+  PhoneOutlined 
 } from '@ant-design/icons';
 import * as AddressService from '../../services/AddressService';
 
@@ -49,14 +50,14 @@ const AddressSelection = ({
         // Set initial selected address (priority: initialSelectedAddress, default address, first address)
         if (initialSelectedAddress) {
           setSelectedAddress(initialSelectedAddress);
-          onSelectAddress(initialSelectedAddress);
+          onSelectAddress && onSelectAddress(initialSelectedAddress);
         } else {
           const defaultAddress = response.data.find(addr => addr.isDefault) || 
                                response.data[0];
           
           if (defaultAddress) {
             setSelectedAddress(defaultAddress);
-            onSelectAddress(defaultAddress);
+            onSelectAddress && onSelectAddress(defaultAddress);
           }
         }
       }
@@ -77,7 +78,7 @@ const AddressSelection = ({
     const addressId = e.target.value;
     const selected = addresses.find(addr => addr._id === addressId);
     setSelectedAddress(selected);
-    onSelectAddress(selected);
+    onSelectAddress && onSelectAddress(selected);
   };
 
   // Open modal for adding/editing address
@@ -96,6 +97,9 @@ const AddressSelection = ({
       setIsEditing(false);
       setCurrentAddress(null);
       form.resetFields();
+      form.setFieldsValue({
+        label: 'Nhà'
+      });
     }
     setIsModalVisible(true);
   };
@@ -167,6 +171,7 @@ const AddressSelection = ({
         // If deleted address was selected, select default one
         if (selectedAddress?._id === addressId) {
           setSelectedAddress(null);
+          onSelectAddress && onSelectAddress(null);
         }
         
         fetchAddresses();
@@ -289,6 +294,9 @@ const AddressSelection = ({
           form={form} 
           layout="vertical"
           requiredMark={false}
+          initialValues={{
+            label: 'Nhà'
+          }}
         >
           <Form.Item
             name="fullName"
