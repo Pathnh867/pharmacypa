@@ -11,7 +11,7 @@ import {
   PhoneOutlined 
 } from '@ant-design/icons';
 import * as AddressService from '../../services/AddressService';
-import ButtonComponent from '../ButtonComponents/ButtonComponent';
+import ButtonComponent from '../../components/ButtonComponents/ButtonComponent';
 
 const AddressManagement = () => {
   const [addresses, setAddresses] = useState([]);
