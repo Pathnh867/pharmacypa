@@ -4,7 +4,12 @@ import {
   UserOutlined, 
   DownOutlined, 
   ShoppingCartOutlined, 
-  SearchOutlined
+  SearchOutlined, 
+  BellOutlined, 
+  HeartOutlined,
+  LogoutOutlined, 
+  SettingOutlined, 
+  UserSwitchOutlined
 } from '@ant-design/icons';
 import ButtonInputSearch from '../ButtonInputSearch/ButtonInputSearch'
 import { useNavigate } from 'react-router-dom';
@@ -23,10 +28,18 @@ import {
   WrapperHeaderCart, 
   WrapperTextHeaderSmall, 
   WrapperContentPopup,
-  ActionGroup
+  Logo,
+  HeaderSearch,
+  HeaderActions,
+  SearchIconWrapper,
+  UserActionGroup,
+  CartBadge,
+  HeaderContainer,
+  LogoText
 } from './style'
 
 const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
+  // Hooks
   const mutation = useMutationHooks(
     data => UserService.loginUser(data)
   )
@@ -39,14 +52,27 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   const [search, setSearch] = useState('')
   const { isPending } = mutation
 
+  // Event handlers
   const handleNavigateLogin = () => {
     navigate('/sign-in')
   }
-  
+
   const handleLogout = async () => {
     await UserService.logoutUser()
     localStorage.removeItem('access_token');
     dispatch(resetUser())
+  }
+
+  const handleNavigateProfile = () => {
+    navigate('/profile-user')
+  }
+
+  const handleNavigateAdmin = () => {
+    navigate('/system/admin')
+  }
+
+  const handleNavigateCart = () => {
+    navigate('/order')
   }
 
   const onSearch = (e) => {
@@ -54,16 +80,36 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
     dispatch(searchProduct(e.target.value))
   }
 
-  const content = (
-    <div>
-      <WrapperContentPopup onClick={handleLogout}> Đăng xuất </WrapperContentPopup>
-      <WrapperContentPopup onClick={()=> navigate('/profile-user')}> Thông tin người dùng </WrapperContentPopup>
-      {user?.isAdmin && (
-         <WrapperContentPopup onClick={()=> navigate('/system/admin')}> Quản lý hệ thống </WrapperContentPopup>
-      )}
-    </div>
-  );
+  // User dropdown menu items
+  const userMenuItems = [
+    {
+      key: 'profile',
+      label: 'Thông tin người dùng',
+      icon: <UserOutlined />,
+      onClick: handleNavigateProfile
+    },
+    {
+      key: 'divider',
+      type: 'divider'
+    },
+    ...(user?.isAdmin ? [
+      {
+        key: 'admin',
+        label: 'Quản lý hệ thống',
+        icon: <SettingOutlined />,
+        onClick: handleNavigateAdmin
+      }
+    ] : []),
+    {
+      key: 'logout',
+      label: 'Đăng xuất',
+      icon: <LogoutOutlined />,
+      onClick: handleLogout,
+      danger: true
+    }
+  ];
 
+  // Effects
   useEffect(() => {
     setUserName(user?.name)
     setUserAvatar(user?.avatar)
@@ -71,79 +117,82 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
 
   return (
     <div style={{width:'100%', background:'#4cb551', display:'flex', justifyContent:'center'}}>
-      <WrapperHeader style={{ justifyContent: isHiddenCart && isHiddenSearch ? 'space-between' : 'unset'}} >
+      <HeaderContainer style={{ justifyContent: isHiddenCart && isHiddenSearch ? 'space-between' : 'unset'}} >
         {/* Logo */}
         <Col span={5} onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          <WrapperTextHeader>NHÀ THUỐC TIỆN LỢI</WrapperTextHeader>
+          <Logo>
+            <WrapperTextHeader>
+              <LogoText>NHÀ THUỐC TIỆN LỢI</LogoText>
+            </WrapperTextHeader>
+          </Logo>
         </Col>
         
         {/* Search */}
         {!isHiddenSearch && (
           <Col span={13}>
-            <ButtonInputSearch
-              size="large"
-              placeholder="Tìm kiếm sản phẩm..."
-              textButton="Tìm kiếm"
-              bordered={false}
-              variant="borderless"
-              onChange={onSearch}
-              value={search}
-            />
+            <HeaderSearch>
+              <ButtonInputSearch
+                size="large"
+                placeholder="Tìm kiếm sản phẩm..."
+                textButton="Tìm kiếm"
+                bordered={false}
+                variant="borderless"
+                onChange={onSearch}
+                value={search}
+              />
+            </HeaderSearch>
           </Col>
         )}
         
-        {/* Actions - User & Cart */}
+        {/* User & Cart */}
         <Col span={6}>
-          <ActionGroup>
+          <HeaderActions>
             <Loading isPending={isPending}>
-              {/* Bọc cả hai phần vào một div flex row */}
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'flex-end',
-                gap: '20px'  // Khoảng cách giữa giỏ hàng và user
-              }}>
-                {/* Phần giỏ hàng */}
-                {!isHiddenCart && (
-                  <WrapperHeaderCart onClick={() => navigate('/order')}>
-                    <Badge count={order?.orderItems?.length} size='small'>
-                      <ShoppingCartOutlined style={{ fontSize: '24px', color:'#fff' }} />
-                    </Badge>
-                    <WrapperTextCart>Giỏ hàng</WrapperTextCart>
-                  </WrapperHeaderCart>
-                )}
-                
-                {/* Phần user */}
-                {user?.access_token ? (
-                  <Popover content={content} trigger="click" placement="bottom">
-                    <WrapperHeaderAccount>
+              {user?.access_token ? (
+                <UserActionGroup>
+                  <Dropdown 
+                    menu={{ items: userMenuItems }} 
+                    placement="bottomRight" 
+                    arrow
+                  >
+                    <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                       {userAvatar ? (
                         <Avatar src={userAvatar} size="small" />
                       ) : (
-                        <UserOutlined style={{fontSize: '20px', color: '#fff'}} />
+                        <Avatar icon={<UserOutlined />} size="small" style={{ backgroundColor: '#fff', color: '#4cb551' }} />
                       )}
-                      <div style={{ marginLeft: '8px' }}>
-                        <span style={{ color: '#fff' }}>
-                          {userName?.length ? userName : user?.email}
-                        </span>
-                        <DownOutlined style={{ fontSize: '12px', marginLeft: '4px', color: '#fff' }} />
-                      </div>
-                    </WrapperHeaderAccount>
-                  </Popover>
-                ) : (
-                  <WrapperHeaderAccount onClick={handleNavigateLogin}>
-                    <UserOutlined style={{fontSize: '20px', color: '#fff'}} />
-                    <div style={{ marginLeft: '5px' }}>
-                      <WrapperTextHeaderSmall>Đăng nhập/Đăng ký</WrapperTextHeaderSmall>
-                      <WrapperTextHeaderSmall>Tài khoản <DownOutlined style={{ fontSize: '10px', marginLeft: '2px' }} /></WrapperTextHeaderSmall>
+                      <span style={{ marginLeft: '8px', color: '#fff' }}>
+                        {userName?.length ? userName : user?.email}
+                      </span>
+                      <DownOutlined style={{ fontSize: '12px', marginLeft: '6px', color: '#fff' }} />
                     </div>
-                  </WrapperHeaderAccount>
-                )}
-              </div>
+                  </Dropdown>
+                </UserActionGroup>
+              ) : (
+                <WrapperHeaderAccount onClick={handleNavigateLogin}>
+                  <UserOutlined style={{fontSize: '20px', color: '#fff'}} />
+                  <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '5px' }}>
+                    <WrapperTextHeaderSmall>Đăng nhập/Đăng ký</WrapperTextHeaderSmall>
+                    <div>
+                      <WrapperTextHeaderSmall>Tài khoản</WrapperTextHeaderSmall>
+                      <DownOutlined style={{ fontSize: '10px', marginLeft: '2px', color: '#fff' }} />
+                    </div>
+                  </div>
+                </WrapperHeaderAccount>
+              )}
+              
+              {!isHiddenCart && (
+                <CartBadge onClick={handleNavigateCart}>
+                  <Badge count={order?.orderItems?.length} size='small'>
+                    <ShoppingCartOutlined style={{ fontSize: '24px', color:'#fff' }} />
+                  </Badge>
+                  <WrapperTextCart>Giỏ hàng</WrapperTextCart>
+                </CartBadge>
+              )}
             </Loading>
-          </ActionGroup>
+          </HeaderActions>
         </Col>
-      </WrapperHeader>
+      </HeaderContainer>
     </div>
   )
 }
