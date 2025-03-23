@@ -8,6 +8,7 @@ import SignUpPage from "../pages/SignUpPage/SignUpPage";
 import ProductDetailPage from "../pages/ProductDetailPage/ProductDetailPage";
 import AdminPage from "../pages/AdminPage/AdminPage";
 import PaymentPage from "../pages/PaymentPage/PaymentPage";
+import PaymentResultPage from "../pages/PaymentResultPage/PaymentResultPage";
 import ProfilePage from "../pages/Profile/ProfilePage";
 // import PaymentPage from "../pages/Payment/PaymentPage";
 
@@ -69,5 +70,10 @@ export const routes = [
         page: ProfilePage,
         isShowHeader: true,
         
+    },
+    {
+        path: '/payment-result',
+        page: PaymentResultPage,
+        isShowHeader: true
     },
 ]
