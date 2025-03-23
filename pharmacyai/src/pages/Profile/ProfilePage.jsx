@@ -10,7 +10,7 @@ import { updateUser } from '../../redux/slide/userSlide'
 import { Button, Upload, Tabs } from 'antd'
 import { UploadOutlined, UserOutlined, AddressBookOutlined } from '@ant-design/icons'
 import { getBase64 } from '../../utils'
-import AddressManagement from './AddressManagement'
+import AddressManagement from '../AddressManagement/AddressManagement'
 
 const ProfilePage = () => {
     const user = useSelector((state) => state.user)
