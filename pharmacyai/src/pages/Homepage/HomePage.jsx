@@ -218,16 +218,7 @@ const HomePage = () => {
 
   return (
     <Loading isPending={isPending || pending}>
-      {/* Header Section with Categories */}
-      <div style={{ width: '1270px', margin: '0 auto', padding: '15px 0' }}>
-        <StyledTypeList>
-          {typeProduct.map((item) => {
-            // Kiểm tra xem item có phải là đối tượng và có thuộc tính _id không
-            const key = typeof item === 'object' && item._id ? item._id : item;
-            return <TypeProduct name={item} key={key} />;
-          })}
-        </StyledTypeList>
-      </div>
+    
       
       {/* Main Content Area with Background */}
       <div className='body' style={{ width: '100%', background: '#f7f7f7', paddingTop: '20px', paddingBottom: '40px' }}>
