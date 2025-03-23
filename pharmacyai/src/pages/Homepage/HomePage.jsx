@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector, useDispatch } from 'react-redux';
 import { Row, Col, Carousel, Input, Button, Typography, Badge, Card, Tabs, Divider } from 'antd';
-import { SearchOutlined, HeartOutlined, ShoppingCartOutlined, StarFilled, PhoneFilled, ClockCircleFilled, EnvironmentFilled } from '@ant-design/icons';
+import { SearchOutlined, HeartOutlined, ShoppingCartOutlined, StarFilled, PhoneFilled, ClockCircleFilled, EnvironmentFilled, BugOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 
 // Import các component và service cần thiết
+// Import TypeProduct từ component gốc
 import TypeProduct from '../../components/TypeProduct/TypeProduct';
 import CardComponent from '../../components/CardComponents/CardComponent';
 import Loading from '../../components/LoadingComponent/Loading';
@@ -85,21 +86,6 @@ const StyledTypeList = styled.div`
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 20px;
-  
-  div {
-    padding: 8px 16px;
-    background: #f5f5f5;
-    border-radius: 20px;
-    transition: all 0.3s ease;
-    border: 1px solid transparent;
-    
-    &:hover {
-      background: #e8f5e9;
-      border-color: #4cb551;
-      color: #4cb551;
-      transform: translateY(-2px);
-    }
-  }
 `;
 
 const ViewMoreButton = styled(Button)`
@@ -166,6 +152,9 @@ const ProductGrid = styled.div`
 `;
 
 const HomePage = () => {
+  // Lấy location để kiểm tra chuyển hướng
+  const location = useLocation();
+  console.log("Current location:", location);
   const searchProduct = useSelector((state) => state?.product?.search);
   const searchDebounce = useDebounce(searchProduct, 500);
   const [pending, setPending] = useState(false);
@@ -184,6 +173,8 @@ const HomePage = () => {
     try {
       const res = await ProductService.getAllTypeProduct();
       if (res?.status === 'OK') {  
+        // Log để kiểm tra định dạng dữ liệu
+        console.log("Type data format:", res?.data);
         setTypeProduct(res?.data);
       }
     } catch (error) {
@@ -229,9 +220,11 @@ const HomePage = () => {
       {/* Header Section with Categories */}
       <div style={{ width: '1270px', margin: '0 auto', padding: '15px 0' }}>
         <StyledTypeList>
-          {typeProduct.map((item) => (
-            <TypeProduct name={item} key={item} />
-          ))}
+          {typeProduct.map((item) => {
+            // Kiểm tra xem item có phải là đối tượng và có thuộc tính _id không
+            const key = typeof item === 'object' && item._id ? item._id : item;
+            return <TypeProduct name={item} key={key} />;
+          })}
         </StyledTypeList>
       </div>
       

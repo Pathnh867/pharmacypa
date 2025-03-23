@@ -13,9 +13,17 @@ export const getAllProduct = async (search, limit) => {
 
 export const getProductType = async (type, page, limit) => {
     if (type) {
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?filter=type&filter=${type}&limit=${limit}&page=${page}`)
-        return res.data
-    } 
+        console.log(`Calling API with type=${type}, page=${page}, limit=${limit}`);
+        
+        try {
+            const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?filter=type&filter=${type}&limit=${limit}&page=${page}`)
+            return res.data
+        } catch (error) {
+            console.error("API Error:", error);
+            throw error;
+        }
+    }
+    return null;
 }
 
 export const createProduct = async (data) => {
@@ -45,6 +53,7 @@ export const deleteProduct = async (id, access_token) => {
 }
 export const getAllTypeProduct = async () => {
     const res = await axios.get(`${process.env.REACT_APP_API_URL}/type/get-all`)
+    console.log("API response for types:", res.data);
     return res.data
 }
 
