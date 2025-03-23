@@ -71,11 +71,18 @@ export const SearchContainer = styled.div`
 export const ActionContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 25px;
+  gap: 15px;
   
   @media (max-width: 768px) {
     display: none;
   }
+`;
+
+export const UserCartContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  height: 100%;
 `;
 
 export const UserContainer = styled.div`
@@ -85,6 +92,7 @@ export const UserContainer = styled.div`
   padding: 5px 12px;
   border-radius: 30px;
   transition: all 0.2s;
+  height: 40px;
   
   &:hover {
     background: rgba(255, 255, 255, 0.2);
@@ -128,6 +136,7 @@ export const CartContainer = styled.div`
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.1);
   transition: all 0.3s;
+  height: 40px;
   
   &:hover {
     background: rgba(255, 255, 255, 0.2);
@@ -232,7 +241,8 @@ export const CategoryMenu = styled.div`
   align-items: center;
   justify-content: center;
   background-color: #3aa43f;
-  padding: 8px 0;
+  padding: 10px 0;
+  margin-top: 0;
   
   @media (max-width: 768px) {
     display: none;

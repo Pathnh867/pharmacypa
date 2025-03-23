@@ -47,7 +47,8 @@ import {
   MobileSearchContainer,
   MobileUserInfo,
   CategoryMenu,
-  CategoryItem
+  CategoryItem,
+  UserCartContainer
 } from './style'
 
 const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
@@ -216,54 +217,57 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
         {/* Desktop Actions */}
         <ActionContainer>
           <Loading isPending={isPending}>
-            {/* User section */}
-            {user?.access_token ? (
-              <Dropdown 
-                menu={{ items: userMenuItems }} 
-                placement="bottomRight" 
-                arrow
-              >
-                <UserContainer>
-                  {userAvatar ? (
-                    <UserAvatar src={userAvatar} />
-                  ) : (
-                    <UserAvatar icon={<UserOutlined />} />
-                  )}
-                  <UserInfo>
-                    <UserName>
-                      {userName?.length ? userName : user?.email?.split('@')[0]}
-                    </UserName>
-                    <DownOutlined style={{ fontSize: '10px', color: '#fff', opacity: 0.8 }} />
-                  </UserInfo>
-                </UserContainer>
-              </Dropdown>
-            ) : (
-              <Button 
-                type="primary" 
-                onClick={handleNavigateLogin}
-                icon={<UserOutlined style={{ marginRight: '4px' }} />}
-                style={{ 
-                  background: 'rgba(255, 255, 255, 0.1)', 
-                  borderColor: 'transparent',
-                  color: '#fff',
-                  borderRadius: '30px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                Đăng nhập
-              </Button>
-            )}
-            
-            {/* Cart section */}
-            {!isHiddenCart && (
-              <CartContainer onClick={handleNavigateCart}>
-                <Badge count={order?.orderItems?.length} size='small' style={{ backgroundColor: '#ff4d4f' }}>
-                  <ShoppingCartOutlined style={{ fontSize: '20px' }} />
-                </Badge>
-                <CartText>Giỏ hàng</CartText>
-              </CartContainer>
-            )}
+            <UserCartContainer>
+              {/* User section */}
+              {user?.access_token ? (
+                <Dropdown 
+                  menu={{ items: userMenuItems }} 
+                  placement="bottomRight" 
+                  arrow
+                >
+                  <UserContainer>
+                    {userAvatar ? (
+                      <UserAvatar src={userAvatar} />
+                    ) : (
+                      <UserAvatar icon={<UserOutlined />} />
+                    )}
+                    <UserInfo>
+                      <UserName>
+                        {userName?.length ? userName : user?.email?.split('@')[0]}
+                      </UserName>
+                      <DownOutlined style={{ fontSize: '10px', color: '#fff', opacity: 0.8 }} />
+                    </UserInfo>
+                  </UserContainer>
+                </Dropdown>
+              ) : (
+                <Button 
+                  type="primary" 
+                  onClick={handleNavigateLogin}
+                  icon={<UserOutlined style={{ marginRight: '4px' }} />}
+                  style={{ 
+                    background: 'rgba(255, 255, 255, 0.1)', 
+                    borderColor: 'transparent',
+                    color: '#fff',
+                    borderRadius: '30px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    height: '40px'
+                  }}
+                >
+                  Đăng nhập
+                </Button>
+              )}
+              
+              {/* Cart section */}
+              {!isHiddenCart && (
+                <CartContainer onClick={handleNavigateCart}>
+                  <Badge count={order?.orderItems?.length} size='small' style={{ backgroundColor: '#ff4d4f' }}>
+                    <ShoppingCartOutlined style={{ fontSize: '20px' }} />
+                  </Badge>
+                  <CartText>Giỏ hàng</CartText>
+                </CartContainer>
+              )}
+            </UserCartContainer>
           </Loading>
         </ActionContainer>
       </HeaderContent>
