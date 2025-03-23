@@ -1,4 +1,5 @@
 const Type = require("../models/TypeModel")
+const mongoose = require('mongoose');
 
 const getAllType = () => {
     return new Promise(async (resolve, reject) => {
