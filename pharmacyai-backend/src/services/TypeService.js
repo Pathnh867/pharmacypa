@@ -41,8 +41,20 @@ const createType = (newType) => {
         }
     });
 };
-
+const findTypeByName = async (name) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const typeObj = await Type.findOne({ 
+                name: { '$regex': name, '$options': 'i' } 
+            });
+            resolve(typeObj);
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
 module.exports = {
     getAllType,
-    createType
+    createType,
+    findTypeByName
 };

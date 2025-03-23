@@ -256,13 +256,38 @@ const getAllType = () => {
         }
     });
 };
+const getProductsByTypeId = (typeId, page, limit) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const query = { type: new mongoose.Types.ObjectId(typeId) };
+            
+            const totalProduct = await Product.countDocuments(query);
+            const products = await Product.find(query)
+                .limit(limit)
+                .skip(page * limit)
+                .populate('type');
+                
+            resolve({
+                status: 'OK',
+                message: 'Success',
+                data: products,
+                total: totalProduct,
+                pageCurrent: Number(page + 1),
+                totalPage: Math.ceil(totalProduct/limit)
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
 module.exports = {
     createProduct,
     updateProduct,
     getdetailsProduct,
     deleteProduct,
     getAllProduct,
-    getAllType
+    getAllType,
+    getProductsByTypeId,
 };
 //  Chuong 1 5 cau
 //Chuong 2 3 moi chuong 6 cau

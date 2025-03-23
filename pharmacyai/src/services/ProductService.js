@@ -13,17 +13,25 @@ export const getAllProduct = async (search, limit) => {
 
 export const getProductType = async (type, page, limit) => {
     if (type) {
-      console.log(`Calling API with type=${type}, page=${page}, limit=${limit}`);
-      try {
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?filter=type&filter=${type}&limit=${limit}&page=${page}`);
-        return res.data;
-      } catch (error) {
-        console.error('API Error:', error);
-        throw error;
-      }
+        try {
+            // Trường hợp là ObjectId MongoDB 
+            if (type.match(/^[0-9a-fA-F]{24}$/)) {
+                const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?filter=type&filter=${type}&limit=${limit}&page=${page}`);
+                return res.data;
+            } 
+            // Trường hợp là tên loại sản phẩm (có thể chứa dấu cách và ký tự đặc biệt)
+            else {
+                const encodedType = encodeURIComponent(type);
+                const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-by-type-name?typeName=${encodedType}&page=${page}&limit=${limit}`);
+                return res.data;
+            }
+        } catch (error) {
+            console.error('API Error:', error);
+            throw error;
+        }
     }
     return null;
-  }
+}
 
 export const createProduct = async (data) => {
     const res = await axios.post(`${process.env.REACT_APP_API_URL}/product/create`, data)

@@ -42,37 +42,47 @@ const TypeProductPage = () => {
     
     console.log('TypeProductPage state:', state)
     
-    // Trong TypeProductPage.jsx
     const fetchProductType = async (type, page, limit) => {
-            setIsPending(true);
-            try {
-                // Xử lý type một cách rõ ràng hơn
-                let typeParam;
-                
-                if (typeof type === 'object' && type !== null) {
-                    // Ưu tiên sử dụng ID nếu có
-                    typeParam = type._id || type.name;
-                    console.log('Using type object with ID/name:', typeParam);
-                } else {
-                    typeParam = type;
-                    console.log('Using type string:', typeParam);
-                }
-                
-                // Đảm bảo typeParam không bị null/undefined
-                if (!typeParam) {
-                    console.error('No valid type parameter');
-                    setIsPending(false);
-                    return;
-                }
-                
-                const res = await ProductService.getProductType(typeParam, page, limit);
-                // Xử lý phản hồi như cũ
-            } catch (error) {
-                console.error('Error in fetchProductType:', error);
-                setIsPending(false);
+        setIsPending(true);
+        try {
+            // Xử lý type một cách rõ ràng
+            let typeParam;
+            
+            if (typeof type === 'object' && type !== null) {
+                // Ưu tiên sử dụng ID nếu có
+                typeParam = type._id || type.name;
+            } else {
+                typeParam = type;
             }
+            
+            // Đảm bảo typeParam không bị null/undefined
+            if (!typeParam) {
+                console.error('No valid type parameter');
+                setIsPending(false);
+                return;
+            }
+            
+            // Gọi API lấy sản phẩm theo type
+            const res = await ProductService.getProductType(typeParam, page, limit);
+            
+            // Xử lý kết quả trả về
+            if (res?.status === 'OK') {
+                setProducts(res.data);
+                setPanigate({
+                    page: Number(res.pageCurrent) - 1,
+                    limit: limit,
+                    total: res.total
+                });
+            } else {
+                setProducts([]);
+            }
+        } catch (error) {
+            console.error('Error in fetchProductType:', error);
+            setProducts([]);
+        } finally {
+            setIsPending(false);
         }
-
+    }
     // Trong TypeProductPage.jsx
     useEffect(() => {
         if (state) {
