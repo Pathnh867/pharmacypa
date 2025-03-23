@@ -4,7 +4,8 @@ import { Label, WrapperInfo, WrapperInfodiv, WrapperInfospan, WrapperItemOrder,
   WrapperLeft, WrapperListOrder, WrapperRadio, WrapperRight, WrapperStyleHeader, WrapperTotal, 
   PaymentMethodCard, PaymentIcon, PaymentMethodTitle, PaymentMethodDesc, OrderSummaryTitle, 
   MethodContent, DeliveryInfo, OrderItemsList, PageContainer, PageContent, SectionTitle } from './style';
-import { Alert, Button, Card, Checkbox, Form, Input, message, Modal, Radio, Space, Steps, Tooltip, Empty } from 'antd';
+  import { Alert, Button, Card, Checkbox, Form, Input, message, Modal, Radio, Space, Steps, Tooltip, Empty, Typography } from 'antd';
+
 import { DeleteOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined, 
   RightOutlined, InfoCircleOutlined, EnvironmentOutlined, UserOutlined, PhoneOutlined,
   HomeOutlined, EditOutlined, PlusCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
