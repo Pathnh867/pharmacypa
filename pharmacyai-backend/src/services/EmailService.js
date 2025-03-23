@@ -41,7 +41,7 @@ const sendEmailOrderSuccess = async (orderData) => {
                     <h1 style="color: white; margin: 0;">Đơn hàng mới</h1>
                 </div>
                 
-                <p>Xin chào Admin,</p>
+                <p>Xin chào ${orderData.shippingAddress.fullName},</p>
                 <p>Có đơn hàng mới vừa được đặt trên hệ thống với thông tin như sau:</p>
                 
                 <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
