@@ -1,14 +1,13 @@
-// Tạo file routes/AddressRouter.js
-
 const express = require("express");
 const router = express.Router();
 const AddressController = require('../controllers/AddressController');
-const { authUserMiddleware } = require("../middleware/authMiddleware");
+const { authAddressMiddleware } = require("../middleware/authMiddleware");
 
-router.post('/create', authUserMiddleware, AddressController.createAddress);
-router.get('/get-all', authUserMiddleware, AddressController.getAllAddresses);
-router.put('/update/:id', authUserMiddleware, AddressController.updateAddress);
-router.delete('/delete/:id', authUserMiddleware, AddressController.deleteAddress);
-router.put('/set-default/:id', authUserMiddleware, AddressController.setDefaultAddress);
+// Sử dụng authAddressMiddleware cho tất cả các route địa chỉ
+router.post('/create', authAddressMiddleware, AddressController.createAddress);
+router.get('/get-all', authAddressMiddleware, AddressController.getAllAddresses);
+router.put('/update/:id', authAddressMiddleware, AddressController.updateAddress);
+router.delete('/delete/:id', authAddressMiddleware, AddressController.deleteAddress);
+router.put('/set-default/:id', authAddressMiddleware, AddressController.setDefaultAddress);
 
 module.exports = router;
