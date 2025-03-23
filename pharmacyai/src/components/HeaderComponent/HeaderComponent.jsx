@@ -262,7 +262,7 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
               {!isHiddenCart && (
                 <CartContainer onClick={handleNavigateCart}>
                   <Badge count={order?.orderItems?.length} size='small' style={{ backgroundColor: '#ff4d4f' }}>
-                    <ShoppingCartOutlined style={{ fontSize: '20px' }} />
+                    <ShoppingCartOutlined style={{ fontSize: '20px', color: "white" }} />
                   </Badge>
                   <CartText>Giỏ hàng</CartText>
                 </CartContainer>
