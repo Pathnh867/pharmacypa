@@ -73,14 +73,28 @@ const deleteProduct = async (req, res) => {
 }
 const getAllProduct = async (req, res) => {
     try {
-        const { limit, page, sort, filter } = req.query
+        let { limit, page, sort, filter } = req.query;
+        
         console.log('Controller hit:', { limit, page, sort, filter });
-        const response = await ProductService.getAllProduct(Number(limit)||null, Number(page)||0,sort, filter)
-        return res.status(200).json(response)
+        
+        // Xử lý filter nếu nó đến dưới dạng chuỗi
+        if (filter && !Array.isArray(filter)) {
+            // Nếu filter là một chuỗi JSON, parse nó
+            try {
+                filter = JSON.parse(filter);
+            } catch (e) {
+                // Nếu không phải JSON, có thể là một chuỗi đơn, chuyển thành mảng
+                filter = [filter];
+            }
+        }
+        
+        const response = await ProductService.getAllProduct(Number(limit)||null, Number(page)||0, sort, filter);
+        return res.status(200).json(response);
     } catch (e) {
+        console.error("Error in getAllProduct:", e);
         return res.status(404).json({
-            message: e
-        })
+            message: e.message || e
+        });
     }
 }
 const getAllType = async (req, res) => {

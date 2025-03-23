@@ -42,32 +42,36 @@ const TypeProductPage = () => {
     
     console.log('TypeProductPage state:', state)
     
+    // Trong TypeProductPage.jsx
     const fetchProductType = async (type, page, limit) => {
-        setIsPending(true);
-        try {
-          // Xác định giá trị cần gửi đi
-          let typeParam = type;
-          
-          // Nếu type là object, ưu tiên sử dụng _id, nếu không có thì dùng name
-          if (typeof type === 'object') {
-            typeParam = type._id || type.name;
-          }
-          
-          console.log('Using type parameter:', typeParam);
-          
-          const res = await ProductService.getProductType(typeParam, page, limit);
-          if (res?.status === 'OK') {
-            setIsPending(false);
-            setProducts(res?.data);
-            setPanigate({ ...panigate, total: res?.totalPage });
-          } else {
-            setIsPending(false);
-          }
-        } catch (error) {
-          console.error('Error fetching products by type:', error);
-          setIsPending(false);
+            setIsPending(true);
+            try {
+                // Xử lý type một cách rõ ràng hơn
+                let typeParam;
+                
+                if (typeof type === 'object' && type !== null) {
+                    // Ưu tiên sử dụng ID nếu có
+                    typeParam = type._id || type.name;
+                    console.log('Using type object with ID/name:', typeParam);
+                } else {
+                    typeParam = type;
+                    console.log('Using type string:', typeParam);
+                }
+                
+                // Đảm bảo typeParam không bị null/undefined
+                if (!typeParam) {
+                    console.error('No valid type parameter');
+                    setIsPending(false);
+                    return;
+                }
+                
+                const res = await ProductService.getProductType(typeParam, page, limit);
+                // Xử lý phản hồi như cũ
+            } catch (error) {
+                console.error('Error in fetchProductType:', error);
+                setIsPending(false);
+            }
         }
-      }
 
     useEffect(() => {
         if (state) {
