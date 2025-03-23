@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Row, Col, Carousel, Input, Button, Typography, Badge, Card, Tabs, Divider } from 'antd';
-import { SearchOutlined, HeartOutlined, ShoppingCartOutlined, StarFilled, PhoneFilled, ClockCircleFilled, EnvironmentFilled, BugOutlined } from '@ant-design/icons';
+import { SearchOutlined, HeartOutlined, ShoppingCartOutlined, StarFilled, PhoneFilled, ClockCircleFilled, EnvironmentFilled } from '@ant-design/icons';
 import styled from 'styled-components';
 
 // Import các component và service cần thiết
-// Import TypeProduct từ component gốc
 import TypeProduct from '../../components/TypeProduct/TypeProduct';
 import CardComponent from '../../components/CardComponents/CardComponent';
 import Loading from '../../components/LoadingComponent/Loading';
@@ -152,9 +152,10 @@ const ProductGrid = styled.div`
 `;
 
 const HomePage = () => {
-  // Lấy location để kiểm tra chuyển hướng
+  const navigate = useNavigate();
   const location = useLocation();
   console.log("Current location:", location);
+  
   const searchProduct = useSelector((state) => state?.product?.search);
   const searchDebounce = useDebounce(searchProduct, 500);
   const [pending, setPending] = useState(false);
