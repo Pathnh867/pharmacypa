@@ -56,6 +56,7 @@ export const LogoText = styled.span`
 export const SearchContainer = styled.div`
   width: 500px;
   margin: 0 30px;
+  flex: 1;
   
   @media (max-width: 1024px) {
     width: 350px;
@@ -70,7 +71,7 @@ export const SearchContainer = styled.div`
 export const ActionContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 25px;
   
   @media (max-width: 768px) {
     display: none;
@@ -80,6 +81,14 @@ export const ActionContainer = styled.div`
 export const UserContainer = styled.div`
   display: flex;
   align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 5px 12px;
+  border-radius: 30px;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
 `;
 
 export const UserAvatar = styled(Avatar)`
@@ -113,14 +122,15 @@ export const CartContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 6px 14px;
   cursor: pointer;
   color: white;
-  border-radius: 4px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.1);
   transition: all 0.3s;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.2);
   }
 `;
 
