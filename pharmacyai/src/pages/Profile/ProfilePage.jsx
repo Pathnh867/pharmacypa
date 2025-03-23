@@ -8,7 +8,7 @@ import * as message from '../../components/Message/Message'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateUser } from '../../redux/slide/userSlide'
 import { Button, Upload, Tabs } from 'antd'
-import { UploadOutlined, UserOutlined, AddressBookOutlined } from '@ant-design/icons'
+import { UploadOutlined, UserOutlined,ContactsOutlined  } from '@ant-design/icons'
 import { getBase64 } from '../../utils'
 import AddressManagement from '../AddressManagement/AddressManagement'
 
@@ -205,7 +205,7 @@ const ProfilePage = () => {
             key: 'addresses',
             label: (
                 <span>
-                    <AddressBookOutlined />
+                    <ContactsOutlined />
                     Quản lý địa chỉ
                 </span>
             ),
