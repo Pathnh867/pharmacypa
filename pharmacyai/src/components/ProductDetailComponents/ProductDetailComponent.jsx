@@ -51,7 +51,7 @@ const ProductDetailComponent = ({ idProduct }) => {
     
     const handleAddOrderProduct = () => {
         console.log('user', user)
-        if (!user?.name) {
+        if (!user?.access_token) {
             navigate('/sign-in', { state: location?.pathname })
         } else {
             // Đẩy sự kiện add_to_cart vào dataLayer
