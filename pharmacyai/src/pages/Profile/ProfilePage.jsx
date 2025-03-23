@@ -20,7 +20,8 @@ import {
   PhoneOutlined, 
   HomeOutlined, 
   EditOutlined, 
-  CheckOutlined
+  CheckOutlined,
+  EnvironmentOutlined
 } from '@ant-design/icons'
 import { getBase64 } from '../../utils'
 import AddressManagement from '../AddressManagement/AddressManagement'
