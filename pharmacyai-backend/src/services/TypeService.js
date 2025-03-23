@@ -44,11 +44,14 @@ const createType = (newType) => {
 const findTypeByName = async (name) => {
     return new Promise(async (resolve, reject) => {
         try {
+            // Sử dụng tìm kiếm không phân biệt chữ hoa/thường
             const typeObj = await Type.findOne({ 
-                name: { '$regex': name, '$options': 'i' } 
+                name: { '$regex': `^${name}$`, '$options': 'i' } 
             });
+            console.log('findTypeByName result:', typeObj);
             resolve(typeObj);
         } catch (e) {
+            console.error('Error in findTypeByName:', e);
             reject(e);
         }
     });

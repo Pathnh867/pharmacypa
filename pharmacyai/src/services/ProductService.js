@@ -12,26 +12,47 @@ export const getAllProduct = async (search, limit) => {
 }
 
 export const getProductType = async (type, page, limit) => {
-    if (type) {
-        try {
-            // Trường hợp là ObjectId MongoDB 
-            if (type.match(/^[0-9a-fA-F]{24}$/)) {
-                const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?filter=type&filter=${type}&limit=${limit}&page=${page}`);
-                return res.data;
-            } 
-            // Trường hợp là tên loại sản phẩm (có thể chứa dấu cách và ký tự đặc biệt)
-            else {
-                const encodedType = encodeURIComponent(type);
-                const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-by-type-name?typeName=${encodedType}&page=${page}&limit=${limit}`);
-                return res.data;
-            }
-        } catch (error) {
-            console.error('API Error:', error);
-            throw error;
+    if (!type) return null;
+    
+    console.log(`Getting products for type: ${type}, page: ${page}, limit: ${limit}`);
+    
+    try {
+        // Xác định cách xử lý dựa trên loại của type
+        const isMongoId = typeof type === 'string' && /^[0-9a-fA-F]{24}$/.test(type);
+        const typeName = typeof type === 'object' ? (type.name || '') : String(type);
+        
+        if (isMongoId) {
+            console.log('Using MongoDB ID query');
+            const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?filter=type&filter=${type}&limit=${limit}&page=${page}`);
+            return res.data;
+        } else {
+            console.log('Using type name query:', typeName);
+            const encodedTypeName = encodeURIComponent(typeName);
+            const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-by-type-name?typeName=${encodedTypeName}&page=${page}&limit=${limit}`);
+            return res.data;
         }
+    } catch (error) {
+        console.error('API Error:', error);
+        if (error.response) {
+            console.error('Error response:', error.response.data);
+        }
+        throw error;
     }
-    return null;
-}
+};
+
+// Thêm hàm mới để test endpoint trực tiếp
+export const testTypeEndpoint = async (typeName) => {
+    try {
+        const encodedTypeName = encodeURIComponent(typeName);
+        console.log(`Testing endpoint with type: ${encodedTypeName}`);
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-by-type-name?typeName=${encodedTypeName}`);
+        console.log('Response:', res.data);
+        return res.data;
+    } catch (error) {
+        console.error('Test endpoint error:', error);
+        throw error;
+    }
+};
 
 export const createProduct = async (data) => {
     const res = await axios.post(`${process.env.REACT_APP_API_URL}/product/create`, data)

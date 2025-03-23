@@ -111,11 +111,24 @@ const getAllType = async (req, res) => {
 // ProductController.js - thêm route mới
 const getProductsByTypeName = async (req, res) => {
     try {
-        const { typeName, page, limit } = req.query;
+        const { typeName, page = 0, limit = 10 } = req.query;
         console.log('Searching by type name:', typeName);
         
+        if (!typeName) {
+            return res.status(400).json({
+                status: 'ERR',
+                message: 'Type name is required'
+            });
+        }
+        
+        // Giải mã URL cho typeName nếu cần
+        const decodedTypeName = decodeURIComponent(typeName);
+        console.log('Decoded type name:', decodedTypeName);
+        
         // Tìm kiếm type có tên tương ứng
-        const typeObj = await TypeService.findTypeByName(typeName);
+        const typeObj = await TypeService.findTypeByName(decodedTypeName);
+        console.log('Found type object:', typeObj);
+        
         if (!typeObj) {
             return res.status(200).json({
                 status: 'OK',
@@ -127,14 +140,24 @@ const getProductsByTypeName = async (req, res) => {
             });
         }
         
-        // Tìm kiếm sản phẩm với type ID
-        const response = await ProductService.getProductsByTypeId(
-            typeObj._id, 
-            Number(page) || 0, 
-            Number(limit) || 10
-        );
-        
-        return res.status(200).json(response);
+        // Query sản phẩm với type ID
+        const query = { type: typeObj._id };
+        const totalProduct = await Product.countDocuments(query);
+        const products = await Product.find(query)
+            .limit(Number(limit))
+            .skip(Number(page) * Number(limit))
+            .populate('type');
+            
+        console.log(`Found ${products.length} products for type ${decodedTypeName}`);
+            
+        return res.status(200).json({
+            status: 'OK',
+            message: 'Success',
+            data: products,
+            total: totalProduct,
+            pageCurrent: Number(page) + 1,
+            totalPage: Math.ceil(totalProduct/Number(limit))
+        });
     } catch (e) {
         console.error('Error in getProductsByTypeName:', e);
         return res.status(500).json({
@@ -142,7 +165,8 @@ const getProductsByTypeName = async (req, res) => {
             message: e.message || 'Server error'
         });
     }
-}
+};
+
 module.exports = {
     createProduct,
     updateProduct,
