@@ -86,7 +86,7 @@ const PaymentPage = () => {
 
   const priceDiscountMemo = useMemo(() => {
     const result = order?.ordersItemSelected?.reduce((total, cur) => {
-      return total + ((cur.discount * cur.amount))
+      return total + ((cur.discount * cur.amount) / 100 * cur.price)
     }, 0)
     if (Number(result)) {
       return result
@@ -130,191 +130,195 @@ const PaymentPage = () => {
     }
   )
 
-  const showConfirmationModal = () => {
-    const modal = Modal.success({
-      title: 'Đặt hàng thành công!',
-      content: (
-        <div>
-          <p>Cửa hàng xin chân thành cảm ơn bạn <strong>{user?.name}</strong></p>
-          <p>Cảm ơn bạn đã mua hàng! Bạn sẽ được chuyển đến trang chủ.</p>
-        </div>
-      ),
-      onOk: () => {
-        navigate('/');
-      }
-    });
-  };
+  // Phương thức xử lý thanh toán MoMo
+  const handleMomoPayment = async () => {
+    if (!user?.access_token || !order?.ordersItemSelected?.length) {
+      message.error('Có lỗi xảy ra, vui lòng đăng nhập lại');
+      return;
+    }
 
-  // Trong PaymentPage.jsx
-const handleMomoPayment = async () => {
-  try {
+    if (!user?.name || !user?.address || !user?.phone || !user?.city) {
+      message.error('Vui lòng cập nhật thông tin giao hàng');
+      setIsOpenModalUpdateInfo(true);
+      return;
+    }
+
+    try {
       setIsSubmitting(true);
       
-      // Tạo đơn hàng với trạng thái "chờ thanh toán"
+      // Bước 1: Tạo đơn hàng trước với trạng thái chưa thanh toán
       const orderData = {
-          token: user?.access_token,
-          orderItems: order?.ordersItemSelected,
-          fullName: user?.name,
-          address: user?.address,
-          phone: user?.phone,
-          city: user?.city,
-          paymentMethod: 'momo',
-          itemsPrice: priceMemo,
-          shippingPrice: DeliveryPriceMemo,
-          totalPrice: TotalPriceMemo,
-          user: user?.id,
-          isPaid: false // Đánh dấu là chưa thanh toán
+        token: user?.access_token,
+        orderItems: order?.ordersItemSelected,
+        fullName: user?.name,
+        address: user?.address,
+        phone: user?.phone,
+        city: user?.city,
+        paymentMethod: 'momo',
+        itemsPrice: priceMemo,
+        shippingPrice: DeliveryPriceMemo,
+        totalPrice: TotalPriceMemo,
+        user: user?.id,
+        // Đánh dấu là chưa thanh toán, sẽ cập nhật khi nhận IPN từ MoMo
+        isPaid: false
       };
       
-      // Lưu đơn hàng vào database và lấy orderId
       const orderResponse = await OrderService.createOrder(orderData.token, orderData);
       
-      if (orderResponse?.status === 'OK') {
-          const orderId = orderResponse.data._id;
-          
-          // Gọi API tạo giao dịch MoMo với orderId thực tế từ database
-          const momoData = {
-              orderId: orderId, // Sử dụng ID đơn hàng thực từ database
-              amount: TotalPriceMemo,
-              orderInfo: `Thanh toán đơn hàng #${orderId} - Nhà thuốc tiện lợi`
-          };
-          
-          mutationMomoPayment.mutate(momoData, {
-              onSuccess: (data) => {
-                  if (data && data.payUrl) {
-                      window.location.href = data.payUrl;
-                  } else {
-                      message.error('Không thể tạo thanh toán MoMo');
-                      setIsSubmitting(false);
-                  }
-              }
-          });
+      if (orderResponse?.status === 'OK' && orderResponse?.data?._id) {
+        const orderId = orderResponse.data._id;
+        
+        // Bước 2: Tạo giao dịch MoMo với orderId từ database
+        const momoData = {
+          orderId: orderId,
+          amount: TotalPriceMemo,
+          orderInfo: `Thanh toán đơn hàng #${orderId} - Nhà thuốc tiện lợi`
+        };
+        
+        mutationMomoPayment.mutate(momoData, {
+          onSuccess: (data) => {
+            if (data && data.payUrl) {
+              // Hiện thông báo trước khi chuyển hướng
+              message.success('Đang chuyển đến trang thanh toán MoMo...');
+              
+              // Chuyển hướng người dùng đến trang thanh toán MoMo
+              window.location.href = data.payUrl;
+            } else {
+              message.error('Không thể tạo thanh toán MoMo');
+              setIsSubmitting(false);
+            }
+          },
+          onError: (error) => {
+            console.error('Error creating MoMo payment:', error);
+            message.error('Đã xảy ra lỗi khi tạo thanh toán MoMo');
+            setIsSubmitting(false);
+          }
+        });
       } else {
-          message.error('Không thể tạo đơn hàng');
-          setIsSubmitting(false);
+        message.error(orderResponse?.message || 'Không thể tạo đơn hàng');
+        setIsSubmitting(false);
       }
-  } catch (error) {
+    } catch (error) {
       console.error('Error processing MoMo payment:', error);
       message.error('Đã xảy ra lỗi khi xử lý thanh toán');
       setIsSubmitting(false);
-  }
-};
+    }
+  };
 
+  const handleAddOrder = () => {
+    if (isSubmitting) return;
 
-const handleAddOrder = () => {
-  if (isSubmitting) return;
+    // Kiểm tra thông tin người dùng
+    if (!user?.access_token || !order?.ordersItemSelected?.length) {
+      message.error('Có lỗi xảy ra, vui lòng đăng nhập lại');
+      return;
+    }
 
-  // Kiểm tra thông tin người dùng
-  if (!user?.access_token || !order?.ordersItemSelected?.length) {
-    message.error('Có lỗi xảy ra, vui lòng đăng nhập lại');
-    return;
-  }
+    if (!user?.name || !user?.address || !user?.phone || !user?.city) {
+      message.error('Vui lòng cập nhật thông tin giao hàng');
+      setIsOpenModalUpdateInfo(true);
+      return;
+    }
+    
+    // Nếu phương thức thanh toán là MoMo, xử lý thanh toán MoMo
+    if (payment === 'momo') {
+      handleMomoPayment();
+      return;
+    }
 
-  if (!user?.name || !user?.address || !user?.phone || !user?.city) {
-    message.error('Vui lòng cập nhật thông tin giao hàng');
-    setIsOpenModalUpdateInfo(true);
-    return;
-  }
-  
-  // Nếu phương thức thanh toán là MoMo, xử lý thanh toán MoMo
-  if (payment === 'momo') {
-    handleMomoPayment();
-    return;
-  }
+    setIsSubmitting(true);
 
-  setIsSubmitting(true);
+    // Tạo mã đơn hàng ngẫu nhiên cho COD
+    const orderCode = `ORDER_${Date.now()}`;
 
-  // Tạo mã đơn hàng ngẫu nhiên cho COD
-  const orderCode = `ORDER_${Date.now()}`;
-
-  mutationAddOrder.mutate(
-    {
-      token: user?.access_token, 
-      orderItems: order?.ordersItemSelected,
-      fullName: user?.name, 
-      address: user?.address, 
-      phone: user?.phone, 
-      city: user?.city,
-      paymentMethod: payment,
-      itemsPrice: priceMemo, 
-      shippingPrice: DeliveryPriceMemo, 
-      totalPrice: TotalPriceMemo,
-      user: user?.id,
-      email: user?.email
-    },
-    {
-      onSuccess: (data) => {
-        if (data?.status === 'OK') {
-          // Chuẩn bị dữ liệu chi tiết sản phẩm cho tracking
-          const items = order?.ordersItemSelected?.map(item => ({
-            item_id: item.product,
-            item_name: item.name,
-            price: Number(item.price),
-            quantity: Number(item.amount),
-          }));
-          
-          // Gửi sự kiện purchase vào dataLayer cho GTM
-          window.dataLayer = window.dataLayer || [];
-          window.dataLayer.push({
-            ecommerce: null
-          });
-          
-          window.dataLayer.push({
-            event: 'purchase',
-            ecommerce: {
-              transaction_id: data?.data?._id || orderCode,
-              value: Number(TotalPriceMemo),
-              tax: 0,
-              shipping: Number(DeliveryPriceMemo),
-              currency: 'VND',
-              items: items
-            }
-          });
-          
-          // Xóa sản phẩm khỏi giỏ hàng
-          dispatch(removeAllOrderProduct({ 
-            listChecked: order?.ordersItemSelected.map(item => item.product) 
-          }));
-          
-          // Chuyển hướng đến trang kết quả thanh toán với status success
-          navigate('/payment-result', { 
-            state: { 
-              status: 'success', 
-              orderId: data?.data?._id || orderCode,
-              orderInfo: {
-                items: order?.ordersItemSelected,
-                totalPrice: TotalPriceMemo,
-                paymentMethod: 'Thanh toán khi nhận hàng'
+    mutationAddOrder.mutate(
+      {
+        token: user?.access_token, 
+        orderItems: order?.ordersItemSelected,
+        fullName: user?.name, 
+        address: user?.address, 
+        phone: user?.phone, 
+        city: user?.city,
+        paymentMethod: payment,
+        itemsPrice: priceMemo, 
+        shippingPrice: DeliveryPriceMemo, 
+        totalPrice: TotalPriceMemo,
+        user: user?.id,
+        email: user?.email
+      },
+      {
+        onSuccess: (data) => {
+          if (data?.status === 'OK') {
+            // Chuẩn bị dữ liệu chi tiết sản phẩm cho tracking
+            const items = order?.ordersItemSelected?.map(item => ({
+              item_id: item.product,
+              item_name: item.name,
+              price: Number(item.price),
+              quantity: Number(item.amount),
+            }));
+            
+            // Gửi sự kiện purchase vào dataLayer cho GTM
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+              ecommerce: null
+            });
+            
+            window.dataLayer.push({
+              event: 'purchase',
+              ecommerce: {
+                transaction_id: data?.data?._id || orderCode,
+                value: Number(TotalPriceMemo),
+                tax: 0,
+                shipping: Number(DeliveryPriceMemo),
+                currency: 'VND',
+                items: items
               }
-            } 
-          });
-        } else {
-          // Chuyển hướng đến trang kết quả với status error nếu API trả về lỗi
+            });
+            
+            // Xóa sản phẩm khỏi giỏ hàng
+            dispatch(removeAllOrderProduct({ 
+              listChecked: order?.ordersItemSelected.map(item => item.product) 
+            }));
+            
+            // Chuyển hướng đến trang kết quả thanh toán với status success
+            navigate('/payment-result', { 
+              state: { 
+                status: 'success', 
+                orderId: data?.data?._id || orderCode,
+                orderInfo: {
+                  items: order?.ordersItemSelected,
+                  totalPrice: TotalPriceMemo,
+                  paymentMethod: 'later_money'
+                }
+              } 
+            });
+          } else {
+            // Chuyển hướng đến trang kết quả với status error nếu API trả về lỗi
+            navigate('/payment-result', { 
+              state: { 
+                status: 'error', 
+                resultCode: 'ERR_CREATE_ORDER',
+                message: data?.message || 'Đặt hàng thất bại' 
+              } 
+            });
+          }
+          setIsSubmitting(false);
+        },
+        onError: (error) => {
+          console.error('Error placing order:', error);
+          // Chuyển hướng đến trang kết quả với status error nếu có lỗi
           navigate('/payment-result', { 
             state: { 
               status: 'error', 
-              resultCode: 'ERR_CREATE_ORDER',
-              message: data?.message || 'Đặt hàng thất bại' 
+              resultCode: 'ERR_SYSTEM',
+              message: 'Đã xảy ra lỗi khi đặt hàng' 
             } 
           });
+          setIsSubmitting(false);
         }
-        setIsSubmitting(false);
-      },
-      onError: (error) => {
-        console.error('Error placing order:', error);
-        // Chuyển hướng đến trang kết quả với status error nếu có lỗi
-        navigate('/payment-result', { 
-          state: { 
-            status: 'error', 
-            resultCode: 'ERR_SYSTEM',
-            message: 'Đã xảy ra lỗi khi đặt hàng' 
-          } 
-        });
-        setIsSubmitting(false);
       }
-    }
-  );
-}
+    );
+  }
 
   const { isPending, data } = mutationUpdate
   const { isPending: isPendingAddOrder } = mutationAddOrder
@@ -330,55 +334,55 @@ const handleAddOrder = () => {
     setIsOpenModalUpdateInfo(false)
   }
 
-  // Phần cần cập nhật trong PaymentPage.jsx
-const handleUpdateInforUser = () => {
-  const { name, phone, address, city } = stateUserDetails;
+  const handleUpdateInforUser = () => {
+    const { name, phone, address, city } = stateUserDetails;
 
-  // Kiểm tra xem các trường có giá trị và loại bỏ khoảng trắng
-  const trimmedData = {
-      name: name?.trim(),
-      phone: phone?.trim(),
-      address: address?.trim(),
-      city: city?.trim()
+    // Kiểm tra xem các trường có giá trị và loại bỏ khoảng trắng
+    const trimmedData = {
+        name: name?.trim(),
+        phone: phone?.trim(),
+        address: address?.trim(),
+        city: city?.trim()
+    };
+
+    if (!trimmedData.name || !trimmedData.phone || !trimmedData.address || !trimmedData.city) {
+        message.error('Vui lòng điền đầy đủ thông tin');
+        return;
+    }
+
+    mutationUpdate.mutate({ 
+        id: user?.id, 
+        token: user?.access_token, 
+        ...trimmedData 
+    }, {
+        onSuccess: (data) => {
+            if (data?.status === 'OK') {
+                // Đảm bảo giữ lại refreshToken khi cập nhật
+                dispatch(updateUser({ 
+                    ...user,
+                    name: trimmedData.name, 
+                    address: trimmedData.address, 
+                    city: trimmedData.city, 
+                    phone: trimmedData.phone,
+                    refreshToken: user?.refreshToken
+                }));
+                message.success('Cập nhật thông tin thành công');
+                setIsOpenModalUpdateInfo(false);
+            } else {
+                message.error(data?.message || 'Cập nhật thông tin thất bại');
+            }
+        },
+        onError: (error) => {
+            console.error('Error updating user:', error);
+            if (error.response?.status === 401) {
+                message.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+            } else {
+                message.error('Đã xảy ra lỗi khi cập nhật thông tin');
+            }
+        }
+    });
   };
 
-  if (!trimmedData.name || !trimmedData.phone || !trimmedData.address || !trimmedData.city) {
-      message.error('Vui lòng điền đầy đủ thông tin');
-      return;
-  }
-
-  mutationUpdate.mutate({ 
-      id: user?.id, 
-      token: user?.access_token, 
-      ...trimmedData 
-  }, {
-      onSuccess: (data) => {
-          if (data?.status === 'OK') {
-              // Đảm bảo giữ lại refreshToken khi cập nhật
-              dispatch(updateUser({ 
-                  ...user,
-                  name: trimmedData.name, 
-                  address: trimmedData.address, 
-                  city: trimmedData.city, 
-                  phone: trimmedData.phone,
-                  refreshToken: user?.refreshToken
-              }));
-              message.success('Cập nhật thông tin thành công');
-              setIsOpenModalUpdateInfo(false);
-          } else {
-              message.error(data?.message || 'Cập nhật thông tin thất bại');
-          }
-      },
-      onError: (error) => {
-          console.error('Error updating user:', error);
-          if (error.response?.status === 401) {
-              message.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
-          } else {
-              message.error('Đã xảy ra lỗi khi cập nhật thông tin');
-          }
-      }
-  });
-};
   const handleOnchangeDetails = (e) => {
     setStateUserDetails({
       ...stateUserDetails,
@@ -497,7 +501,7 @@ const handleUpdateInforUser = () => {
                 {priceDiscountMemo > 0 && (
                   <WrapperInfodiv>
                     <span>Giảm giá</span>
-                    <WrapperInfospan>-{priceDiscountMemo}%</WrapperInfospan>
+                    <WrapperInfospan>-{convertPrice(priceDiscountMemo)}</WrapperInfospan>
                   </WrapperInfodiv>
                 )}
                 <WrapperInfodiv>

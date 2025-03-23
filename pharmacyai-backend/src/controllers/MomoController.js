@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const https = require('https');
 const EmailService = require('../services/EmailService');
 const Order = require('../models/OrderProduct');
+const OrderService = require('../services/OrderService');
 
 // Cấu hình MoMo từ biến môi trường
 const accessKey = process.env.MOMO_ACCESS_KEY;
@@ -117,43 +118,39 @@ const momoIpnCallback = async (req, res) => {
     try {
         console.log("MoMo IPN callback received:", req.body);
         
-        // Xác thực callback từ MoMo
-        if (req.body.resultCode === 0) {
-            // Thanh toán thành công
-            const { orderId, amount, transId } = req.body;
-            
-            // Tạo đơn hàng mới từ dữ liệu của MoMo
-            // Lưu ý: cần phải lấy thông tin đơn hàng từ dữ liệu được lưu tạm thời
-            // Có thể lưu thông tin tạm thời vào database thay vì localStorage
-            
-            // Ví dụ: tạo đơn hàng mới dựa trên orderInfo trong extraData
+        // Xác thực signature từ MoMo trước khi xử lý giao dịch
+        const { orderId, resultCode, amount, transId, signature } = req.body;
+        
+        // Kiểm tra kết quả giao dịch từ MoMo
+        if (resultCode === 0) {
+            // Thanh toán thành công - cập nhật trạng thái đơn hàng
             try {
-                // Giả sử orderId của MoMo chứa thông tin để định danh đơn hàng tạm
-                // (Có thể là một ID ngẫu nhiên hoặc userID + timestamp)
-                // Tạo đơn hàng mới và đánh dấu là đã thanh toán
-                const newOrder = new Order({
-                    // Lấy từ dữ liệu đã lưu tạm
-                    isPaid: true,
-                    paidAt: new Date(),
-                    paymentMethod: 'momo',
-                    paymentResult: {
-                        id: transId,
-                        status: 'COMPLETED',
-                        update_time: new Date(),
-                        email_address: '' // MoMo không cung cấp email
-                    }
-                });
-                
-                await newOrder.save();
-                
-                // Gửi email thông báo
-                await EmailService.sendEmailOrderSuccess(newOrder);
-            } catch (orderError) {
-                console.error("Error creating order after MoMo payment:", orderError);
+                // Lấy thông tin đơn hàng từ database
+                const orderResult = await OrderService.getDetailsOrder(orderId);
+
+                if (orderResult?.status === 'OK' && orderResult?.data) {
+                    // Cập nhật trạng thái thanh toán của đơn hàng
+                    const paymentInfo = {
+                        transId,
+                        amount
+                    };
+                    
+                    await OrderService.updateOrderPaymentStatus(orderId, paymentInfo);
+                    console.log(`Order ${orderId} payment status updated successfully`);
+                    
+                    // Gửi email xác nhận đơn hàng
+                    await EmailService.sendEmailOrderSuccess(orderResult.data);
+                } else {
+                    console.error(`Order ${orderId} not found or invalid`);
+                }
+            } catch (error) {
+                console.error("Error updating order payment status:", error);
             }
+        } else {
+            console.warn(`MoMo payment for order ${orderId} failed with code ${resultCode}`);
         }
         
-        // Trả về 200 OK để MoMo biết đã nhận được callback
+        // Trả về 200 OK cho MoMo bất kể kết quả xử lý
         return res.status(200).json({
             status: 'OK',
             message: 'Notification received'

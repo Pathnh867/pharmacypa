@@ -44,6 +44,76 @@ const createOrder = (newOrder) => {
     });
 };
 
+// Thêm hàm để lấy chi tiết đơn hàng
+const getDetailsOrder = (orderId) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const order = await Order.findById(orderId)
+                .populate('user', 'name email')
+                .populate('orderItems.product');
+                
+            if (!order) {
+                resolve({
+                    status: 'ERR',
+                    message: 'Order not found'
+                });
+                return;
+            }
+            
+            resolve({
+                status: 'OK',
+                message: 'SUCCESS',
+                data: order
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
+// Thêm hàm để cập nhật trạng thái thanh toán đơn hàng
+const updateOrderPaymentStatus = (orderId, paymentInfo) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const order = await Order.findById(orderId);
+            
+            if (!order) {
+                resolve({
+                    status: 'ERR',
+                    message: 'Order not found'
+                });
+                return;
+            }
+            
+            // Cập nhật trạng thái thanh toán
+            order.isPaid = true;
+            order.paidAt = Date.now();
+            
+            // Lưu thông tin thanh toán nếu có
+            if (paymentInfo) {
+                order.paymentResult = {
+                    id: paymentInfo.transId || paymentInfo.id,
+                    status: 'COMPLETED',
+                    update_time: Date.now(),
+                    email_address: paymentInfo.email || ''
+                };
+            }
+            
+            const updatedOrder = await order.save();
+            
+            resolve({
+                status: 'OK',
+                message: 'Payment status updated successfully',
+                data: updatedOrder
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
 module.exports = {
     createOrder,
-}
+    getDetailsOrder,
+    updateOrderPaymentStatus
+};

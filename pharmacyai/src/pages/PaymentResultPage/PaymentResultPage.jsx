@@ -3,7 +3,7 @@ import { Result, Button, Spin, Typography, Card, Divider, List, Space, Tag } fro
 import { CheckCircleFilled, CloseCircleFilled, HomeOutlined, ShoppingOutlined, SmileOutlined, 
   CreditCardOutlined, DollarOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import * as OrderService from '../../services/OrderService';
 import { removeAllOrderProduct } from '../../redux/slide/orderSlide';
 import { convertPrice } from '../../utils';
@@ -16,9 +16,12 @@ const { Title, Text, Paragraph } = Typography;
 
 const PaymentResultPage = () => {
   const [loading, setLoading] = useState(true);
+  const [orderData, setOrderData] = useState(null);
+  const [status, setStatus] = useState(''); // 'success', 'error', 'pending'
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const user = useSelector((state) => state.user);
   
   // Từ query params hoặc từ location state
   const params = new URLSearchParams(location.search);
@@ -28,51 +31,75 @@ const PaymentResultPage = () => {
   const messageFromQuery = params.get('message');
   
   // Ưu tiên dữ liệu từ location state, nếu không có thì lấy từ query params
-  const status = location.state?.status || statusFromQuery;
-  const orderId = location.state?.orderId || orderIdFromQuery;
-  const resultCode = location.state?.resultCode || resultCodeFromQuery;
-  const message = location.state?.message || messageFromQuery;
-  const orderInfo = location.state?.orderInfo;
+  const statusFromState = location.state?.status;
+  const orderIdFromState = location.state?.orderId;
+  const orderInfoFromState = location.state?.orderInfo;
   
-  // Trong PaymentResultPage.jsx - useEffect
   useEffect(() => {
     const processPaymentResult = async () => {
-        try {
-            if (statusFromQuery === 'success' && orderIdFromQuery) {
-                // Kiểm tra trạng thái đơn hàng từ backend
-                const orderStatus = await OrderService.getOrderStatus(orderIdFromQuery);
-                
-                if (orderStatus.isPaid) {
-                    // Đơn hàng đã thanh toán thành công
-                    // Xóa sản phẩm khỏi giỏ hàng
-                    if (orderStatus.orderItems && orderStatus.orderItems.length > 0) {
-                        dispatch(removeAllOrderProduct({
-                            listChecked: orderStatus.orderItems.map(item => item.product)
-                        }));
-                    }
-                    
-                    // Cập nhật trạng thái hiển thị
-                    setStatus('success');
-                    setOrderInfo(orderStatus);
-                } else {
-                    // Đơn hàng chưa được cập nhật thanh toán
-                    setStatus('pending');
-                }
-            } else if (statusFromQuery === 'error') {
-                // Thanh toán thất bại
-                setStatus('error');
-            }
+      try {
+        if (statusFromState === 'success' && orderIdFromState) {
+          // Đã có thông tin đơn hàng từ state (thanh toán COD)
+          setStatus('success');
+          setOrderData(orderInfoFromState);
+          
+          // Xóa sản phẩm khỏi giỏ hàng
+          if (orderInfoFromState?.items && orderInfoFromState?.items.length > 0) {
+            dispatch(removeAllOrderProduct({
+              listChecked: orderInfoFromState.items.map(item => item.product)
+            }));
+          }
+        } 
+        else if (statusFromQuery === 'success' && orderIdFromQuery) {
+          // Xử lý thanh toán MoMo thành công - cần kiểm tra với backend
+          try {
+            const orderResult = await OrderService.getOrderStatus(orderIdFromQuery, user?.access_token);
             
-            setLoading(false);
-        } catch (error) {
-            console.error('Error processing payment result:', error);
-            setStatus('error');
-            setLoading(false);
+            if (orderResult?.status === 'OK' && orderResult?.data) {
+              setStatus('success');
+              setOrderData({
+                items: orderResult.data.orderItems,
+                totalPrice: orderResult.data.totalPrice,
+                paymentMethod: orderResult.data.paymentMethod
+              });
+              
+              // Xóa sản phẩm đã mua khỏi giỏ hàng
+              if (orderResult.data.orderItems && orderResult.data.orderItems.length > 0) {
+                dispatch(removeAllOrderProduct({
+                  listChecked: orderResult.data.orderItems.map(item => item.product)
+                }));
+              }
+            } else {
+              setStatus('pending');
+            }
+          } catch (error) {
+            console.error("Error fetching order details:", error);
+            setStatus('pending');
+          }
+        } 
+        else if (statusFromQuery === 'error' || resultCodeFromQuery !== '0') {
+          // Thanh toán thất bại 
+          setStatus('error');
+        } 
+        else if (statusFromState === 'error') {
+          // Lỗi từ state
+          setStatus('error');
+        } 
+        else {
+          // Không có thông tin rõ ràng
+          setStatus('pending');
         }
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error processing payment result:', error);
+        setStatus('error');
+        setLoading(false);
+      }
     };
     
     processPaymentResult();
-  }, [dispatch, statusFromQuery, orderIdFromQuery]);
+  }, [dispatch, statusFromQuery, orderIdFromQuery, resultCodeFromQuery, statusFromState, orderIdFromState, orderInfoFromState, user?.access_token]);
   
   if (loading) {
     return (
@@ -96,14 +123,21 @@ const PaymentResultPage = () => {
         icon: <CheckCircleFilled style={{ fontSize: 72, color: '#52c41a' }} />,
         color: '#52c41a',
         title: 'Đặt hàng thành công!',
-        subTitle: `Mã đơn hàng: ${orderId}. Cảm ơn bạn đã mua hàng!`
+        subTitle: `Mã đơn hàng: ${orderIdFromState || orderIdFromQuery}. Cảm ơn bạn đã mua hàng!`
+      };
+    } else if (status === 'pending') {
+      return {
+        icon: <Spin size="large" style={{ fontSize: 72, color: '#1890ff' }} />,
+        color: '#1890ff',
+        title: 'Đang xử lý thanh toán',
+        subTitle: 'Thanh toán của bạn đang được xử lý. Chúng tôi sẽ thông báo cho bạn khi hoàn tất.'
       };
     } else {
       return {
         icon: <CloseCircleFilled style={{ fontSize: 72, color: '#ff4d4f' }} />,
         color: '#ff4d4f',
         title: 'Thanh toán thất bại',
-        subTitle: `Mã lỗi: ${resultCode || 'Không xác định'}. ${message || 'Vui lòng thử lại hoặc chọn phương thức thanh toán khác.'}`
+        subTitle: `Mã lỗi: ${resultCodeFromQuery || 'Không xác định'}. ${messageFromQuery || 'Vui lòng thử lại hoặc chọn phương thức thanh toán khác.'}`
       };
     }
   };
@@ -154,7 +188,7 @@ const PaymentResultPage = () => {
             }
           />
           
-          {status === 'success' && orderInfo && (
+          {status === 'success' && orderData && (
             <OrderSummary>
               <Divider>
                 <Space>
@@ -166,8 +200,8 @@ const PaymentResultPage = () => {
               <OrderInfo>
                 <div>
                   <Text strong>Phương thức thanh toán:</Text>
-                  <PaymentMethodTag method={orderInfo.paymentMethod === 'momo' ? 'momo' : 'cod'}>
-                    {orderInfo.paymentMethod === 'momo' ? (
+                  <PaymentMethodTag method={orderData.paymentMethod === 'momo' ? 'momo' : 'cod'}>
+                    {orderData.paymentMethod === 'momo' ? (
                       <><CreditCardOutlined /> Ví MoMo</>
                     ) : (
                       <><DollarOutlined /> Thanh toán khi nhận hàng</>
@@ -178,7 +212,7 @@ const PaymentResultPage = () => {
                 <div style={{ marginTop: '12px' }}>
                   <Text strong>Sản phẩm:</Text>
                   <OrderDetailsList>
-                    {orderInfo.items && orderInfo.items.map((item, index) => (
+                    {orderData.items && orderData.items.map((item, index) => (
                       <OrderDetailsItem key={index}>
                         <div className="item-info">
                           <img src={item.image} alt={item.name} />
@@ -195,7 +229,7 @@ const PaymentResultPage = () => {
                 
                 <OrderTotal>
                   <span>Tổng tiền</span>
-                  <span>{convertPrice(orderInfo.totalPrice)}</span>
+                  <span>{convertPrice(orderData.totalPrice)}</span>
                 </OrderTotal>
               </OrderInfo>
               
