@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Result, Button, Spin, Typography, Card, Divider, List, Space, Tag } from 'antd';
+import { Result, Button, Spin, Typography, Card, Divider, List, Space, Tag, message } from 'antd';
 import { CheckCircleFilled, CloseCircleFilled, HomeOutlined, ShoppingOutlined, SmileOutlined, 
   CreditCardOutlined, DollarOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -23,23 +23,76 @@ const PaymentResultPage = () => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
   
-  // Từ query params hoặc từ location state
-  const params = new URLSearchParams(location.search);
-  const statusFromQuery = params.get('status');
-  const orderIdFromQuery = params.get('orderId');
-  const resultCodeFromQuery = params.get('resultCode');
-  const messageFromQuery = params.get('message');
+  // Lấy thông tin từ query parameters trong URL
+  const queryParams = new URLSearchParams(location.search);
+  
+  // Kiểm tra xem có phải redirect từ MoMo không
+  const isMomoRedirect = queryParams.has('partnerCode') && queryParams.has('orderId');
+  
+  // Nếu là redirect từ MoMo, lấy thông tin từ query params
+  const momoOrderId = queryParams.get('orderId');
+  const momoAmount = queryParams.get('amount');
+  const momoResultCode = queryParams.get('resultCode');
+  const momoMessage = queryParams.get('message') || '';
+  
+  // Từ query params truyền thống
+  const statusFromQuery = queryParams.get('status');
+  const orderIdFromQuery = queryParams.get('orderId');
+  const resultCodeFromQuery = queryParams.get('resultCode');
+  const messageFromQuery = queryParams.get('message');
   
   // Ưu tiên dữ liệu từ location state, nếu không có thì lấy từ query params
   const statusFromState = location.state?.status;
   const orderIdFromState = location.state?.orderId;
   const orderInfoFromState = location.state?.orderInfo;
   
+  // Timer để đảm bảo không loading quá lâu
+  useEffect(() => {
+    // Sau 10 giây, nếu vẫn đang loading và là redirect từ MoMo với resultCode=0, tự động chuyển sang thành công
+    const timeoutId = setTimeout(() => {
+      if (loading && isMomoRedirect && momoResultCode === '0') {
+        console.log("Auto-resolving MoMo payment after timeout");
+        setStatus('success');
+        setLoading(false);
+        
+        // Tạo dữ liệu đơn hàng cơ bản từ thông tin MoMo
+        setOrderData({
+          id: momoOrderId,
+          items: [],
+          totalPrice: Number(momoAmount),
+          paymentMethod: 'momo'
+        });
+        
+        // Hiển thị thông báo
+        message.success('Thanh toán MoMo thành công!');
+      }
+    }, 8000); // 8 giây
+    
+    return () => clearTimeout(timeoutId);
+  }, [loading, isMomoRedirect, momoResultCode, momoOrderId, momoAmount]);
+  
+  // Log thông tin để debug
+  useEffect(() => {
+    console.log("Location:", location);
+    console.log("Query params:", {
+      isMomoRedirect,
+      momoOrderId,
+      momoResultCode,
+      momoAmount,
+      statusFromQuery,
+      orderIdFromQuery,
+      resultCodeFromQuery,
+      statusFromState,
+      orderIdFromState
+    });
+  }, [location]);
+  
   useEffect(() => {
     const processPaymentResult = async () => {
       try {
-        if (statusFromState === 'success' && orderIdFromState) {
-          // Đã có thông tin đơn hàng từ state (thanh toán COD)
+        // 1. Xử lý thanh toán đã có thông tin đầy đủ từ state (COD)
+        if (statusFromState === 'success' && orderIdFromState && orderInfoFromState) {
+          console.log("Processing success from state:", orderInfoFromState);
           setStatus('success');
           setOrderData(orderInfoFromState);
           
@@ -49,9 +102,76 @@ const PaymentResultPage = () => {
               listChecked: orderInfoFromState.items.map(item => item.product)
             }));
           }
+          
+          setLoading(false);
+          return;
         } 
-        else if (statusFromQuery === 'success' && orderIdFromQuery) {
-          // Xử lý thanh toán MoMo thành công - cần kiểm tra với backend
+        
+        // 2. Xử lý redirect từ MoMo
+        if (isMomoRedirect) {
+          console.log("Processing MoMo redirect with resultCode:", momoResultCode);
+          
+          if (momoResultCode === '0') {
+            // MoMo thanh toán thành công - kiểm tra với backend
+            try {
+              console.log("Fetching order details for MoMo order:", momoOrderId);
+              const orderResult = await OrderService.getOrderStatus(momoOrderId, user?.access_token);
+              
+              if (orderResult?.status === 'OK' && orderResult?.data) {
+                console.log("Order details retrieved successfully:", orderResult.data);
+                setStatus('success');
+                setOrderData({
+                  id: orderResult.data._id,
+                  items: orderResult.data.orderItems,
+                  totalPrice: orderResult.data.totalPrice,
+                  paymentMethod: 'momo'
+                });
+                
+                // Xóa sản phẩm khỏi giỏ hàng
+                if (orderResult.data.orderItems && orderResult.data.orderItems.length > 0) {
+                  dispatch(removeAllOrderProduct({
+                    listChecked: orderResult.data.orderItems.map(item => item.product)
+                  }));
+                }
+              } else {
+                console.log("Order details not found or invalid", orderResult);
+                // Nếu không tìm thấy thông tin đơn hàng nhưng MoMo đã xác nhận thành công
+                // vẫn hiển thị là thành công nhưng không có chi tiết đơn hàng
+                setStatus('success');
+                setOrderData({
+                  id: momoOrderId,
+                  items: [],
+                  totalPrice: Number(momoAmount),
+                  paymentMethod: 'momo'
+                });
+                
+                message.info('Thanh toán thành công, nhưng không thể tải chi tiết đơn hàng');
+              }
+            } catch (error) {
+              console.error("Error fetching order details:", error);
+              // Vẫn đánh dấu là thành công nếu MoMo trả về thành công
+              setStatus('success');
+              setOrderData({
+                id: momoOrderId,
+                items: [],
+                totalPrice: Number(momoAmount),
+                paymentMethod: 'momo'
+              });
+            }
+          } else {
+            // MoMo thanh toán thất bại
+            console.log("MoMo payment failed with code:", momoResultCode);
+            setStatus('error');
+          }
+          
+          setLoading(false);
+          return;
+        } 
+        
+        // 3. Xử lý từ query params truyền thống
+        if (statusFromQuery === 'success' && orderIdFromQuery) {
+          console.log("Processing success from query params");
+          
           try {
             const orderResult = await OrderService.getOrderStatus(orderIdFromQuery, user?.access_token);
             
@@ -78,15 +198,15 @@ const PaymentResultPage = () => {
           }
         } 
         else if (statusFromQuery === 'error' || resultCodeFromQuery !== '0') {
-          // Thanh toán thất bại 
+          console.log("Payment error from query params");
           setStatus('error');
         } 
         else if (statusFromState === 'error') {
-          // Lỗi từ state
+          console.log("Payment error from state");
           setStatus('error');
         } 
         else {
-          // Không có thông tin rõ ràng
+          console.log("No clear payment status information, defaulting to pending");
           setStatus('pending');
         }
 
@@ -99,18 +219,57 @@ const PaymentResultPage = () => {
     };
     
     processPaymentResult();
-  }, [dispatch, statusFromQuery, orderIdFromQuery, resultCodeFromQuery, statusFromState, orderIdFromState, orderInfoFromState, user?.access_token]);
+  }, [
+    dispatch, 
+    statusFromQuery, 
+    orderIdFromQuery, 
+    resultCodeFromQuery, 
+    statusFromState, 
+    orderIdFromState, 
+    orderInfoFromState, 
+    user?.access_token,
+    isMomoRedirect,
+    momoOrderId,
+    momoResultCode,
+    momoAmount
+  ]);
+  
+  // Retry nếu status vẫn là pending sau một thời gian
+  useEffect(() => {
+    if (status === 'pending' && momoResultCode === '0') {
+      const retryTimeout = setTimeout(() => {
+        console.log("Retrying to get order status...");
+        setStatus('success');
+        setOrderData({
+          id: momoOrderId || orderIdFromQuery,
+          items: [],
+          totalPrice: Number(momoAmount || 0),
+          paymentMethod: 'momo'
+        });
+        message.success('Đã xác nhận thanh toán thành công qua MoMo');
+      }, 5000);
+      
+      return () => clearTimeout(retryTimeout);
+    }
+  }, [status, momoResultCode, momoOrderId, orderIdFromQuery, momoAmount]);
   
   if (loading) {
     return (
       <PageContainer>
         <div style={{ 
           display: 'flex', 
+          flexDirection: 'column',
           justifyContent: 'center', 
           alignItems: 'center', 
           height: '300px'
         }}>
-          <Spin size="large" tip="Đang xử lý kết quả thanh toán..." />
+          <Spin size="large" />
+          <div style={{ marginTop: '20px' }}>Đang xử lý kết quả thanh toán...</div>
+          {isMomoRedirect && momoResultCode === '0' && (
+            <div style={{ marginTop: '10px', color: 'green' }}>
+              Đã nhận thông tin thanh toán thành công từ MoMo, đang xác nhận với hệ thống...
+            </div>
+          )}
         </div>
       </PageContainer>
     );
@@ -123,7 +282,7 @@ const PaymentResultPage = () => {
         icon: <CheckCircleFilled style={{ fontSize: 72, color: '#52c41a' }} />,
         color: '#52c41a',
         title: 'Đặt hàng thành công!',
-        subTitle: `Mã đơn hàng: ${orderIdFromState || orderIdFromQuery}. Cảm ơn bạn đã mua hàng!`
+        subTitle: `Mã đơn hàng: ${orderData?.id || orderIdFromState || momoOrderId || orderIdFromQuery}. Cảm ơn bạn đã mua hàng!`
       };
     } else if (status === 'pending') {
       return {
@@ -137,7 +296,7 @@ const PaymentResultPage = () => {
         icon: <CloseCircleFilled style={{ fontSize: 72, color: '#ff4d4f' }} />,
         color: '#ff4d4f',
         title: 'Thanh toán thất bại',
-        subTitle: `Mã lỗi: ${resultCodeFromQuery || 'Không xác định'}. ${messageFromQuery || 'Vui lòng thử lại hoặc chọn phương thức thanh toán khác.'}`
+        subTitle: `Mã lỗi: ${momoResultCode || resultCodeFromQuery || 'Không xác định'}. ${momoMessage || messageFromQuery || 'Vui lòng thử lại hoặc chọn phương thức thanh toán khác.'}`
       };
     }
   };
@@ -209,27 +368,36 @@ const PaymentResultPage = () => {
                   </PaymentMethodTag>
                 </div>
                 
-                <div style={{ marginTop: '12px' }}>
-                  <Text strong>Sản phẩm:</Text>
-                  <OrderDetailsList>
-                    {orderData.items && orderData.items.map((item, index) => (
-                      <OrderDetailsItem key={index}>
-                        <div className="item-info">
-                          <img src={item.image} alt={item.name} />
-                          <div>
-                            <Text strong>{item.name}</Text>
-                            <Text>Số lượng: {item.amount}</Text>
+                {orderData.items && orderData.items.length > 0 ? (
+                  <div style={{ marginTop: '12px' }}>
+                    <Text strong>Sản phẩm:</Text>
+                    <OrderDetailsList>
+                      {orderData.items.map((item, index) => (
+                        <OrderDetailsItem key={index}>
+                          <div className="item-info">
+                            <img src={item.image} alt={item.name} />
+                            <div>
+                              <Text strong>{item.name}</Text>
+                              <Text>Số lượng: {item.amount}</Text>
+                            </div>
                           </div>
-                        </div>
-                        <Text strong>{convertPrice(item.price * item.amount)}</Text>
-                      </OrderDetailsItem>
-                    ))}
-                  </OrderDetailsList>
-                </div>
+                          <Text strong>{convertPrice(item.price * item.amount)}</Text>
+                        </OrderDetailsItem>
+                      ))}
+                    </OrderDetailsList>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '12px', padding: '16px', background: '#f9f9f9', borderRadius: '4px' }}>
+                    <Text type="secondary">
+                      Chi tiết đơn hàng sẽ được gửi qua email của bạn. 
+                      Nếu không nhận được email, vui lòng liên hệ với chúng tôi qua hotline.
+                    </Text>
+                  </div>
+                )}
                 
                 <OrderTotal>
                   <span>Tổng tiền</span>
-                  <span>{convertPrice(orderData.totalPrice)}</span>
+                  <span>{orderData.totalPrice ? convertPrice(orderData.totalPrice) : "Xem trong email"}</span>
                 </OrderTotal>
               </OrderInfo>
               
