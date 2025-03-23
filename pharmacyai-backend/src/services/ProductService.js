@@ -1,5 +1,6 @@
 const Product = require("../models/ProductModel")
 const mongoose = require('mongoose');
+const Type = require('../models/TypeModel'); 
 
 const createProduct = (newProduct) => {
     return new Promise(async (resolve, reject) => {
