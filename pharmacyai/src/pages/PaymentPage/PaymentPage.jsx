@@ -16,11 +16,18 @@ import { useMutationHooks } from '../../hooks/useMutationHook';
 import * as UserService from '../../services/UserService'
 import * as OrderService from '../../services/OrderService'
 import * as PaymentService from '../../services/PaymentService'
+import * as AddressService from '../../services/AddressService'
 import Loading from '../../components/LoadingComponent/Loading';
 import { updateUser } from '../../redux/slide/userSlide';
 
 // Import icons
-import momoIcon from '../../assets/img/momo_logo.png'; // Hãy đảm bảo bạn có file này
+import momoIcon from '../../assets/img/momo_logo.png';
+
+// Validate function
+const validatePhoneNumber = (phone) => {
+  const phoneRegex = /^(0|\+84)[3|5|7|8|9]\d{8}$/;
+  return phoneRegex.test(phone);
+}
 
 const PaymentPage = () => {
   const location = useLocation()
@@ -30,6 +37,8 @@ const PaymentPage = () => {
   const [sdkReady, setSdkReady] = useState(false)
   const [isOpenModalUpdateInfo, setIsOpenModalUpdateInfo] = useState(false)
   const [listChecked, setListChecked] = useState([])
+  const [addresses, setAddresses] = useState([])
+  const [selectedAddress, setSelectedAddress] = useState(null)
   const [stateUserDetails, setStateUserDetails] = useState({
     name: '',
     phone: '',
@@ -41,9 +50,29 @@ const PaymentPage = () => {
 
   const [form] = Form.useForm();
   const dispatch = useDispatch()
+
+  // Fetch user addresses
+  const fetchAddresses = async () => {
+    try {
+      const response = await AddressService.getAllAddresses(user.access_token)
+      if (response.status === 'OK') {
+        setAddresses(response.data)
+        
+        // Set default address
+        const defaultAddress = response.data.find(addr => addr.isDefault) 
+                                || response.data[0]
+        
+        if (defaultAddress) {
+          setSelectedAddress(defaultAddress)
+        }
+      }
+    } catch (error) {
+      message.error('Không thể tải danh sách địa chỉ')
+    }
+  }
   
+  // Kiểm tra xem có data từ location.state không
   useEffect(() => {
-    // Kiểm tra xem có data từ location.state không
     if (!location.state) {
       message.error('Không có thông tin đơn hàng')
       navigate('/')
@@ -58,7 +87,12 @@ const PaymentPage = () => {
     }
     
     dispatch(selectedOrder({ listChecked }))
-  }, [listChecked, location.state, navigate])
+
+    // Fetch addresses if user is logged in
+    if (user?.access_token) {
+      fetchAddresses()
+    }
+  }, [listChecked, location.state, navigate, user?.access_token])
 
   useEffect(() => {
     if (form && stateUserDetails) {
@@ -137,9 +171,9 @@ const PaymentPage = () => {
       return;
     }
 
-    if (!user?.name || !user?.address || !user?.phone || !user?.city) {
-      message.error('Vui lòng cập nhật thông tin giao hàng');
-      setIsOpenModalUpdateInfo(true);
+    // Kiểm tra địa chỉ
+    if (!selectedAddress) {
+      message.error('Vui lòng chọn địa chỉ giao hàng');
       return;
     }
 
@@ -150,10 +184,10 @@ const PaymentPage = () => {
       const orderData = {
         token: user?.access_token,
         orderItems: order?.ordersItemSelected,
-        fullName: user?.name,
-        address: user?.address,
-        phone: user?.phone,
-        city: user?.city,
+        fullName: selectedAddress.fullName,
+        address: selectedAddress.address,
+        phone: selectedAddress.phone,
+        city: selectedAddress.city,
         paymentMethod: 'momo',
         itemsPrice: priceMemo,
         shippingPrice: DeliveryPriceMemo,
@@ -208,15 +242,15 @@ const PaymentPage = () => {
   const handleAddOrder = () => {
     if (isSubmitting) return;
 
-    // Kiểm tra thông tin người dùng
-    if (!user?.access_token || !order?.ordersItemSelected?.length) {
-      message.error('Có lỗi xảy ra, vui lòng đăng nhập lại');
+    // Kiểm tra địa chỉ
+    if (!selectedAddress) {
+      message.error('Vui lòng chọn địa chỉ giao hàng');
       return;
     }
 
-    if (!user?.name || !user?.address || !user?.phone || !user?.city) {
-      message.error('Vui lòng cập nhật thông tin giao hàng');
-      setIsOpenModalUpdateInfo(true);
+    // Kiểm tra thông tin người dùng
+    if (!user?.access_token || !order?.ordersItemSelected?.length) {
+      message.error('Có lỗi xảy ra, vui lòng đăng nhập lại');
       return;
     }
     
@@ -235,10 +269,10 @@ const PaymentPage = () => {
       {
         token: user?.access_token, 
         orderItems: order?.ordersItemSelected,
-        fullName: user?.name, 
-        address: user?.address, 
-        phone: user?.phone, 
-        city: user?.city,
+        fullName: selectedAddress.fullName, 
+        address: selectedAddress.address, 
+        phone: selectedAddress.phone, 
+        city: selectedAddress.city,
         paymentMethod: payment,
         itemsPrice: priceMemo, 
         shippingPrice: DeliveryPriceMemo, 
@@ -339,270 +373,338 @@ const PaymentPage = () => {
 
     // Kiểm tra xem các trường có giá trị và loại bỏ khoảng trắng
     const trimmedData = {
-        name: name?.trim(),
-        phone: phone?.trim(),
-        address: address?.trim(),
-        city: city?.trim()
-    };
-
-    if (!trimmedData.name || !trimmedData.phone || !trimmedData.address || !trimmedData.city) {
-        message.error('Vui lòng điền đầy đủ thông tin');
-        return;
-    }
-
-    mutationUpdate.mutate({ 
-        id: user?.id, 
-        token: user?.access_token, 
-        ...trimmedData 
-    }, {
-        onSuccess: (data) => {
-            if (data?.status === 'OK') {
-                // Đảm bảo giữ lại refreshToken khi cập nhật
-                dispatch(updateUser({ 
-                    ...user,
-                    name: trimmedData.name, 
-                    address: trimmedData.address, 
-                    city: trimmedData.city, 
-                    phone: trimmedData.phone,
-                    refreshToken: user?.refreshToken
-                }));
-                message.success('Cập nhật thông tin thành công');
-                setIsOpenModalUpdateInfo(false);
-            } else {
-                message.error(data?.message || 'Cập nhật thông tin thất bại');
-            }
-        },
-        onError: (error) => {
-            console.error('Error updating user:', error);
-            if (error.response?.status === 401) {
-                message.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
-            } else {
-                message.error('Đã xảy ra lỗi khi cập nhật thông tin');
-            }
-        }
-    });
+      name: name?.trim(),
+      phone: phone?.trim(),
+      address: address?.trim(),
+      city: city?.trim()
   };
 
-  const handleOnchangeDetails = (e) => {
-    setStateUserDetails({
-      ...stateUserDetails,
-      [e.target.name]: e.target.value
-    })
+  // Validate phone number
+  if (!validatePhoneNumber(trimmedData.phone)) {
+      message.error('Số điện thoại không hợp lệ');
+      return;
   }
 
-  const handlePayment = (e) => {
-    setPayment(e.target.value);
+  if (!trimmedData.name || !trimmedData.phone || !trimmedData.address || !trimmedData.city) {
+      message.error('Vui lòng điền đầy đủ thông tin');
+      return;
   }
 
-  // Hiển thị danh sách sản phẩm đã chọn
-  const renderOrderItems = () => {
-    return order?.ordersItemSelected?.map((item, index) => (
-      <WrapperItemOrder key={index}>
-        <div style={{ width: '390px', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <img src={item?.image} style={{ width: '77px', height: '79px', objectFit: 'cover' }} alt={item?.name} />
-          <div style={{ width: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            <div>{item?.name}</div>
-            <div>Số lượng: {item?.amount}</div>
-          </div>
+  mutationUpdate.mutate({ 
+      id: user?.id, 
+      token: user?.access_token, 
+      ...trimmedData 
+  }, {
+      onSuccess: (data) => {
+          if (data?.status === 'OK') {
+              // Đảm bảo giữ lại refreshToken khi cập nhật
+              dispatch(updateUser({ 
+                  ...user,
+                  name: trimmedData.name, 
+                  address: trimmedData.address, 
+                  city: trimmedData.city, 
+                  phone: trimmedData.phone,
+                  refreshToken: user?.refreshToken
+              }));
+              message.success('Cập nhật thông tin thành công');
+              setIsOpenModalUpdateInfo(false);
+          } else {
+              message.error(data?.message || 'Cập nhật thông tin thất bại');
+          }
+      },
+      onError: (error) => {
+          console.error('Error updating user:', error);
+          if (error.response?.status === 401) {
+              message.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+          } else {
+              message.error('Đã xảy ra lỗi khi cập nhật thông tin');
+          }
+      }
+  });
+};
+
+const handleOnchangeDetails = (e) => {
+  setStateUserDetails({
+    ...stateUserDetails,
+    [e.target.name]: e.target.value
+  })
+}
+
+const handlePayment = (e) => {
+  setPayment(e.target.value);
+}
+
+// Hiển thị danh sách sản phẩm đã chọn
+const renderOrderItems = () => {
+  return order?.ordersItemSelected?.map((item, index) => (
+    <WrapperItemOrder key={index}>
+      <div style={{ width: '390px', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <img src={item?.image} style={{ width: '77px', height: '79px', objectFit: 'cover' }} alt={item?.name} />
+        <div style={{ width: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div>{item?.name}</div>
+          <div>Số lượng: {item?.amount}</div>
         </div>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-          <span style={{ color: 'rgb(255, 66, 78)', fontSize: '13px', fontWeight: 500 }}>{convertPrice(item?.price * item?.amount)}</span>
-        </div>
-      </WrapperItemOrder>
-    ))
-  }
+      </div>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+        <span style={{ color: 'rgb(255, 66, 78)', fontSize: '13px', fontWeight: 500 }}>{convertPrice(item?.price * item?.amount)}</span>
+      </div>
+    </WrapperItemOrder>
+  ))
+}
 
-  const steps = [
-    {
-      title: 'Giỏ hàng',
-      description: 'Chọn sản phẩm',
-    },
-    {
-      title: 'Thanh toán',
-      description: 'Chọn phương thức',
-    },
-    {
-      title: 'Hoàn tất',
-      description: 'Đặt hàng thành công',
-    },
-  ];
+const steps = [
+  {
+    title: 'Giỏ hàng',
+    description: 'Chọn sản phẩm',
+  },
+  {
+    title: 'Thanh toán',
+    description: 'Chọn phương thức',
+  },
+  {
+    title: 'Hoàn tất',
+    description: 'Đặt hàng thành công',
+  },
+];
 
-  return (
-    <PageContainer>
-      <PageContent>
-        <SectionTitle>Thanh toán</SectionTitle>
-        <Steps current={1} items={steps} style={{ marginBottom: '24px' }} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px' }}>
-          <WrapperLeft>
-            <WrapperInfo>
-              <DeliveryInfo>
-                <Label>Thông tin giao hàng</Label>
-                <div style={{ marginTop: '10px' }}>
-                  <div style={{ marginBottom: '5px' }}><strong>Người nhận:</strong> {user?.name}</div>
-                  <div style={{ marginBottom: '5px' }}><strong>Số điện thoại:</strong> {user?.phone}</div>
-                  <div style={{ marginBottom: '5px' }}><strong>Địa chỉ:</strong> {user?.address}, {user?.city}</div>
-                  <Button 
-                    type="link" 
-                    onClick={() => setIsOpenModalUpdateInfo(true)}
-                    style={{ padding: 0 }}
+return (
+  <PageContainer>
+    <PageContent>
+      <SectionTitle>Thanh toán</SectionTitle>
+      <Steps current={1} items={steps} style={{ marginBottom: '24px' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px' }}>
+        <WrapperLeft>
+          <WrapperInfo>
+            <DeliveryInfo>
+              <Label>Địa chỉ giao hàng</Label>
+              <div style={{ marginTop: '10px' }}>
+                {addresses.length > 0 ? (
+                  <Radio.Group 
+                    value={selectedAddress?._id} 
+                    onChange={(e) => {
+                      const selected = addresses.find(addr => addr._id === e.target.value)
+                      setSelectedAddress(selected)
+                    }}
+                    style={{ width: '100%' }}
                   >
-                    Thay đổi
-                  </Button>
-                </div>
-              </DeliveryInfo>
-            </WrapperInfo>
-
-            <WrapperInfo style={{ marginTop: '20px' }}>
-              <Label>Danh sách sản phẩm</Label>
-              <OrderItemsList>
-                {renderOrderItems()}
-              </OrderItemsList>
-            </WrapperInfo>
-
-            <WrapperInfo style={{ marginTop: '20px' }}>
-              <Label>Phương thức thanh toán</Label>
-              <div style={{ marginTop: '16px' }}>
-                <Radio.Group onChange={handlePayment} value={payment} style={{ width: '100%' }}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <PaymentMethodCard isSelected={payment === 'later_money'}>
-                      <Radio value="later_money">
-                        <MethodContent>
-                          <PaymentMethodTitle>Thanh toán khi nhận hàng (COD)</PaymentMethodTitle>
-                          <PaymentMethodDesc>Thanh toán bằng tiền mặt khi nhận hàng tại nhà</PaymentMethodDesc>
-                        </MethodContent>
-                      </Radio>
-                    </PaymentMethodCard>
-
-                    <PaymentMethodCard isSelected={payment === 'momo'}>
-                      <Radio value="momo">
-                        <MethodContent>
-                          <PaymentIcon src={momoIcon || 'https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png'} alt="MoMo" />
+                    {addresses.map(address => (
+                      <Card 
+                        key={address._id} 
+                        style={{ 
+                          marginBottom: 16, 
+                          border: address.isDefault 
+                            ? '1px solid #4cb551' 
+                            : '1px solid #d9d9d9' 
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <Radio value={address._id} style={{ marginRight: 16 }} />
                           <div>
-                            <PaymentMethodTitle>Ví MoMo</PaymentMethodTitle>
-                            <PaymentMethodDesc>Thanh toán qua ứng dụng MoMo</PaymentMethodDesc>
+                            <div>
+                              <strong>{address.fullName}</strong> | {address.phone}
+                            </div>
+                            <div>
+                              {address.address}, {address.city}
+                            </div>
+                            {address.isDefault && (
+                              <div style={{ color: '#4cb551', marginTop: 8 }}>
+                                Địa chỉ mặc định
+                              </div>
+                            )}
                           </div>
-                        </MethodContent>
-                      </Radio>
-                    </PaymentMethodCard>
-                  </Space>
-                </Radio.Group>
-              </div>
-            </WrapperInfo>
-          </WrapperLeft>
-          
-          <WrapperRight>
-            <div style={{ width: '100%' }}>
-              <WrapperInfo>
-                <OrderSummaryTitle>Thông tin đơn hàng</OrderSummaryTitle>
-                <WrapperInfodiv>
-                  <span>Tạm tính ({order?.ordersItemSelected?.length || 0} sản phẩm)</span>
-                  <WrapperInfospan>{convertPrice(priceMemo)}</WrapperInfospan>
-                </WrapperInfodiv>
-                {priceDiscountMemo > 0 && (
-                  <WrapperInfodiv>
-                    <span>Giảm giá</span>
-                    <WrapperInfospan>-{convertPrice(priceDiscountMemo)}</WrapperInfospan>
-                  </WrapperInfodiv>
+                        </div>
+                      </Card>
+                    ))}
+                  </Radio.Group>
+                ) : (
+                  <Alert 
+                    message="Bạn chưa có địa chỉ giao hàng" 
+                    description="Vui lòng thêm địa chỉ để tiếp tục" 
+                    type="warning" 
+                  />
                 )}
-                <WrapperInfodiv>
-                  <span>Phí giao hàng</span>
-                  <WrapperInfospan>{convertPrice(DeliveryPriceMemo)}</WrapperInfospan>
-                </WrapperInfodiv>
-              </WrapperInfo>
-              <WrapperTotal>
-                <span>Tổng tiền</span>
-                <span style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ color: 'rgb(254, 56, 52)', fontSize: '24px', fontWeight: 'bold' }}>
-                    {convertPrice(TotalPriceMemo)}
-                  </span>
-                  <span style={{ color: '#000', fontSize: '11px' }}>(Đã bao gồm VAT nếu có)</span>
-                </span>
-              </WrapperTotal>
+                <Button 
+                  type="dashed" 
+                  onClick={() => setIsOpenModalUpdateInfo(true)}
+                  style={{ marginTop: '10px', width: '100%' }}
+                >
+                  Thêm địa chỉ mới
+                </Button>
+              </div>
+            </DeliveryInfo>
+          </WrapperInfo>
 
-              {payment === 'momo' && (
-                <Alert
-                  message="Thanh toán MoMo"
-                  description="Bạn sẽ được chuyển đến trang thanh toán MoMo để hoàn tất giao dịch."
-                  type="info"
-                  showIcon
-                  style={{ marginTop: '16px', marginBottom: '16px' }}
-                />
-              )}
+          <WrapperInfo style={{ marginTop: '20px' }}>
+            <Label>Danh sách sản phẩm</Label>
+            <OrderItemsList>
+              {renderOrderItems()}
+            </OrderItemsList>
+          </WrapperInfo>
 
-              <ButtonComponent
-                onClick={handleAddOrder}
-                size={40}
-                styleButton={{
-                  background: '#4cb551',
-                  height: '48px',
-                  width: '100%',
-                  border: 'none',
-                  borderRadius: '4px',
-                  marginTop: '20px'
-                }}
-                textButton={payment === 'momo' ? 'Thanh toán MoMo' : 'Đặt hàng'}
-                styleTextButton={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}
-                disabled={isPendingAddOrder || isPendingMomoPayment || isSubmitting}
-              />
-              
-              {(isPendingAddOrder || isPendingMomoPayment || isSubmitting) && <div style={{ textAlign: 'center', marginTop: '10px' }}>Đang xử lý đơn hàng...</div>}
+          <WrapperInfo style={{ marginTop: '20px' }}>
+            <Label>Phương thức thanh toán</Label>
+            <div style={{ marginTop: '16px' }}>
+              <Radio.Group onChange={handlePayment} value={payment} style={{ width: '100%' }}>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <PaymentMethodCard isSelected={payment === 'later_money'}>
+                    <Radio value="later_money">
+                      <MethodContent>
+                        <PaymentMethodTitle>Thanh toán khi nhận hàng (COD)</PaymentMethodTitle>
+                        <PaymentMethodDesc>Thanh toán bằng tiền mặt khi nhận hàng tại nhà</PaymentMethodDesc>
+                      </MethodContent>
+                    </Radio>
+                  </PaymentMethodCard>
+
+                  <PaymentMethodCard isSelected={payment === 'momo'}>
+                    <Radio value="momo">
+                      <MethodContent>
+                        <PaymentIcon src={momoIcon || 'https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png'} alt="MoMo" />
+                        <div>
+                          <PaymentMethodTitle>Ví MoMo</PaymentMethodTitle>
+                          <PaymentMethodDesc>Thanh toán qua ứng dụng MoMo</PaymentMethodDesc>
+                        </div>
+                      </MethodContent>
+                    </Radio>
+                  </PaymentMethodCard>
+                </Space>
+              </Radio.Group>
             </div>
-          </WrapperRight>
-        </div>
-      </PageContent>
+          </WrapperInfo>
+        </WrapperLeft>
+        
+        <WrapperRight>
+          <div style={{ width: '100%' }}>
+            <WrapperInfo>
+              <OrderSummaryTitle>Thông tin đơn hàng</OrderSummaryTitle>
+              <WrapperInfodiv>
+                <span>Tạm tính ({order?.ordersItemSelected?.length || 0} sản phẩm)</span>
+                <WrapperInfospan>{convertPrice(priceMemo)}</WrapperInfospan>
+              </WrapperInfodiv>
+              {priceDiscountMemo > 0 && (
+                <WrapperInfodiv>
+                  <span>Giảm giá</span>
+                  <WrapperInfospan>-{convertPrice(priceDiscountMemo)}</WrapperInfospan>
+                </WrapperInfodiv>
+              )}
+              <WrapperInfodiv>
+                <span>Phí giao hàng</span>
+                <WrapperInfospan>{convertPrice(DeliveryPriceMemo)}</WrapperInfospan>
+              </WrapperInfodiv>
+            </WrapperInfo>
+            <WrapperTotal>
+              <span>Tổng tiền</span>
+              <span style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ color: 'rgb(254, 56, 52)', fontSize: '24px', fontWeight: 'bold' }}>
+                  {convertPrice(TotalPriceMemo)}
+                </span>
+                <span style={{ color: '#000', fontSize: '11px' }}>(Đã bao gồm VAT nếu có)</span>
+              </span>
+            </WrapperTotal>
 
-      <Modal 
-        title="Cập nhật thông tin giao hàng" 
-        open={isOpenModalUpdateInfo} 
-        onCancel={handleCancelUpdate} 
-        onOk={handleUpdateInforUser}
-        okText="Cập nhật"
-        cancelText="Hủy"
-      >
-        <Loading isPending={isPending}>
-          <div style={{ marginBottom: '15px', color: '#ff4d4f' }}>
-            * Vui lòng điền đầy đủ các trường bắt buộc
+            {payment === 'momo' && (
+              <Alert
+                message="Thanh toán MoMo"
+                description="Bạn sẽ được chuyển đến trang thanh toán MoMo để hoàn tất giao dịch."
+                type="info"
+                showIcon
+                style={{ marginTop: '16px', marginBottom: '16px' }}
+              />
+            )}
+
+            <ButtonComponent
+              onClick={handleAddOrder}
+              size={40}
+              styleButton={{
+                background: '#4cb551',
+                height: '48px',
+                width: '100%',
+                border: 'none',
+                borderRadius: '4px',
+                marginTop: '20px'
+              }}
+              textButton={payment === 'momo' ? 'Thanh toán MoMo' : 'Đặt hàng'}
+              styleTextButton={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}
+              disabled={
+                isPendingAddOrder || 
+                isPendingMomoPayment || 
+                isSubmitting || 
+                !selectedAddress || 
+                addresses.length === 0
+              }
+            />
+            
+            {(isPendingAddOrder || isPendingMomoPayment || isSubmitting) && (
+              <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                Đang xử lý đơn hàng...
+              </div>
+            )}
           </div>
-          <Form
-            name="basic"
-            labelCol={{ span: 6 }}
-            wrapperCol={{ span: 18 }}
-            autoComplete="on"
-            form={form}
+        </WrapperRight>
+      </div>
+    </PageContent>
+
+    <Modal 
+      title="Cập nhật thông tin giao hàng" 
+      open={isOpenModalUpdateInfo} 
+      onCancel={handleCancelUpdate} 
+      onOk={handleUpdateInforUser}
+      okText="Cập nhật"
+      cancelText="Hủy"
+    >
+      <Loading isPending={isPending}>
+        <div style={{ marginBottom: '15px', color: '#ff4d4f' }}>
+          * Vui lòng điền đầy đủ các trường bắt buộc
+        </div>
+        <Form
+          name="basic"
+          labelCol={{ span: 6 }}
+          wrapperCol={{ span: 18 }}
+          autoComplete="on"
+          form={form}
+        >
+          <Form.Item
+            label="Tên người nhận"
+            name="name"
+            rules={[{ required: true, message: 'Hãy nhập tên người nhận' }]}
           >
-            <Form.Item
-              label="Tên người nhận"
-              name="name"
-              rules={[{ required: true, message: 'Hãy nhập tên người nhận' }]}
-            >
-              <InputComponents value={stateUserDetails.name} onChange={handleOnchangeDetails} name="name" />
-            </Form.Item>
-            <Form.Item
-              label="Số điện thoại"
-              name="phone"
-              rules={[{ required: true, message: 'Hãy nhập số điện thoại' }]}
-            >
-              <InputComponents value={stateUserDetails.phone} onChange={handleOnchangeDetails} name="phone" />
-            </Form.Item>
-            <Form.Item
-              label="Địa chỉ"
-              name="address"
-              rules={[{ required: true, message: 'Hãy nhập địa chỉ' }]}
-            >
-              <InputComponents value={stateUserDetails.address} onChange={handleOnchangeDetails} name="address" />
-            </Form.Item>
-            <Form.Item
-              label="Thành phố"
-              name="city"
-              rules={[{ required: true, message: 'Hãy nhập thành phố của bạn' }]}
-            >
-              <InputComponents value={stateUserDetails.city} onChange={handleOnchangeDetails} name="city" />
-            </Form.Item>
-          </Form>
-        </Loading>
-      </Modal>
-    </PageContainer>
-  )
+            <InputComponents value={stateUserDetails.name} onChange={handleOnchangeDetails} name="name" />
+          </Form.Item>
+          <Form.Item
+            label="Số điện thoại"
+            name="phone"
+            rules={[
+              { required: true, message: 'Hãy nhập số điện thoại' },
+              {
+                validator: (_, value) => {
+                  if (!validatePhoneNumber(value)) {
+                    return Promise.reject('Số điện thoại không hợp lệ')
+                  }
+                  return Promise.resolve()
+                }
+              }
+            ]}
+          >
+            <InputComponents value={stateUserDetails.phone} onChange={handleOnchangeDetails} name="phone" />
+          </Form.Item>
+          <Form.Item
+            label="Địa chỉ"
+            name="address"
+            rules={[{ required: true, message: 'Hãy nhập địa chỉ' }]}
+          >
+            <InputComponents value={stateUserDetails.address} onChange={handleOnchangeDetails} name="address" />
+          </Form.Item>
+          <Form.Item
+            label="Thành phố"
+            name="city"
+            rules={[{ required: true, message: 'Hãy nhập thành phố của bạn' }]}
+          >
+            <InputComponents value={stateUserDetails.city} onChange={handleOnchangeDetails} name="city" />
+          </Form.Item>
+        </Form>
+      </Loading>
+    </Modal>
+  </PageContainer>
+)
 }
 
 export default PaymentPage

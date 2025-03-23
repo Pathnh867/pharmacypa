@@ -1,10 +1,12 @@
 import axios from "axios";
 import { axiosJWT } from "./UserService";
 
+const BASE_URL = `${process.env.REACT_APP_API_URL}/address`;
+
 // Lấy tất cả địa chỉ của người dùng
 export const getAllAddresses = async (access_token) => {
     try {
-        const res = await axiosJWT.get(`${process.env.REACT_APP_API_URL}/address/get-all`, {
+        const res = await axiosJWT.get(`${BASE_URL}/get-all`, {
             headers: {
                 token: `Bearer ${access_token}`,
             }
@@ -19,7 +21,7 @@ export const getAllAddresses = async (access_token) => {
 // Tạo địa chỉ mới
 export const createAddress = async (access_token, data) => {
     try {
-        const res = await axiosJWT.post(`${process.env.REACT_APP_API_URL}/address/create`, data, {
+        const res = await axiosJWT.post(`${BASE_URL}/create`, data, {
             headers: {
                 token: `Bearer ${access_token}`,
             }
@@ -34,7 +36,7 @@ export const createAddress = async (access_token, data) => {
 // Cập nhật địa chỉ
 export const updateAddress = async (access_token, addressId, data) => {
     try {
-        const res = await axiosJWT.put(`${process.env.REACT_APP_API_URL}/address/update/${addressId}`, data, {
+        const res = await axiosJWT.put(`${BASE_URL}/update/${addressId}`, data, {
             headers: {
                 token: `Bearer ${access_token}`,
             }
@@ -49,7 +51,7 @@ export const updateAddress = async (access_token, addressId, data) => {
 // Xóa địa chỉ
 export const deleteAddress = async (access_token, addressId) => {
     try {
-        const res = await axiosJWT.delete(`${process.env.REACT_APP_API_URL}/address/delete/${addressId}`, {
+        const res = await axiosJWT.delete(`${BASE_URL}/delete/${addressId}`, {
             headers: {
                 token: `Bearer ${access_token}`,
             }
@@ -64,7 +66,7 @@ export const deleteAddress = async (access_token, addressId) => {
 // Đặt địa chỉ mặc định
 export const setDefaultAddress = async (access_token, addressId) => {
     try {
-        const res = await axiosJWT.put(`${process.env.REACT_APP_API_URL}/address/set-default/${addressId}`, {}, {
+        const res = await axiosJWT.put(`${BASE_URL}/set-default/${addressId}`, {}, {
             headers: {
                 token: `Bearer ${access_token}`,
             }
