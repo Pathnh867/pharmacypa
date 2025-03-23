@@ -98,6 +98,9 @@ const TypeProductPage = () => {
         
         return state;
     }
+    const onChange = (current, pageSize) => {
+        setPanigate({...panigate, page: current - 1, limit: pageSize});
+    };
     
     return (
       <Loading isPending={isPending}>
