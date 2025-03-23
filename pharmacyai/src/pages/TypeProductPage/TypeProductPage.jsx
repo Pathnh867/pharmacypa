@@ -1,32 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import NavBarComponent from '../../components/NavBarComponents/NavBarComponent';
 import CardComponent from '../../components/CardComponents/CardComponent';
-import { Col, Pagination, Row, Typography, Empty, message } from 'antd';
-import { WrapperNavBar, WrapperProducts } from './style';
+import { Col, Pagination, Row, Typography, Empty, message, Spin, Breadcrumb } from 'antd';
+import { 
+  WrapperNavBar, 
+  WrapperProducts, 
+  PageContainer, 
+  ProductContainer, 
+  CategoryHeader, 
+  BreadcrumbContainer, 
+  SpinContainer 
+} from './style';
 import { useLocation, useNavigate } from 'react-router-dom';
 import * as ProductService from '../../services/ProductService';
 import Loading from '../../components/LoadingComponent/Loading';
 import { useSelector } from 'react-redux';
 import { useDebounce } from '../../hooks/useDebounce';
-import styled from 'styled-components';
+import { HomeOutlined, AppstoreOutlined, TagOutlined } from '@ant-design/icons';
 
 const { Title } = Typography;
-
-const CategoryTitle = styled(Title)`
-  position: relative;
-  padding-bottom: 15px;
-  margin-bottom: 20px !important;
-  
-  &:after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 60px;
-    height: 3px;
-    background: #4cb551;
-  }
-`;
 
 const TypeProductPage = () => {
     const { state } = useLocation();
@@ -40,6 +32,7 @@ const TypeProductPage = () => {
     });
     const [typeName, setTypeName] = useState('');
     const [availableTypes, setAvailableTypes] = useState([]);
+    const [currentFilters, setCurrentFilters] = useState(null);
     
     // Lấy danh sách các loại có sẵn
     const fetchAvailableTypes = async () => {
@@ -47,7 +40,6 @@ const TypeProductPage = () => {
             const res = await ProductService.getAllTypeProduct();
             if (res?.status === 'OK') {
                 setAvailableTypes(res.data || []);
-                console.log('Available types:', res.data);
             }
         } catch (error) {
             console.error('Error fetching types:', error);
@@ -71,11 +63,18 @@ const TypeProductPage = () => {
                     (typeof product.type === 'object' && product.type?._id === typeId)
                 );
                 
-                setProducts(filtered);
+                // Áp dụng bộ lọc nếu có
+                let filteredProducts = [...filtered];
+                
+                if (currentFilters) {
+                    filteredProducts = applyFiltersToProducts(filteredProducts, currentFilters);
+                }
+                
+                setProducts(filteredProducts);
                 setPanigate({
                     page: 0,
-                    limit: filtered.length,
-                    total: filtered.length
+                    limit: filteredProducts.length,
+                    total: filteredProducts.length
                 });
             } else {
                 setProducts([]);
@@ -97,11 +96,18 @@ const TypeProductPage = () => {
                 setTypeName('Tất cả sản phẩm');
                 const res = await ProductService.getAllProduct('', 100);
                 if (res?.status === 'OK') {
-                    setProducts(res.data || []);
+                    let allProducts = res.data || [];
+                    
+                    // Áp dụng bộ lọc nếu có
+                    if (currentFilters) {
+                        allProducts = applyFiltersToProducts(allProducts, currentFilters);
+                    }
+                    
+                    setProducts(allProducts);
                     setPanigate({
                         page: 0,
-                        limit: res.data.length,
-                        total: res.data.length
+                        limit: allProducts.length,
+                        total: allProducts.length
                     });
                 }
                 setIsPending(false);
@@ -122,12 +128,17 @@ const TypeProductPage = () => {
                 
                 const res = await ProductService.getAllProduct('', 100);
                 // Lọc sản phẩm tương đối theo tên loại
-                const filtered = res.data.filter(product => {
+                let filtered = res.data.filter(product => {
                     const productTypeName = typeof product.type === 'object' ? 
                         product.type?.name : String(product.type);
                     
                     return productTypeName && productTypeName.toLowerCase().includes(typeName.toLowerCase());
                 });
+                
+                // Áp dụng bộ lọc nếu có
+                if (currentFilters) {
+                    filtered = applyFiltersToProducts(filtered, currentFilters);
+                }
                 
                 setTypeName(typeName || 'Sản phẩm');
                 setProducts(filtered);
@@ -179,23 +190,130 @@ const TypeProductPage = () => {
         }
     }, [state, panigate.page, panigate.limit, availableTypes]);
     
+    // Xử lý thay đổi bộ lọc
+    const handleFilterChange = (filters) => {
+        setCurrentFilters(filters);
+        
+        if (!filters) {
+            // Nếu reset bộ lọc, tải lại sản phẩm
+            if (state && typeof state === 'object' && state._id) {
+                fetchProductsByTypeId(state._id, panigate.page, panigate.limit);
+            } else if (state) {
+                fetchProductsByTypeName(typeof state === 'object' ? state.name : state, panigate.page, panigate.limit);
+            } else {
+                const path = window.location.pathname;
+                const parts = path.split('/');
+                const lastPart = parts[parts.length - 1];
+                let decodedType = decodeURIComponent(lastPart).replace(/_/g, ' ');
+                fetchProductsByTypeName(decodedType, panigate.page, panigate.limit);
+            }
+            return;
+        }
+        
+        // Nếu có sản phẩm, áp dụng bộ lọc
+        if (products.length > 0) {
+            const filteredProducts = applyFiltersToProducts(products, filters);
+            setProducts(filteredProducts);
+        }
+    };
+    
+    // Hàm áp dụng bộ lọc cho sản phẩm
+    const applyFiltersToProducts = (products, filters) => {
+        if (!filters) return products;
+        
+        return products.filter(product => {
+            // Lọc theo khoảng giá
+            if (filters.priceRange && product.price) {
+                if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
+                    return false;
+                }
+            }
+            
+            // Lọc theo xếp hạng
+            if (filters.rating && product.rating) {
+                if (product.rating < filters.rating) {
+                    return false;
+                }
+            }
+            
+            // Lọc theo hàng có sẵn
+            if (filters.inStock && product.countInStock !== undefined) {
+                if (product.countInStock <= 0) {
+                    return false;
+                }
+            }
+            
+            // Lọc theo giảm giá
+            if (filters.hasDiscount && product.discount !== undefined) {
+                if (!product.discount || product.discount <= 0) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }).sort((a, b) => {
+            // Sắp xếp theo các tùy chọn
+            if (filters.sortOption === 'priceAsc') {
+                return a.price - b.price;
+            } else if (filters.sortOption === 'priceDesc') {
+                return b.price - a.price;
+            } else if (filters.sortOption === 'newest') {
+                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+            } else if (filters.sortOption === 'popular') {
+                return (b.selled || 0) - (a.selled || 0);
+            }
+            
+            return 0;
+        });
+    };
+    
     const onChange = (current, pageSize) => {
         setPanigate({...panigate, page: current - 1, limit: pageSize});
     };
     
     return (
-        <Loading isPending={isPending}>
-            <div style={{width:'100%', background: '#f7f7f7', minHeight:'calc(100vh - 64px)', padding:'20px 0'}}>
-                <div style={{width:'1270px', margin: '0 auto', height: '100%'}}>
-                    <CategoryTitle level={3}>{typeName}</CategoryTitle>
-                    <Row style={{ flexWrap:'nowrap', paddingTop: '10px', height: 'calc(100% - 20px)'}}>
-                        <WrapperNavBar span={4}>
-                            <NavBarComponent />
-                        </WrapperNavBar>
-                        <Col span={20} style={{display:'flex', flexDirection:'column', justifyContent:'space-between'}}>
-                            <WrapperProducts>
-                                {products?.length > 0 ? (
-                                    products.map((product) => (
+        <PageContainer>
+            <div style={{ width: '1270px', margin: '0 auto', padding: '20px 0' }}>
+                <BreadcrumbContainer>
+                    <Breadcrumb>
+                        <Breadcrumb.Item href="/">
+                            <HomeOutlined />
+                            <span>Trang chủ</span>
+                        </Breadcrumb.Item>
+                        <Breadcrumb.Item>
+                            <AppstoreOutlined />
+                            <span>Sản phẩm</span>
+                        </Breadcrumb.Item>
+                        <Breadcrumb.Item>
+                            <TagOutlined />
+                            <span>{typeName}</span>
+                        </Breadcrumb.Item>
+                    </Breadcrumb>
+                </BreadcrumbContainer>
+                
+                <CategoryHeader>
+                    <Title level={3}>{typeName}</Title>
+                    <div className="result-count">
+                        {products.length > 0 && (
+                            <span>Tìm thấy {products.length} sản phẩm</span>
+                        )}
+                    </div>
+                </CategoryHeader>
+                
+                <ProductContainer>
+                    <WrapperNavBar span={5}>
+                        <NavBarComponent onFilterChange={handleFilterChange} />
+                    </WrapperNavBar>
+                    
+                    <Col span={19} style={{ paddingLeft: '20px' }}>
+                        {isPending ? (
+                            <SpinContainer>
+                                <Spin size="large" tip="Đang tải sản phẩm..." />
+                            </SpinContainer>
+                        ) : products?.length > 0 ? (
+                            <>
+                                <WrapperProducts>
+                                    {products.map((product) => (
                                         <CardComponent
                                             key={product._id}
                                             countInStock={product.countInStock}
@@ -209,33 +327,34 @@ const TypeProductPage = () => {
                                             discount={product.discount}
                                             id={product._id}
                                         />
-                                    ))
-                                ) : !isPending && (
-                                    <Empty 
-                                        description={
-                                            <span>
-                                                Không tìm thấy sản phẩm thuộc loại "{typeName}".<br/>
-                                                <a onClick={() => navigate('/')}>Xem tất cả sản phẩm</a>
-                                            </span>
-                                        }
-                                        style={{margin: '40px auto'}}
+                                    ))}
+                                </WrapperProducts>
+                                
+                                {products.length > 10 && (
+                                    <Pagination 
+                                        current={panigate.page + 1} 
+                                        total={panigate.total} 
+                                        pageSize={panigate.limit}
+                                        onChange={onChange} 
+                                        style={{ textAlign: 'center', marginTop: '20px' }} 
                                     />
                                 )}
-                            </WrapperProducts>  
-                            {products?.length > 0 && (
-                                <Pagination 
-                                    current={panigate.page + 1} 
-                                    total={panigate.total} 
-                                    pageSize={panigate.limit}
-                                    onChange={onChange} 
-                                    style={{textAlign:'center', marginTop:'20px'}} 
-                                />
-                            )}
-                        </Col>
-                    </Row>
-                </div>
+                            </>
+                        ) : (
+                            <Empty 
+                                description={
+                                    <span>
+                                        Không tìm thấy sản phẩm thuộc loại "{typeName}".<br/>
+                                        <a onClick={() => navigate('/')}>Xem tất cả sản phẩm</a>
+                                    </span>
+                                }
+                                style={{margin: '40px auto'}}
+                            />
+                        )}
+                    </Col>
+                </ProductContainer>
             </div>
-        </Loading>
+        </PageContainer>
     );
 };
 
