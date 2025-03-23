@@ -29,18 +29,16 @@ export const ActionGroup = styled.div`
    align-items: center;
    justify-content: flex-end;
    height: 100%;
-   gap: 30px;
 `
 
 export const WrapperHeaderAccount = styled.div`
    display: flex;
    align-items: center;
    color: #fff;
-   gap: 5px;
    cursor: pointer;
    padding: 6px 10px;
    border-radius: 6px;
-   transition: all 0.2s;
+   white-space: nowrap;
    
    &:hover {
       background: rgba(255,255,255,0.1);
@@ -66,7 +64,7 @@ export const WrapperHeaderCart = styled.div`
    cursor: pointer;
    padding: 6px 10px;
    border-radius: 6px;
-   transition: all 0.2s;
+   white-space: nowrap;
    
    &:hover {
       background: rgba(255,255,255,0.1);

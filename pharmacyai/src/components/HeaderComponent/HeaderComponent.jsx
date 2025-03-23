@@ -96,43 +96,50 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
         <Col span={6}>
           <ActionGroup>
             <Loading isPending={isPending}>
-              {!isHiddenCart && (
-                <WrapperHeaderCart onClick={() => navigate('/order')}>
-                  <Badge count={order?.orderItems?.length} size='small'>
-                    <ShoppingCartOutlined style={{ fontSize: '24px', color:'#fff' }} />
-                  </Badge>
-                  <WrapperTextCart>Giỏ hàng</WrapperTextCart>
-                </WrapperHeaderCart>
-              )}
-              
-              {user?.access_token ? (
-                <Popover content={content} trigger="click" placement="bottom">
-                  <WrapperHeaderAccount>
-                    {userAvatar ? (
-                      <Avatar src={userAvatar} size="small" />
-                    ) : (
-                      <UserOutlined style={{fontSize: '20px', color: '#fff'}} />
-                    )}
-                    <div style={{ marginLeft: '8px' }}>
-                      <span style={{ color: '#fff' }}>
-                        {userName?.length ? userName : user?.email}
-                      </span>
-                      <DownOutlined style={{ fontSize: '12px', marginLeft: '4px', color: '#fff' }} />
+              {/* Bọc cả hai phần vào một div flex row */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'flex-end',
+                gap: '20px'  // Khoảng cách giữa giỏ hàng và user
+              }}>
+                {/* Phần giỏ hàng */}
+                {!isHiddenCart && (
+                  <WrapperHeaderCart onClick={() => navigate('/order')}>
+                    <Badge count={order?.orderItems?.length} size='small'>
+                      <ShoppingCartOutlined style={{ fontSize: '24px', color:'#fff' }} />
+                    </Badge>
+                    <WrapperTextCart>Giỏ hàng</WrapperTextCart>
+                  </WrapperHeaderCart>
+                )}
+                
+                {/* Phần user */}
+                {user?.access_token ? (
+                  <Popover content={content} trigger="click" placement="bottom">
+                    <WrapperHeaderAccount>
+                      {userAvatar ? (
+                        <Avatar src={userAvatar} size="small" />
+                      ) : (
+                        <UserOutlined style={{fontSize: '20px', color: '#fff'}} />
+                      )}
+                      <div style={{ marginLeft: '8px' }}>
+                        <span style={{ color: '#fff' }}>
+                          {userName?.length ? userName : user?.email}
+                        </span>
+                        <DownOutlined style={{ fontSize: '12px', marginLeft: '4px', color: '#fff' }} />
+                      </div>
+                    </WrapperHeaderAccount>
+                  </Popover>
+                ) : (
+                  <WrapperHeaderAccount onClick={handleNavigateLogin}>
+                    <UserOutlined style={{fontSize: '20px', color: '#fff'}} />
+                    <div style={{ marginLeft: '5px' }}>
+                      <WrapperTextHeaderSmall>Đăng nhập/Đăng ký</WrapperTextHeaderSmall>
+                      <WrapperTextHeaderSmall>Tài khoản <DownOutlined style={{ fontSize: '10px', marginLeft: '2px' }} /></WrapperTextHeaderSmall>
                     </div>
                   </WrapperHeaderAccount>
-                </Popover>
-              ) : (
-                <WrapperHeaderAccount onClick={handleNavigateLogin}>
-                  <UserOutlined style={{fontSize: '20px', color: '#fff'}} />
-                  <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '5px' }}>
-                    <WrapperTextHeaderSmall>Đăng nhập/Đăng ký</WrapperTextHeaderSmall>
-                    <div>
-                      <WrapperTextHeaderSmall>Tài khoản</WrapperTextHeaderSmall>
-                      <DownOutlined style={{ fontSize: '10px', marginLeft: '2px', color: '#fff' }} />
-                    </div>
-                  </div>
-                </WrapperHeaderAccount>
-              )}
+                )}
+              </div>
             </Loading>
           </ActionGroup>
         </Col>
