@@ -18,29 +18,31 @@ export const userSlide = createSlice({
     reducers: {
         updateUser: (state, action) => {
             const { 
-              _id= '', 
-              name='', 
-              email='', 
-              access_token='', 
+              _id, 
+              id,
+              name, 
+              email, 
+              access_token, 
               isAdmin, 
-              city='', 
-              phone= '', 
-              address='', 
-              refreshToken='',
-              avatar='' 
+              city, 
+              phone, 
+              address, 
+              refreshToken,
+              avatar 
             } = action.payload;
             
-            // Chỉ cập nhật các trường được cung cấp, giữ nguyên các trường khác
-            if (_id) state.id = _id;
-            if (name) state.name = name;
-            if (email) state.email = email;
-            if (access_token) state.access_token = access_token;
-            if (isAdmin !== undefined) state.isAdmin = isAdmin;
-            if (city) state.city = city;
-            if (phone) state.phone = phone;
-            if (address) state.address = address;
-            if (refreshToken) state.refreshToken = refreshToken;
-            if (avatar) state.avatar = avatar;
+            // Kiểm tra và cập nhật các trường một cách rõ ràng
+            if (_id !== undefined && _id !== null && _id !== '') state.id = _id;
+            if (id !== undefined && id !== null && id !== '') state.id = id;
+            if (name !== undefined && name !== null) state.name = name;
+            if (email !== undefined && email !== null) state.email = email;
+            if (access_token !== undefined && access_token !== null) state.access_token = access_token;
+            if (isAdmin !== undefined) state.isAdmin = isAdmin; // isAdmin có thể là false
+            if (city !== undefined && city !== null) state.city = city;
+            if (phone !== undefined && phone !== null) state.phone = phone;
+            if (address !== undefined && address !== null) state.address = address;
+            if (refreshToken !== undefined && refreshToken !== null) state.refreshToken = refreshToken;
+            if (avatar !== undefined && avatar !== null) state.avatar = avatar;
         },
         resetUser: (state) => {
             state.name = '';

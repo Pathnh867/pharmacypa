@@ -208,10 +208,12 @@ const OrderPage = () => {
               // Chỉ cập nhật các trường đã thay đổi, giữ nguyên token
               dispatch(updateUser({
                 ...user,
-                name,
-                phone,
-                address,
-                city
+                name: name || user.name,
+                phone: phone || user.phone,
+                address: address || user.address,
+                city: city || user.city,
+                // Giữ lại refresh_token
+                refreshToken: user.refreshToken
               }));
               message.success('Cập nhật thành công!');
               setIsOpenModalUpdateInfo(false);

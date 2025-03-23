@@ -341,11 +341,11 @@ const AdminUser = () => {
   const onUpdateUser = () => {
     // Chuẩn bị dữ liệu trước khi gửi
     const dataToUpdate = {
-      name: stateUserDetails.name,
-      phone: stateUserDetails.phone ? String(stateUserDetails.phone) : undefined,
-      address: stateUserDetails.address,
-      city: stateUserDetails.city,
-      avatar: stateUserDetails.avatar,
+      name: stateUserDetails.name?.trim() || undefined,
+      phone: stateUserDetails.phone ? String(stateUserDetails.phone).trim() : undefined,
+      address: stateUserDetails.address?.trim() || undefined,
+      city: stateUserDetails.city?.trim() || undefined,
+      avatar: stateUserDetails.avatar || undefined,
       isAdmin: stateUserDetails.isAdmin
     };
     

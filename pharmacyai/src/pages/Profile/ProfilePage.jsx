@@ -72,8 +72,16 @@ const ProfilePage = () => {
     }
 
     const handleUpdate = () => {
-        mutation.mutate({id: user?.id, email, name, phone, address, avatar, access_token: user?.access_token })
-        
+        mutation.mutate({
+          id: user?.id, 
+          email: email || user?.email, 
+          name: name || user?.name, 
+          phone: phone || user?.phone, 
+          address: address || user?.address, 
+          avatar: avatar || user?.avatar, 
+          access_token: user?.access_token,
+          refreshToken: user?.refreshToken // Thêm refresh_token
+        })
     }
 
     return (

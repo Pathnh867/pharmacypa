@@ -325,10 +325,12 @@ const PaymentPage = () => {
         if (data?.status === 'OK') {
           dispatch(updateUser({ 
             ...user,
-            name, 
-            address, 
-            city, 
-            phone 
+            name: name || user.name, 
+            address: address || user.address, 
+            city: city || user.city, 
+            phone: phone || user.phone,
+            // Giữ lại refresh_token
+            refreshToken: user.refreshToken
           }))
           message.success('Cập nhật thông tin thành công');
           setIsOpenModalUpdateInfo(false)
