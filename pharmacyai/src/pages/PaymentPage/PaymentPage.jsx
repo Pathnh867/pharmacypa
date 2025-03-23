@@ -206,93 +206,121 @@ const PaymentPage = () => {
     }
   };
 
-  const handleAddOrder = () => {
-    if (isSubmitting) return;
 
-    // Kiểm tra thông tin người dùng
-    if (!user?.access_token || !order?.ordersItemSelected?.length) {
-      message.error('Có lỗi xảy ra, vui lòng đăng nhập lại');
-      return;
-    }
+const handleAddOrder = () => {
+  if (isSubmitting) return;
 
-    if (!user?.name || !user?.address || !user?.phone || !user?.city) {
-      message.error('Vui lòng cập nhật thông tin giao hàng');
-      setIsOpenModalUpdateInfo(true);
-      return;
-    }
-    
-    // Nếu phương thức thanh toán là MoMo, xử lý thanh toán MoMo
-    if (payment === 'momo') {
-      handleMomoPayment();
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    mutationAddOrder.mutate(
-      {
-        token: user?.access_token, 
-        orderItems: order?.ordersItemSelected,
-        fullName: user?.name, 
-        address: user?.address, 
-        phone: user?.phone, 
-        city: user?.city,
-        paymentMethod: payment,
-        itemsPrice: priceMemo, 
-        shippingPrice: DeliveryPriceMemo, 
-        totalPrice: TotalPriceMemo,
-        user: user?.id,
-        email: user?.email
-      },
-      {
-        onSuccess: (data) => {
-          if (data?.status === 'OK') {
-            // Chuẩn bị dữ liệu chi tiết sản phẩm
-            const items = order?.ordersItemSelected?.map(item => ({
-              item_id: item.product,
-              item_name: item.name,
-              price: Number(item.price),
-              quantity: Number(item.amount),
-              // Thêm thông tin sản phẩm khác nếu có
-            }));
-            
-            // Gửi sự kiện purchase vào dataLayer cho GTM
-            window.dataLayer = window.dataLayer || [];
-            
-            // Xóa dữ liệu ecommerce trước đó (quan trọng)
-            window.dataLayer.push({
-              ecommerce: null
-            });
-            
-            // Gửi sự kiện purchase
-            window.dataLayer.push({
-              event: 'purchase',
-              ecommerce: {
-                transaction_id: data?.data?._id || Date.now().toString(),
-                value: Number(TotalPriceMemo),
-                tax: 0,
-                shipping: Number(DeliveryPriceMemo),
-                currency: 'VND',
-                items: items
-              }
-            });
-            
-            // Hiển thị thông báo thành công và xóa sản phẩm khỏi giỏ hàng
-            showConfirmationModal();
-            dispatch(removeAllOrderProduct({ listChecked: order?.ordersItemSelected.map(item => item.product) }));
-          } else {
-            message.error(data?.message || 'Đặt hàng thất bại');
-          }
-          setIsSubmitting(false);
-        },
-        onError: (error) => {
-          console.error('Error placing order:', error);
-          message.error('Đã xảy ra lỗi khi đặt hàng');
-          setIsSubmitting(false);
-        }
-      }
-    );
+  // Kiểm tra thông tin người dùng
+  if (!user?.access_token || !order?.ordersItemSelected?.length) {
+    message.error('Có lỗi xảy ra, vui lòng đăng nhập lại');
+    return;
   }
+
+  if (!user?.name || !user?.address || !user?.phone || !user?.city) {
+    message.error('Vui lòng cập nhật thông tin giao hàng');
+    setIsOpenModalUpdateInfo(true);
+    return;
+  }
+  
+  // Nếu phương thức thanh toán là MoMo, xử lý thanh toán MoMo
+  if (payment === 'momo') {
+    handleMomoPayment();
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  // Tạo mã đơn hàng ngẫu nhiên cho COD
+  const orderCode = `ORDER_${Date.now()}`;
+
+  mutationAddOrder.mutate(
+    {
+      token: user?.access_token, 
+      orderItems: order?.ordersItemSelected,
+      fullName: user?.name, 
+      address: user?.address, 
+      phone: user?.phone, 
+      city: user?.city,
+      paymentMethod: payment,
+      itemsPrice: priceMemo, 
+      shippingPrice: DeliveryPriceMemo, 
+      totalPrice: TotalPriceMemo,
+      user: user?.id,
+      email: user?.email
+    },
+    {
+      onSuccess: (data) => {
+        if (data?.status === 'OK') {
+          // Chuẩn bị dữ liệu chi tiết sản phẩm cho tracking
+          const items = order?.ordersItemSelected?.map(item => ({
+            item_id: item.product,
+            item_name: item.name,
+            price: Number(item.price),
+            quantity: Number(item.amount),
+          }));
+          
+          // Gửi sự kiện purchase vào dataLayer cho GTM
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({
+            ecommerce: null
+          });
+          
+          window.dataLayer.push({
+            event: 'purchase',
+            ecommerce: {
+              transaction_id: data?.data?._id || orderCode,
+              value: Number(TotalPriceMemo),
+              tax: 0,
+              shipping: Number(DeliveryPriceMemo),
+              currency: 'VND',
+              items: items
+            }
+          });
+          
+          // Xóa sản phẩm khỏi giỏ hàng
+          dispatch(removeAllOrderProduct({ 
+            listChecked: order?.ordersItemSelected.map(item => item.product) 
+          }));
+          
+          // Chuyển hướng đến trang kết quả thanh toán với status success
+          navigate('/payment-result', { 
+            state: { 
+              status: 'success', 
+              orderId: data?.data?._id || orderCode,
+              orderInfo: {
+                items: order?.ordersItemSelected,
+                totalPrice: TotalPriceMemo,
+                paymentMethod: 'Thanh toán khi nhận hàng'
+              }
+            } 
+          });
+        } else {
+          // Chuyển hướng đến trang kết quả với status error nếu API trả về lỗi
+          navigate('/payment-result', { 
+            state: { 
+              status: 'error', 
+              resultCode: 'ERR_CREATE_ORDER',
+              message: data?.message || 'Đặt hàng thất bại' 
+            } 
+          });
+        }
+        setIsSubmitting(false);
+      },
+      onError: (error) => {
+        console.error('Error placing order:', error);
+        // Chuyển hướng đến trang kết quả với status error nếu có lỗi
+        navigate('/payment-result', { 
+          state: { 
+            status: 'error', 
+            resultCode: 'ERR_SYSTEM',
+            message: 'Đã xảy ra lỗi khi đặt hàng' 
+          } 
+        });
+        setIsSubmitting(false);
+      }
+    }
+  );
+}
 
   const { isPending, data } = mutationUpdate
   const { isPending: isPendingAddOrder } = mutationAddOrder
