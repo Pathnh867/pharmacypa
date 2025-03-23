@@ -43,33 +43,31 @@ const TypeProductPage = () => {
     console.log('TypeProductPage state:', state)
     
     const fetchProductType = async (type, page, limit) => {
-        setIsPending(true)
+        setIsPending(true);
         try {
-            // Handle both string and object types
-            let typeValue = type;
-            if (typeof type === 'object' && type._id) {
-                typeValue = type._id; // Use ID if available
-            } else if (typeof type === 'object' && type.name) {
-                typeValue = type.name; // Use name if ID is not available
-            }
-            
-            console.log('Fetching products for type:', typeValue);
-            
-            const res = await ProductService.getProductType(typeValue, page, limit)
-            if (res?.status === 'OK') {
-                setIsPending(false)
-                setProducts(res?.data)
-                setPanigate({ ...panigate, total: res?.totalPage })
-                console.log('Product results:', res?.data?.length);
-            } else {
-                setIsPending(false)
-                console.error('Error response:', res);
-            }
-        } catch (error) {
-            console.error('Error fetching products by type:', error);
+          // Xác định giá trị cần gửi đi
+          let typeParam = type;
+          
+          // Nếu type là object, ưu tiên sử dụng _id, nếu không có thì dùng name
+          if (typeof type === 'object') {
+            typeParam = type._id || type.name;
+          }
+          
+          console.log('Using type parameter:', typeParam);
+          
+          const res = await ProductService.getProductType(typeParam, page, limit);
+          if (res?.status === 'OK') {
             setIsPending(false);
+            setProducts(res?.data);
+            setPanigate({ ...panigate, total: res?.totalPage });
+          } else {
+            setIsPending(false);
+          }
+        } catch (error) {
+          console.error('Error fetching products by type:', error);
+          setIsPending(false);
         }
-    }
+      }
 
     useEffect(() => {
         if (state) {

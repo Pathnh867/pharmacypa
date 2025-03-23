@@ -85,28 +85,99 @@ const deleteProduct = (id) => {
 const getAllProduct = (limit, page, sort, filter) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const totalProduct = await Product.countDocuments()
+            const totalProduct = await Product.countDocuments();
             
             // Trường hợp có filter
             if (filter) {
                 const label = filter[0];
-                const allobjectfilter = await Product.find({[label]:{'$regex':filter[1]}}).limit(limit).skip(page * limit)
-                resolve({
-                    status: 'OK',
-                    message: 'Success',
-                    data: allobjectfilter,
-                    total: totalProduct,
-                    pageCurrent: Number(page + 1),
-                    totalPage: Math.ceil(totalProduct/limit)
-                });
-                return; // Thêm return để tránh thực hiện code phía dưới
+                
+                // Nếu filter theo type, cần xử lý đặc biệt vì type là ObjectId
+                if (label === 'type') {
+                    try {
+                        let query = {};
+                        
+                        // Kiểm tra xem filter[1] có phải là ObjectId không
+                        if (mongoose.Types.ObjectId.isValid(filter[1])) {
+                            console.log('Filtering by type ID:', filter[1]);
+                            // Nếu là ObjectId hợp lệ, tìm theo ID
+                            query = { type: mongoose.Types.ObjectId(filter[1]) };
+                        } else {
+                            console.log('Filtering by type name:', filter[1]);
+                            // Nếu không, tìm Type theo tên, sau đó tìm Product theo type._id
+                            const typeObj = await Type.findOne({ 
+                                name: { '$regex': filter[1], '$options': 'i' } 
+                            });
+                            
+                            if (typeObj) {
+                                console.log('Found type object:', typeObj.name, typeObj._id);
+                                query = { type: typeObj._id };
+                            } else {
+                                console.log('Type not found with name:', filter[1]);
+                                // Không tìm thấy loại, trả về mảng rỗng
+                                resolve({
+                                    status: 'OK',
+                                    message: 'Success',
+                                    data: [],
+                                    total: 0,
+                                    pageCurrent: Number(page + 1),
+                                    totalPage: 0
+                                });
+                                return;
+                            }
+                        }
+                        
+                        // Tìm sản phẩm theo query đã xác định
+                        const products = await Product.find(query)
+                            .limit(limit)
+                            .skip(page * limit)
+                            .populate('type'); // Thêm thông tin đầy đủ về type
+                            
+                        const totalFiltered = await Product.countDocuments(query);
+                        
+                        console.log(`Found ${products.length} products with type filter`);
+                        
+                        resolve({
+                            status: 'OK',
+                            message: 'Success',
+                            data: products,
+                            total: totalFiltered,
+                            pageCurrent: Number(page + 1),
+                            totalPage: Math.ceil(totalFiltered/limit)
+                        });
+                        return;
+                    } catch (error) {
+                        console.error('Error filtering by type:', error);
+                        reject(error);
+                        return;
+                    }
+                } else {
+                    // Xử lý các filter khác như cũ
+                    console.log(`Filtering by ${label}:`, filter[1]);
+                    const allobjectfilter = await Product.find({[label]:{'$regex':filter[1], '$options': 'i'}})
+                        .limit(limit)
+                        .skip(page * limit);
+                        
+                    resolve({
+                        status: 'OK',
+                        message: 'Success',
+                        data: allobjectfilter,
+                        total: totalProduct,
+                        pageCurrent: Number(page + 1),
+                        totalPage: Math.ceil(totalProduct/limit)
+                    });
+                    return;
+                }
             }
             
             // Trường hợp có sort
             if (sort) {
-                const objectSort = {}
-                objectSort[sort[1]] = sort[0]
-                const allProductSort = await Product.find().limit(limit).skip(page * limit).sort(objectSort)
+                const objectSort = {};
+                objectSort[sort[1]] = sort[0];
+                const allProductSort = await Product.find()
+                    .limit(limit)
+                    .skip(page * limit)
+                    .sort(objectSort);
+                    
                 resolve({
                     status: 'OK',
                     message: 'Success',
@@ -115,17 +186,19 @@ const getAllProduct = (limit, page, sort, filter) => {
                     pageCurrent: Number(page + 1),
                     totalPage: Math.ceil(totalProduct/limit)
                 });
-                return; // Thêm return để tránh thực hiện code phía dưới
+                return;
             }
             
+            // Trường hợp mặc định
+            let allProduct;
             if (!limit) {
-                allProduct= await Product.find()
+                allProduct = await Product.find();
             } else {
-                allProduct = await Product.find().limit(limit).skip(page * limit)
-
+                allProduct = await Product.find()
+                    .limit(limit)
+                    .skip(page * limit);
             }
 
-            // Trường hợp mặc định (không có sort và filter)
             resolve({
                 status: 'OK',
                 message: 'Success',

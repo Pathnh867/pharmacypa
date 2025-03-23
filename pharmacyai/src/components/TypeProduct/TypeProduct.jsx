@@ -8,16 +8,12 @@ const TypeProduct = ({ name }) => {
   const typeName = typeof name === 'object' && name.name ? name.name : name;
   
   const handleNavigatetype = (type) => {
-    // Đảm bảo type luôn là chuỗi
+    // Đảm bảo truyền toàn bộ đối tượng type (nếu có) hoặc chuỗi tên
     const typeValue = typeof type === 'object' && type.name ? type.name : type;
     
-    // Chuyển đầy đủ dữ liệu type vào state để sử dụng _id ở trang đích
     navigate(`/product/${typeValue.normalize('NFD').replace(/[\u0300-\u036f]/g, '')?.replace(/ /g, '_')}`, { 
-      state: type 
+      state: type // Truyền toàn bộ đối tượng type hoặc chuỗi
     });
-
-    // Log để debug
-    console.log('Navigating to type:', type);
   }
   
   return (
