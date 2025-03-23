@@ -22,6 +22,7 @@ const PaymentResultPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
+  const order = useSelector((state) => state.order);
   
   // Lấy thông tin từ query parameters trong URL
   const queryParams = new URLSearchParams(location.search);
@@ -46,9 +47,21 @@ const PaymentResultPage = () => {
   const orderIdFromState = location.state?.orderId;
   const orderInfoFromState = location.state?.orderInfo;
   
+  // Hàm xóa giỏ hàng
+  const clearCart = () => {
+    try {
+      console.log("Clearing all items from cart");
+      // Xóa tất cả sản phẩm trong giỏ hàng không cần listChecked
+      dispatch(removeAllOrderProduct({}));
+      console.log("Cart cleared successfully");
+    } catch (error) {
+      console.error("Error clearing cart:", error);
+    }
+  };
+  
   // Timer để đảm bảo không loading quá lâu
   useEffect(() => {
-    // Sau 10 giây, nếu vẫn đang loading và là redirect từ MoMo với resultCode=0, tự động chuyển sang thành công
+    // Sau 8 giây, nếu vẫn đang loading và là redirect từ MoMo với resultCode=0, tự động chuyển sang thành công
     const timeoutId = setTimeout(() => {
       if (loading && isMomoRedirect && momoResultCode === '0') {
         console.log("Auto-resolving MoMo payment after timeout");
@@ -63,13 +76,16 @@ const PaymentResultPage = () => {
           paymentMethod: 'momo'
         });
         
+        // Xóa giỏ hàng
+        clearCart();
+        
         // Hiển thị thông báo
         message.success('Thanh toán MoMo thành công!');
       }
     }, 8000); // 8 giây
     
     return () => clearTimeout(timeoutId);
-  }, [loading, isMomoRedirect, momoResultCode, momoOrderId, momoAmount]);
+  }, [loading, isMomoRedirect, momoResultCode, momoOrderId, momoAmount, dispatch]);
   
   // Log thông tin để debug
   useEffect(() => {
@@ -85,7 +101,8 @@ const PaymentResultPage = () => {
       statusFromState,
       orderIdFromState
     });
-  }, [location]);
+    console.log("Current order state:", order);
+  }, [location, order]);
   
   useEffect(() => {
     const processPaymentResult = async () => {
@@ -96,11 +113,11 @@ const PaymentResultPage = () => {
           setStatus('success');
           setOrderData(orderInfoFromState);
           
-          // Xóa sản phẩm khỏi giỏ hàng
+          // Xóa sản phẩm khỏi giỏ hàng cho COD
           if (orderInfoFromState?.items && orderInfoFromState?.items.length > 0) {
-            dispatch(removeAllOrderProduct({
-              listChecked: orderInfoFromState.items.map(item => item.product)
-            }));
+            const productsToRemove = orderInfoFromState.items.map(item => item.product);
+            console.log("Removing products from COD:", productsToRemove);
+            dispatch(removeAllOrderProduct({ listChecked: productsToRemove }));
           }
           
           setLoading(false);
@@ -127,12 +144,8 @@ const PaymentResultPage = () => {
                   paymentMethod: 'momo'
                 });
                 
-                // Xóa sản phẩm khỏi giỏ hàng
-                if (orderResult.data.orderItems && orderResult.data.orderItems.length > 0) {
-                  dispatch(removeAllOrderProduct({
-                    listChecked: orderResult.data.orderItems.map(item => item.product)
-                  }));
-                }
+                // Xóa giỏ hàng
+                clearCart();
               } else {
                 console.log("Order details not found or invalid", orderResult);
                 // Nếu không tìm thấy thông tin đơn hàng nhưng MoMo đã xác nhận thành công
@@ -144,6 +157,9 @@ const PaymentResultPage = () => {
                   totalPrice: Number(momoAmount),
                   paymentMethod: 'momo'
                 });
+                
+                // Xóa giỏ hàng
+                clearCart();
                 
                 message.info('Thanh toán thành công, nhưng không thể tải chi tiết đơn hàng');
               }
@@ -157,6 +173,9 @@ const PaymentResultPage = () => {
                 totalPrice: Number(momoAmount),
                 paymentMethod: 'momo'
               });
+              
+              // Xóa giỏ hàng
+              clearCart();
             }
           } else {
             // MoMo thanh toán thất bại
@@ -183,12 +202,8 @@ const PaymentResultPage = () => {
                 paymentMethod: orderResult.data.paymentMethod
               });
               
-              // Xóa sản phẩm đã mua khỏi giỏ hàng
-              if (orderResult.data.orderItems && orderResult.data.orderItems.length > 0) {
-                dispatch(removeAllOrderProduct({
-                  listChecked: orderResult.data.orderItems.map(item => item.product)
-                }));
-              }
+              // Xóa giỏ hàng
+              clearCart();
             } else {
               setStatus('pending');
             }
@@ -246,12 +261,16 @@ const PaymentResultPage = () => {
           totalPrice: Number(momoAmount || 0),
           paymentMethod: 'momo'
         });
+        
+        // Xóa giỏ hàng
+        clearCart();
+        
         message.success('Đã xác nhận thanh toán thành công qua MoMo');
       }, 5000);
       
       return () => clearTimeout(retryTimeout);
     }
-  }, [status, momoResultCode, momoOrderId, orderIdFromQuery, momoAmount]);
+  }, [status, momoResultCode, momoOrderId, orderIdFromQuery, momoAmount, dispatch]);
   
   if (loading) {
     return (
