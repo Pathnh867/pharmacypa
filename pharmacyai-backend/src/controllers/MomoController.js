@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 const https = require('https');
+const EmailService = require('../services/EmailService');
+const Order = require('../models/OrderProduct');
 
 // Cấu hình MoMo từ biến môi trường
 const accessKey = process.env.MOMO_ACCESS_KEY;
@@ -116,6 +118,30 @@ const momoIpnCallback = async (req, res) => {
         console.log("MoMo IPN callback received:", req.body);
         
         // Xử lý callback từ MoMo, cập nhật trạng thái đơn hàng
+        if (req.body.resultCode === 0) {
+            // Thanh toán thành công
+            try {
+                // Tạo đơn hàng từ dữ liệu đã lưu trong localStorage trên client
+                // Hoặc lấy thông tin đơn hàng từ database nếu đã lưu trước đó
+                const pendingOrderId = req.body.orderId;
+                
+                // Lấy thông tin đơn hàng từ MoMo extraData hoặc từ database
+                const order = await Order.findOne({ _id: pendingOrderId });
+                
+                if (order) {
+                    // Cập nhật trạng thái thanh toán
+                    order.isPaid = true;
+                    order.paidAt = new Date();
+                    await order.save();
+                    
+                    // Gửi email thông báo đơn hàng
+                    await EmailService.sendEmailOrderSuccess(order);
+                }
+            } catch (orderError) {
+                console.error("Error processing order after MoMo payment:", orderError);
+            }
+        }
+        
         // Trả về 200 OK để MoMo biết đã nhận được callback
         return res.status(200).json({
             status: 'OK',
