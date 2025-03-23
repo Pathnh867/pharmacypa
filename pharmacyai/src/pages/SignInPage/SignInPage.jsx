@@ -26,31 +26,52 @@ const SignInPage = () => {
   const { data, isPending, isSuccess } = mutation
 
   useEffect(() => {
-    
     if (isSuccess) {
       if (location?.state) {
        navigate(location?.state)
       } else {
         navigate('/');
       }
-      localStorage.setItem('access_token', JSON.stringify(data?.access_token));
-      localStorage.setItem('refresh_token', JSON.stringify(data?.refresh_token));
-     if (data?.access_token) {
-      const decode = jwtDecode(data?.access_token);
-      if (decode?.id) {
-        handlegetDetailsUser(decode?.id, data?.access_token);
+      
+      // Lưu token vào localStorage với xử lý lỗi
+      try {
+        if (data?.access_token) {
+          localStorage.setItem('access_token', JSON.stringify(data?.access_token));
+        }
+        if (data?.refresh_token) {
+          localStorage.setItem('refresh_token', JSON.stringify(data?.refresh_token));
+        }
+        
+        // Giải mã token để lấy thông tin người dùng
+        if (data?.access_token) {
+          const decode = jwtDecode(data?.access_token);
+          if (decode?.id) {
+            handlegetDetailsUser(decode?.id, data?.access_token);
+          }
+        }
+      } catch (error) {
+        console.error("Error processing tokens:", error);
       }
-    }
     }
   }, [isSuccess, data])
   
   const handlegetDetailsUser = async (id, token) => {
-    const storage = localStorage.getItem('refresh_token')
-    const refreshToken = JSON.parse(storage)
-    const res = await UserService.getDetailsUser(id, token)
-    dispatch(updateUser({ ...res?.data, access_token: token, refreshToken}))
+    try {
+      const refreshToken = data?.refresh_token;
+      // Lưu dữ liệu refresh_token trước khi gọi API
+      const res = await UserService.getDetailsUser(id, token);
+      
+      // Cập nhật thông tin người dùng vào Redux, bao gồm cả token
+      dispatch(updateUser({
+        ...res?.data, 
+        access_token: token, 
+        refreshToken: refreshToken
+      }));
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+    }
   }
-  console.log('mutation', mutation)
+  
   const handleOnchangeEmail = (value) => {
     setEmail(value)
   }

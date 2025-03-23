@@ -193,41 +193,51 @@ const OrderPage = () => {
 
     // Tạo đối tượng dữ liệu mới, không bao gồm refresh_token
     const updateData = {
-      name,
-      phone,
-      address,
-      city
+      name: name?.trim(),
+      phone: phone?.trim(),
+      address: address?.trim(),
+      city: city?.trim()
     };
 
-    if (name && phone && address && city) {
+    if (updateData.name && updateData.phone && updateData.address && updateData.city) {
       mutationUpdate.mutate(
         { id: user?.id, token: user?.access_token, ...updateData },
         {
           onSuccess: (data) => {
             if (data?.status === 'OK') {
-              // Chỉ cập nhật các trường đã thay đổi, giữ nguyên token
+              // Cập nhật thông tin người dùng trong Redux state
               dispatch(updateUser({
                 ...user,
-                name: name || user.name,
-                phone: phone || user.phone,
-                address: address || user.address,
-                city: city || user.city,
-                // Giữ lại refresh_token
-                refreshToken: user.refreshToken
+                name: updateData.name,
+                phone: updateData.phone,
+                address: updateData.address,
+                city: updateData.city,
+                // Đảm bảo giữ nguyên refresh_token
+                refreshToken: user?.refreshToken
               }));
               message.success('Cập nhật thành công!');
               setIsOpenModalUpdateInfo(false);
+            } else {
+              message.error(data?.message || 'Cập nhật thông tin thất bại');
             }
           },
           onError: (error) => {
-            console.error('Lỗi cập nhật:', error);
-            message.error('Có lỗi xảy ra: ' + (error.message || 'Không xác định'));
-            // Không tự động đăng xuất khi có lỗi
+            console.error('Error updating user:', error);
+            // Kiểm tra nếu lỗi liên quan đến token
+            if (error.response?.status === 401) {
+              message.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+              // Có thể chuyển hướng đến trang đăng nhập
+              // navigate('/sign-in', { state: location.pathname });
+            } else {
+              message.error('Đã xảy ra lỗi: ' + (error.response?.data?.message || 'Không xác định'));
+            }
           }
         }
       );
+    } else {
+      message.error('Vui lòng điền đầy đủ thông tin');
     }
-  };
+};
   return (
     <div style={{ background: '#f5f5fa', width: '100%', height: '100vh' }}>
       <div style={{ height: '100vh', width: '100%', margin: '0 auto' }}>

@@ -6,6 +6,7 @@ const initialState = {
     email: '',
     phone: '',
     access_token: '',
+    refreshToken: '',
     isAdmin: false,
     address: '',
     city: '',
@@ -45,15 +46,18 @@ export const userSlide = createSlice({
             if (avatar !== undefined && avatar !== null) state.avatar = avatar;
         },
         resetUser: (state) => {
+            state.id = '';
             state.name = '';
             state.email = '';
             state.access_token = '';
+            state.refreshToken = '';
             state.isAdmin = false;
             state.phone = '';
             state.avatar = '';
             state.address = '';
+            state.city = '';
         },
-  },
+    },
 })
 
 // Action creators are generated for each case reducer function

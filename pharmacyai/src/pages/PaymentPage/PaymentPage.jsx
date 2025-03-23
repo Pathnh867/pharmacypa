@@ -308,43 +308,55 @@ const PaymentPage = () => {
     setIsOpenModalUpdateInfo(false)
   }
 
-  const handleUpdateInforUser = () => {
-    const { name, phone, address, city } = stateUserDetails
+  // Phần cần cập nhật trong PaymentPage.jsx
+const handleUpdateInforUser = () => {
+  const { name, phone, address, city } = stateUserDetails;
 
-    if (!name || !phone || !address || !city) {
+  // Kiểm tra xem các trường có giá trị và loại bỏ khoảng trắng
+  const trimmedData = {
+      name: name?.trim(),
+      phone: phone?.trim(),
+      address: address?.trim(),
+      city: city?.trim()
+  };
+
+  if (!trimmedData.name || !trimmedData.phone || !trimmedData.address || !trimmedData.city) {
       message.error('Vui lòng điền đầy đủ thông tin');
       return;
-    }
-
-    mutationUpdate.mutate({ 
-      id: user?.id, 
-      token: user?.access_token, 
-      ...stateUserDetails 
-    }, {
-      onSuccess: (data) => {
-        if (data?.status === 'OK') {
-          dispatch(updateUser({ 
-            ...user,
-            name: name || user.name, 
-            address: address || user.address, 
-            city: city || user.city, 
-            phone: phone || user.phone,
-            // Giữ lại refresh_token
-            refreshToken: user.refreshToken
-          }))
-          message.success('Cập nhật thông tin thành công');
-          setIsOpenModalUpdateInfo(false)
-        } else {
-          message.error(data?.message || 'Cập nhật thông tin thất bại');
-        }
-      },
-      onError: (error) => {
-        console.error('Error updating user:', error);
-        message.error('Đã xảy ra lỗi khi cập nhật thông tin');
-      }
-    })
   }
 
+  mutationUpdate.mutate({ 
+      id: user?.id, 
+      token: user?.access_token, 
+      ...trimmedData 
+  }, {
+      onSuccess: (data) => {
+          if (data?.status === 'OK') {
+              // Đảm bảo giữ lại refreshToken khi cập nhật
+              dispatch(updateUser({ 
+                  ...user,
+                  name: trimmedData.name, 
+                  address: trimmedData.address, 
+                  city: trimmedData.city, 
+                  phone: trimmedData.phone,
+                  refreshToken: user?.refreshToken
+              }));
+              message.success('Cập nhật thông tin thành công');
+              setIsOpenModalUpdateInfo(false);
+          } else {
+              message.error(data?.message || 'Cập nhật thông tin thất bại');
+          }
+      },
+      onError: (error) => {
+          console.error('Error updating user:', error);
+          if (error.response?.status === 401) {
+              message.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+          } else {
+              message.error('Đã xảy ra lỗi khi cập nhật thông tin');
+          }
+      }
+  });
+};
   const handleOnchangeDetails = (e) => {
     setStateUserDetails({
       ...stateUserDetails,
