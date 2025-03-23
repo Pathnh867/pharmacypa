@@ -8,7 +8,7 @@ import * as message from '../../components/Message/Message'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateUser } from '../../redux/slide/userSlide'
 import { Button, Upload, Tabs } from 'antd'
-import { UploadOutlined, UserOutlined,ContactsOutlined  } from '@ant-design/icons'
+import { UploadOutlined, UserOutlined, ContactsOutlined } from '@ant-design/icons'
 import { getBase64 } from '../../utils'
 import AddressManagement from '../AddressManagement/AddressManagement'
 
@@ -23,7 +23,7 @@ const ProfilePage = () => {
     const mutation = useMutationHooks(
         (data) => {
             const { id, access_token, ...rests } = data
-            return UserService.updateUser(id, access_token, rests)
+            return UserService.updateUser(id, access_token, { ...rests })
         }
     )
     const dispatch = useDispatch()
@@ -214,7 +214,7 @@ const ProfilePage = () => {
     ];
 
     return (
-        <div style={{width: '1270px', margin:'0 auto'}}>
+        <div style={{width: '1270px', margin:'0 auto', padding: '20px 0'}}>
             <WrapperHeader>Thông tin tài khoản</WrapperHeader>
             <Tabs 
                 defaultActiveKey="profile" 

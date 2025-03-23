@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Label, WrapperCountOrder, WrapperInfo, WrapperInfodiv, WrapperInfospan, WrapperItemOrder, 
+import { Label, WrapperInfo, WrapperInfodiv, WrapperInfospan, WrapperItemOrder, 
   WrapperLeft, WrapperListOrder, WrapperRadio, WrapperRight, WrapperStyleHeader, WrapperTotal, 
   PaymentMethodCard, PaymentIcon, PaymentMethodTitle, PaymentMethodDesc, OrderSummaryTitle, 
   MethodContent, DeliveryInfo, OrderItemsList, PageContainer, PageContent, SectionTitle } from './style';
@@ -19,6 +19,7 @@ import * as PaymentService from '../../services/PaymentService'
 import * as AddressService from '../../services/AddressService'
 import Loading from '../../components/LoadingComponent/Loading';
 import { updateUser } from '../../redux/slide/userSlide';
+import AddressSelection from '../../components/AddressComponents/AddressSelection';
 
 // Import icons
 import momoIcon from '../../assets/img/momo_logo.png';
@@ -37,7 +38,6 @@ const PaymentPage = () => {
   const [sdkReady, setSdkReady] = useState(false)
   const [isOpenModalUpdateInfo, setIsOpenModalUpdateInfo] = useState(false)
   const [listChecked, setListChecked] = useState([])
-  const [addresses, setAddresses] = useState([])
   const [selectedAddress, setSelectedAddress] = useState(null)
   const [stateUserDetails, setStateUserDetails] = useState({
     name: '',
@@ -50,26 +50,6 @@ const PaymentPage = () => {
 
   const [form] = Form.useForm();
   const dispatch = useDispatch()
-
-  // Fetch user addresses
-  const fetchAddresses = async () => {
-    try {
-      const response = await AddressService.getAllAddresses(user.access_token)
-      if (response.status === 'OK') {
-        setAddresses(response.data)
-        
-        // Set default address
-        const defaultAddress = response.data.find(addr => addr.isDefault) 
-                                || response.data[0]
-        
-        if (defaultAddress) {
-          setSelectedAddress(defaultAddress)
-        }
-      }
-    } catch (error) {
-      message.error('Không thể tải danh sách địa chỉ')
-    }
-  }
   
   // Kiểm tra xem có data từ location.state không
   useEffect(() => {
@@ -87,11 +67,6 @@ const PaymentPage = () => {
     }
     
     dispatch(selectedOrder({ listChecked }))
-
-    // Fetch addresses if user is logged in
-    if (user?.access_token) {
-      fetchAddresses()
-    }
   }, [listChecked, location.state, navigate, user?.access_token])
 
   useEffect(() => {
@@ -478,58 +453,11 @@ return (
             <DeliveryInfo>
               <Label>Địa chỉ giao hàng</Label>
               <div style={{ marginTop: '10px' }}>
-                {addresses.length > 0 ? (
-                  <Radio.Group 
-                    value={selectedAddress?._id} 
-                    onChange={(e) => {
-                      const selected = addresses.find(addr => addr._id === e.target.value)
-                      setSelectedAddress(selected)
-                    }}
-                    style={{ width: '100%' }}
-                  >
-                    {addresses.map(address => (
-                      <Card 
-                        key={address._id} 
-                        style={{ 
-                          marginBottom: 16, 
-                          border: address.isDefault 
-                            ? '1px solid #4cb551' 
-                            : '1px solid #d9d9d9' 
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <Radio value={address._id} style={{ marginRight: 16 }} />
-                          <div>
-                            <div>
-                              <strong>{address.fullName}</strong> | {address.phone}
-                            </div>
-                            <div>
-                              {address.address}, {address.city}
-                            </div>
-                            {address.isDefault && (
-                              <div style={{ color: '#4cb551', marginTop: 8 }}>
-                                Địa chỉ mặc định
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </Radio.Group>
-                ) : (
-                  <Alert 
-                    message="Bạn chưa có địa chỉ giao hàng" 
-                    description="Vui lòng thêm địa chỉ để tiếp tục" 
-                    type="warning" 
-                  />
-                )}
-                <Button 
-                  type="dashed" 
-                  onClick={() => setIsOpenModalUpdateInfo(true)}
-                  style={{ marginTop: '10px', width: '100%' }}
-                >
-                  Thêm địa chỉ mới
-                </Button>
+                <AddressSelection 
+                  user={user}
+                  onSelectAddress={setSelectedAddress}
+                  initialSelectedAddress={selectedAddress}
+                />
               </div>
             </DeliveryInfo>
           </WrapperInfo>
@@ -602,109 +530,108 @@ return (
             </WrapperTotal>
 
             {payment === 'momo' && (
-              <Alert
-                message="Thanh toán MoMo"
-                description="Bạn sẽ được chuyển đến trang thanh toán MoMo để hoàn tất giao dịch."
-                type="info"
-                showIcon
-                style={{ marginTop: '16px', marginBottom: '16px' }}
-              />
-            )}
-
-            <ButtonComponent
-              onClick={handleAddOrder}
-              size={40}
-              styleButton={{
-                background: '#4cb551',
-                height: '48px',
-                width: '100%',
-                border: 'none',
-                borderRadius: '4px',
-                marginTop: '20px'
-              }}
-              textButton={payment === 'momo' ? 'Thanh toán MoMo' : 'Đặt hàng'}
-              styleTextButton={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}
-              disabled={
-                isPendingAddOrder || 
-                isPendingMomoPayment || 
-                isSubmitting || 
-                !selectedAddress || 
-                addresses.length === 0
-              }
-            />
-            
-            {(isPendingAddOrder || isPendingMomoPayment || isSubmitting) && (
-              <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                Đang xử lý đơn hàng...
-              </div>
-            )}
-          </div>
-        </WrapperRight>
-      </div>
-    </PageContent>
-
-    <Modal 
-      title="Cập nhật thông tin giao hàng" 
-      open={isOpenModalUpdateInfo} 
-      onCancel={handleCancelUpdate} 
-      onOk={handleUpdateInforUser}
-      okText="Cập nhật"
-      cancelText="Hủy"
-    >
-      <Loading isPending={isPending}>
-        <div style={{ marginBottom: '15px', color: '#ff4d4f' }}>
-          * Vui lòng điền đầy đủ các trường bắt buộc
-        </div>
-        <Form
-          name="basic"
-          labelCol={{ span: 6 }}
-          wrapperCol={{ span: 18 }}
-          autoComplete="on"
-          form={form}
-        >
-          <Form.Item
-            label="Tên người nhận"
-            name="name"
-            rules={[{ required: true, message: 'Hãy nhập tên người nhận' }]}
-          >
-            <InputComponents value={stateUserDetails.name} onChange={handleOnchangeDetails} name="name" />
-          </Form.Item>
-          <Form.Item
-            label="Số điện thoại"
-            name="phone"
-            rules={[
-              { required: true, message: 'Hãy nhập số điện thoại' },
-              {
-                validator: (_, value) => {
-                  if (!validatePhoneNumber(value)) {
-                    return Promise.reject('Số điện thoại không hợp lệ')
-                  }
-                  return Promise.resolve()
+                <Alert
+                  message="Thanh toán MoMo"
+                  description="Bạn sẽ được chuyển đến trang thanh toán MoMo để hoàn tất giao dịch."
+                  type="info"
+                  showIcon
+                  style={{ marginTop: '16px', marginBottom: '16px' }}
+                />
+              )}
+  
+              <ButtonComponent
+                onClick={handleAddOrder}
+                size={40}
+                styleButton={{
+                  background: '#4cb551',
+                  height: '48px',
+                  width: '100%',
+                  border: 'none',
+                  borderRadius: '4px',
+                  marginTop: '20px'
+                }}
+                textButton={payment === 'momo' ? 'Thanh toán MoMo' : 'Đặt hàng'}
+                styleTextButton={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}
+                disabled={
+                  isPendingAddOrder || 
+                  isPendingMomoPayment || 
+                  isSubmitting || 
+                  !selectedAddress
                 }
-              }
-            ]}
+              />
+              
+              {(isPendingAddOrder || isPendingMomoPayment || isSubmitting) && (
+                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                  Đang xử lý đơn hàng...
+                </div>
+              )}
+            </div>
+          </WrapperRight>
+        </div>
+      </PageContent>
+  
+      <Modal 
+        title="Cập nhật thông tin giao hàng" 
+        open={isOpenModalUpdateInfo} 
+        onCancel={handleCancelUpdate} 
+        onOk={handleUpdateInforUser}
+        okText="Cập nhật"
+        cancelText="Hủy"
+      >
+        <Loading isPending={isPending}>
+          <div style={{ marginBottom: '15px', color: '#ff4d4f' }}>
+            * Vui lòng điền đầy đủ các trường bắt buộc
+          </div>
+          <Form
+            name="basic"
+            labelCol={{ span: 6 }}
+            wrapperCol={{ span: 18 }}
+            autoComplete="on"
+            form={form}
           >
-            <InputComponents value={stateUserDetails.phone} onChange={handleOnchangeDetails} name="phone" />
-          </Form.Item>
-          <Form.Item
-            label="Địa chỉ"
-            name="address"
-            rules={[{ required: true, message: 'Hãy nhập địa chỉ' }]}
-          >
-            <InputComponents value={stateUserDetails.address} onChange={handleOnchangeDetails} name="address" />
-          </Form.Item>
-          <Form.Item
-            label="Thành phố"
-            name="city"
-            rules={[{ required: true, message: 'Hãy nhập thành phố của bạn' }]}
-          >
-            <InputComponents value={stateUserDetails.city} onChange={handleOnchangeDetails} name="city" />
-          </Form.Item>
-        </Form>
-      </Loading>
-    </Modal>
-  </PageContainer>
-)
-}
-
-export default PaymentPage
+            <Form.Item
+              label="Tên người nhận"
+              name="name"
+              rules={[{ required: true, message: 'Hãy nhập tên người nhận' }]}
+            >
+              <InputComponents value={stateUserDetails.name} onChange={handleOnchangeDetails} name="name" />
+            </Form.Item>
+            <Form.Item
+              label="Số điện thoại"
+              name="phone"
+              rules={[
+                { required: true, message: 'Hãy nhập số điện thoại' },
+                {
+                  validator: (_, value) => {
+                    if (!validatePhoneNumber(value)) {
+                      return Promise.reject('Số điện thoại không hợp lệ')
+                    }
+                    return Promise.resolve()
+                  }
+                }
+              ]}
+            >
+              <InputComponents value={stateUserDetails.phone} onChange={handleOnchangeDetails} name="phone" />
+            </Form.Item>
+            <Form.Item
+              label="Địa chỉ"
+              name="address"
+              rules={[{ required: true, message: 'Hãy nhập địa chỉ' }]}
+            >
+              <InputComponents value={stateUserDetails.address} onChange={handleOnchangeDetails} name="address" />
+            </Form.Item>
+            <Form.Item
+              label="Thành phố"
+              name="city"
+              rules={[{ required: true, message: 'Hãy nhập thành phố của bạn' }]}
+            >
+              <InputComponents value={stateUserDetails.city} onChange={handleOnchangeDetails} name="city" />
+            </Form.Item>
+          </Form>
+        </Loading>
+      </Modal>
+    </PageContainer>
+  )
+  }
+  
+  export default PaymentPage

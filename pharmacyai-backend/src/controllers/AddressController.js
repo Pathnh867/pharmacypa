@@ -1,9 +1,11 @@
+// Đảm bảo trong AddressController.js bạn đã xử lý đúng userId từ token
+
 const AddressService = require('../services/AddressService');
 
 // Tạo địa chỉ mới
 const createAddress = async (req, res) => {
     try {
-        // Lấy user ID từ token (xử lý trong middleware)
+        // Lấy user ID từ token (đã xử lý trong middleware)
         const userId = req.user.id;
         
         // Lấy thông tin địa chỉ từ request
