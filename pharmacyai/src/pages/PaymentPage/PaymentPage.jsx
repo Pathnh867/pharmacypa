@@ -145,66 +145,60 @@ const PaymentPage = () => {
     });
   };
 
-  const handleMomoPayment = async () => {
-    if (!user?.access_token || !order?.ordersItemSelected?.length) {
-      message.error('Có lỗi xảy ra, vui lòng đăng nhập lại');
-      return;
-    }
-
-    if (!user?.name || !user?.address || !user?.phone || !user?.city) {
-      message.error('Vui lòng cập nhật thông tin giao hàng');
-      setIsOpenModalUpdateInfo(true);
-      return;
-    }
-
-    try {
+  // Trong PaymentPage.jsx
+const handleMomoPayment = async () => {
+  try {
       setIsSubmitting(true);
       
-      // Lưu đơn hàng tạm thời vào localStorage để xử lý sau khi thanh toán MoMo
-      const pendingOrder = {
-        orderItems: order?.ordersItemSelected,
-        fullName: user?.name,
-        address: user?.address,
-        phone: user?.phone,
-        city: user?.city,
-        paymentMethod: 'momo',
-        itemsPrice: priceMemo,
-        shippingPrice: DeliveryPriceMemo,
-        totalPrice: TotalPriceMemo,
-        user: user?.id
+      // Tạo đơn hàng với trạng thái "chờ thanh toán"
+      const orderData = {
+          token: user?.access_token,
+          orderItems: order?.ordersItemSelected,
+          fullName: user?.name,
+          address: user?.address,
+          phone: user?.phone,
+          city: user?.city,
+          paymentMethod: 'momo',
+          itemsPrice: priceMemo,
+          shippingPrice: DeliveryPriceMemo,
+          totalPrice: TotalPriceMemo,
+          user: user?.id,
+          isPaid: false // Đánh dấu là chưa thanh toán
       };
       
-      localStorage.setItem('pendingMomoOrder', JSON.stringify(pendingOrder));
+      // Lưu đơn hàng vào database và lấy orderId
+      const orderResponse = await OrderService.createOrder(orderData.token, orderData);
       
-      // Gọi API tạo giao dịch MoMo
-      const momoData = {
-        orderId: `ORDER_${Date.now()}`,
-        amount: TotalPriceMemo,
-        orderInfo: `Thanh toán đơn hàng từ Nhà thuốc tiện lợi - Khách hàng: ${user?.name}`
-      };
-      
-      mutationMomoPayment.mutate(momoData, {
-        onSuccess: (data) => {
-          // Chuyển hướng người dùng đến trang thanh toán MoMo
-          if (data && data.payUrl) {
-            window.location.href = data.payUrl;
-          } else {
-            message.error('Không thể tạo đơn hàng MoMo');
-            setIsSubmitting(false);
-          }
-        },
-        onError: (error) => {
-          console.error('Error creating MoMo payment:', error);
-          message.error('Đã xảy ra lỗi khi tạo thanh toán MoMo');
+      if (orderResponse?.status === 'OK') {
+          const orderId = orderResponse.data._id;
+          
+          // Gọi API tạo giao dịch MoMo với orderId thực tế từ database
+          const momoData = {
+              orderId: orderId, // Sử dụng ID đơn hàng thực từ database
+              amount: TotalPriceMemo,
+              orderInfo: `Thanh toán đơn hàng #${orderId} - Nhà thuốc tiện lợi`
+          };
+          
+          mutationMomoPayment.mutate(momoData, {
+              onSuccess: (data) => {
+                  if (data && data.payUrl) {
+                      window.location.href = data.payUrl;
+                  } else {
+                      message.error('Không thể tạo thanh toán MoMo');
+                      setIsSubmitting(false);
+                  }
+              }
+          });
+      } else {
+          message.error('Không thể tạo đơn hàng');
           setIsSubmitting(false);
-        }
-      });
-    } catch (error) {
+      }
+  } catch (error) {
       console.error('Error processing MoMo payment:', error);
       message.error('Đã xảy ra lỗi khi xử lý thanh toán');
       setIsSubmitting(false);
-    }
-  };
+  }
+};
 
 
 const handleAddOrder = () => {

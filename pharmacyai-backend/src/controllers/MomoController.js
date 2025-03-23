@@ -117,28 +117,39 @@ const momoIpnCallback = async (req, res) => {
     try {
         console.log("MoMo IPN callback received:", req.body);
         
-        // Xử lý callback từ MoMo, cập nhật trạng thái đơn hàng
+        // Xác thực callback từ MoMo
         if (req.body.resultCode === 0) {
             // Thanh toán thành công
+            const { orderId, amount, transId } = req.body;
+            
+            // Tạo đơn hàng mới từ dữ liệu của MoMo
+            // Lưu ý: cần phải lấy thông tin đơn hàng từ dữ liệu được lưu tạm thời
+            // Có thể lưu thông tin tạm thời vào database thay vì localStorage
+            
+            // Ví dụ: tạo đơn hàng mới dựa trên orderInfo trong extraData
             try {
-                // Tạo đơn hàng từ dữ liệu đã lưu trong localStorage trên client
-                // Hoặc lấy thông tin đơn hàng từ database nếu đã lưu trước đó
-                const pendingOrderId = req.body.orderId;
+                // Giả sử orderId của MoMo chứa thông tin để định danh đơn hàng tạm
+                // (Có thể là một ID ngẫu nhiên hoặc userID + timestamp)
+                // Tạo đơn hàng mới và đánh dấu là đã thanh toán
+                const newOrder = new Order({
+                    // Lấy từ dữ liệu đã lưu tạm
+                    isPaid: true,
+                    paidAt: new Date(),
+                    paymentMethod: 'momo',
+                    paymentResult: {
+                        id: transId,
+                        status: 'COMPLETED',
+                        update_time: new Date(),
+                        email_address: '' // MoMo không cung cấp email
+                    }
+                });
                 
-                // Lấy thông tin đơn hàng từ MoMo extraData hoặc từ database
-                const order = await Order.findOne({ _id: pendingOrderId });
+                await newOrder.save();
                 
-                if (order) {
-                    // Cập nhật trạng thái thanh toán
-                    order.isPaid = true;
-                    order.paidAt = new Date();
-                    await order.save();
-                    
-                    // Gửi email thông báo đơn hàng
-                    await EmailService.sendEmailOrderSuccess(order);
-                }
+                // Gửi email thông báo
+                await EmailService.sendEmailOrderSuccess(newOrder);
             } catch (orderError) {
-                console.error("Error processing order after MoMo payment:", orderError);
+                console.error("Error creating order after MoMo payment:", orderError);
             }
         }
         

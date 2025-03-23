@@ -34,60 +34,45 @@ const PaymentResultPage = () => {
   const message = location.state?.message || messageFromQuery;
   const orderInfo = location.state?.orderInfo;
   
+  // Trong PaymentResultPage.jsx - useEffect
   useEffect(() => {
-    // Xử lý thanh toán MoMo (từ query params) hoặc thông tin đặt hàng (từ location state)
     const processPaymentResult = async () => {
-      try {
-        // Nếu đến từ MoMo
-        if (statusFromQuery) {
-          // Xử lý đơn hàng từ localStorage nếu có
-          const pendingOrderStr = localStorage.getItem('pendingMomoOrder');
-          
-          if (pendingOrderStr && statusFromQuery === 'success') {
-            // Xử lý như trước đó
-            const pendingOrder = JSON.parse(pendingOrderStr);
-            
-            // Tạo đơn hàng
-            const orderData = {
-              token: localStorage.getItem('access_token')?.replace(/"/g, ''),
-              orderItems: pendingOrder.orderItems,
-              fullName: pendingOrder.fullName,
-              address: pendingOrder.address,
-              phone: pendingOrder.phone,
-              city: pendingOrder.city,
-              paymentMethod: 'momo',
-              itemsPrice: pendingOrder.itemsPrice,
-              shippingPrice: pendingOrder.shippingPrice,
-              totalPrice: pendingOrder.totalPrice,
-              user: pendingOrder.user,
-              isPaid: true,
-              paidAt: new Date().toISOString()
-            };
-            
-            // Gọi API tạo đơn hàng
-            const response = await OrderService.createOrder(orderData.token, orderData);
-            
-            // Xóa sản phẩm khỏi giỏ hàng
-            if (pendingOrder.orderItems && pendingOrder.orderItems.length > 0) {
-              dispatch(removeAllOrderProduct({ 
-                listChecked: pendingOrder.orderItems.map(item => item.product) 
-              }));
+        try {
+            if (statusFromQuery === 'success' && orderIdFromQuery) {
+                // Kiểm tra trạng thái đơn hàng từ backend
+                const orderStatus = await OrderService.getOrderStatus(orderIdFromQuery);
+                
+                if (orderStatus.isPaid) {
+                    // Đơn hàng đã thanh toán thành công
+                    // Xóa sản phẩm khỏi giỏ hàng
+                    if (orderStatus.orderItems && orderStatus.orderItems.length > 0) {
+                        dispatch(removeAllOrderProduct({
+                            listChecked: orderStatus.orderItems.map(item => item.product)
+                        }));
+                    }
+                    
+                    // Cập nhật trạng thái hiển thị
+                    setStatus('success');
+                    setOrderInfo(orderStatus);
+                } else {
+                    // Đơn hàng chưa được cập nhật thanh toán
+                    setStatus('pending');
+                }
+            } else if (statusFromQuery === 'error') {
+                // Thanh toán thất bại
+                setStatus('error');
             }
             
-            // Xóa đơn hàng chờ
-            localStorage.removeItem('pendingMomoOrder');
-          }
+            setLoading(false);
+        } catch (error) {
+            console.error('Error processing payment result:', error);
+            setStatus('error');
+            setLoading(false);
         }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error processing payment result:', error);
-        setLoading(false);
-      }
     };
     
     processPaymentResult();
-  }, [dispatch, statusFromQuery]);
+  }, [dispatch, statusFromQuery, orderIdFromQuery]);
   
   if (loading) {
     return (
