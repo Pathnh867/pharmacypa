@@ -30,6 +30,7 @@ const PaymentResultPage = () => {
   // Kiểm tra xem có phải redirect từ MoMo không
   const isMomoRedirect = queryParams.has('partnerCode') && queryParams.has('orderId');
   
+  
   // Nếu là redirect từ MoMo, lấy thông tin từ query params
   const momoOrderId = queryParams.get('orderId');
   const momoAmount = queryParams.get('amount');
