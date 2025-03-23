@@ -107,6 +107,41 @@ const getAllType = async (req, res) => {
         })
     }
 }
+// ProductController.js - thêm route mới
+const getProductsByTypeName = async (req, res) => {
+    try {
+        const { typeName, page, limit } = req.query;
+        console.log('Searching by type name:', typeName);
+        
+        // Tìm kiếm type có tên tương ứng
+        const typeObj = await TypeService.findTypeByName(typeName);
+        if (!typeObj) {
+            return res.status(200).json({
+                status: 'OK',
+                message: 'No products found for this type',
+                data: [],
+                total: 0,
+                pageCurrent: 1,
+                totalPage: 0
+            });
+        }
+        
+        // Tìm kiếm sản phẩm với type ID
+        const response = await ProductService.getProductsByTypeId(
+            typeObj._id, 
+            Number(page) || 0, 
+            Number(limit) || 10
+        );
+        
+        return res.status(200).json(response);
+    } catch (e) {
+        console.error('Error in getProductsByTypeName:', e);
+        return res.status(500).json({
+            status: 'ERR',
+            message: e.message || 'Server error'
+        });
+    }
+}
 module.exports = {
     createProduct,
     updateProduct,
@@ -114,4 +149,5 @@ module.exports = {
     deleteProduct,
     getAllProduct,
     getAllType,
+    getProductsByTypeName,
 }

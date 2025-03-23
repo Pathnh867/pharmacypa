@@ -207,3 +207,15 @@ export const getAllUser = async (access_token) => {
     });
     return res.data;
 };
+
+export const getProductByName = async (typeName, page, limit) => {
+    console.log(`Searching products by type name: ${typeName}, page ${page}, limit ${limit}`);
+    try {
+        // Dùng query khác để lọc theo tên loại
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-by-type-name?typeName=${encodeURIComponent(typeName)}&page=${page || 0}&limit=${limit || 10}`);
+        return res.data;
+    } catch (error) {
+        console.error('Error fetching products by type name:', error);
+        throw error;
+    }
+}

@@ -73,16 +73,22 @@ const TypeProductPage = () => {
             }
         }
 
+    // Trong TypeProductPage.jsx
     useEffect(() => {
         if (state) {
+            // Log để debug
+            console.log('State from navigation:', state);
+            // Nếu state là đối tượng, gọi API với _id
+            // Nếu state là chuỗi, gọi API với tên
             fetchProductType(state, panigate.page, panigate.limit)
+        } else {
+            // Nếu không có state (từ URL trực tiếp), lấy từ params
+            const typeFromUrl = window.location.pathname.split('/').pop();
+            console.log('Type from URL:', decodeURIComponent(typeFromUrl));
+            // Gọi API với tên đã decode
+            fetchProductType(decodeURIComponent(typeFromUrl), panigate.page, panigate.limit)
         }
     }, [state, panigate.page, panigate.limit])
-    
-    const onChange = (current, pageSize) => {
-      setPanigate({...panigate, page: current - 1, limit: pageSize})
-    }
-    
     const getTypeName = () => {
         if (!state) return "Sản phẩm";
         
