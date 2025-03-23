@@ -4,7 +4,7 @@ import { Label, WrapperCountOrder, WrapperInfo, WrapperInfodiv, WrapperInfospan,
   WrapperLeft, WrapperListOrder, WrapperRadio, WrapperRight, WrapperStyleHeader, WrapperTotal, 
   PaymentMethodCard, PaymentIcon, PaymentMethodTitle, PaymentMethodDesc, OrderSummaryTitle, 
   MethodContent, DeliveryInfo, OrderItemsList, PageContainer, PageContent, SectionTitle } from './style';
-import { Alert, Button, Checkbox, Form, message, Modal, Radio, Space, Steps } from 'antd';
+import { Alert, Button, Card, Checkbox, Form, message, Modal, Radio, Space, Steps } from 'antd';
 import { DeleteOutlined, MinusOutlined, PlusOutlined, } from '@ant-design/icons'
 import { WrapperInputNumber } from '../../components/ProductDetailComponents/style';
 import { increaseAmount, decreaseAmount, removeOrderProduct, removeAllOrderProduct, selectedOrder } from '../../redux/slide/orderSlide';
