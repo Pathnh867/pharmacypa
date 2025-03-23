@@ -102,7 +102,7 @@ const getAllProduct = (limit, page, sort, filter) => {
                         if (mongoose.Types.ObjectId.isValid(filter[1])) {
                             console.log('Filtering by type ID:', filter[1]);
                             // Nếu là ObjectId hợp lệ, tìm theo ID
-                            query = { type: mongoose.Types.ObjectId(filter[1]) };
+                            query = { type: new mongoose.Types.ObjectId(filter[1]) };
                         } else {
                             console.log('Filtering by type name:', filter[1]);
                             // Nếu không, tìm Type theo tên, sau đó tìm Product theo type._id
