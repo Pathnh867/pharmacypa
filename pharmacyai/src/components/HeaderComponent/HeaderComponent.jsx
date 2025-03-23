@@ -20,6 +20,7 @@ import ButtonInputSearch from '../ButtonInputSearch/ButtonInputSearch'
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import * as UserService from '../../services/UserService'
+import * as ProductService from '../../services/ProductService'
 import { resetUser } from '../../redux/slide/userSlide'
 import Loading from '../LoadingComponent/Loading';
 import { useMutationHooks } from '../../hooks/useMutationHook';
@@ -64,6 +65,7 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   const { isPending } = mutation
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [categories, setCategories] = useState([])
 
   // Theo dõi scroll để thêm shadow cho header
   useEffect(() => {
@@ -74,6 +76,23 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
+  }, []);
+
+  // Lấy danh sách loại sản phẩm từ cơ sở dữ liệu
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await ProductService.getAllTypeProduct();
+        if (res?.status === 'OK') {
+          setCategories(res.data || []);
+          console.log('Categories loaded:', res.data);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    
+    fetchCategories();
   }, []);
 
   // Event handlers
@@ -110,8 +129,20 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   }
 
   const handleNavigateCategory = (category) => {
-    navigate(`/product/${category}`)
-    setMobileMenuOpen(false)
+    let path;
+    let stateData;
+    
+    // Xử lý khi category là chuỗi hoặc đối tượng
+    if (typeof category === 'object') {
+      path = category.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '_');
+      stateData = category; // Truyền đối tượng đầy đủ
+    } else {
+      path = category.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '_');
+      stateData = category;
+    }
+    
+    navigate(`/product/${path}`, { state: stateData });
+    setMobileMenuOpen(false);
   }
 
   const onSearch = (e) => {
@@ -148,35 +179,6 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
     }
   ];
 
-  // Categories
-  const categories = [
-    {
-      key: 'all',
-      label: 'Tất cả sản phẩm',
-      onClick: () => handleNavigateCategory('all')
-    },
-    {
-      key: 'medicine',
-      label: 'Dược phẩm',
-      onClick: () => handleNavigateCategory('Dược phẩm')
-    },
-    {
-      key: 'supplement',
-      label: 'Thực phẩm chức năng',
-      onClick: () => handleNavigateCategory('Thực phẩm chức năng')
-    },
-    {
-      key: 'equipment',
-      label: 'Thiết bị y tế',
-      onClick: () => handleNavigateCategory('Thiết bị y tế')
-    },
-    {
-      key: 'cosmetic',
-      label: 'Dược mỹ phẩm',
-      onClick: () => handleNavigateCategory('Dược mỹ phẩm')
-    }
-  ]
-
   // Effects
   useEffect(() => {
     setUserName(user?.name)
@@ -188,7 +190,6 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
       <HeaderContent>
         {/* Logo */}
         <LogoContainer onClick={handleNavigateHome}>
-          <MedicineBoxOutlined style={{ fontSize: '24px', marginRight: '8px' }} />
           <LogoText>NHÀ THUỐC TIỆN LỢI</LogoText>
         </LogoContainer>
         
@@ -264,9 +265,17 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
       
       {/* Category navigation - desktop */}
       <CategoryMenu>
+        <CategoryItem key="all" onClick={() => handleNavigateCategory('all')}>
+          Tất cả sản phẩm
+        </CategoryItem>
+        
+        {/* Render danh mục động từ API */}
         {categories.map(category => (
-          <CategoryItem key={category.key} onClick={category.onClick}>
-            {category.label}
+          <CategoryItem 
+            key={category._id} 
+            onClick={() => handleNavigateCategory(category)}
+          >
+            {category.name}
           </CategoryItem>
         ))}
       </CategoryMenu>
@@ -326,9 +335,17 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
               <HomeOutlined /> Trang chủ
             </MobileMenuItem>
             
+            <MobileMenuItem onClick={() => handleNavigateCategory('all')}>
+              <MedicineBoxOutlined /> Tất cả sản phẩm
+            </MobileMenuItem>
+            
+            {/* Danh mục động từ API cho mobile */}
             {categories.map(category => (
-              <MobileMenuItem key={category.key} onClick={category.onClick}>
-                <MedicineBoxOutlined /> {category.label}
+              <MobileMenuItem 
+                key={category._id} 
+                onClick={() => handleNavigateCategory(category)}
+              >
+                <MedicineBoxOutlined /> {category.name}
               </MobileMenuItem>
             ))}
             

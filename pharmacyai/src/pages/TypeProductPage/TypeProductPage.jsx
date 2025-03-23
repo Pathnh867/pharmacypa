@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import NavBarComponent from '../../components/NavBarComponents/NavBarComponent';
 import CardComponent from '../../components/CardComponents/CardComponent';
-import { Col, Pagination, Row, Typography, message } from 'antd';
+import { Col, Pagination, Row, Typography, Empty, message } from 'antd';
 import { WrapperNavBar, WrapperProducts } from './style';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import * as ProductService from '../../services/ProductService';
 import Loading from '../../components/LoadingComponent/Loading';
 import { useSelector } from 'react-redux';
@@ -29,9 +29,8 @@ const CategoryTitle = styled(Title)`
 `;
 
 const TypeProductPage = () => {
-    const searchProduct = useSelector((state) => state?.product?.search);
-    const searchDebounce = useDebounce(searchProduct, 500);
     const { state } = useLocation();
+    const navigate = useNavigate();
     const [products, setProducts] = useState([]);
     const [isPending, setIsPending] = useState(false);
     const [panigate, setPanigate] = useState({
@@ -40,87 +39,146 @@ const TypeProductPage = () => {
         total: 1,
     });
     const [typeName, setTypeName] = useState('');
+    const [availableTypes, setAvailableTypes] = useState([]);
     
-    console.log('TypeProductPage state:', state);
+    // Lấy danh sách các loại có sẵn
+    const fetchAvailableTypes = async () => {
+        try {
+            const res = await ProductService.getAllTypeProduct();
+            if (res?.status === 'OK') {
+                setAvailableTypes(res.data || []);
+                console.log('Available types:', res.data);
+            }
+        } catch (error) {
+            console.error('Error fetching types:', error);
+        }
+    };
     
-    const fetchProductType = async (type, page, limit) => {
+    useEffect(() => {
+        fetchAvailableTypes();
+    }, []);
+    
+    // Lấy sản phẩm dựa trên typeId
+    const fetchProductsByTypeId = async (typeId, page, limit) => {
         setIsPending(true);
         try {
-            console.log('fetchProductType with:', { type, page, limit });
+            const res = await ProductService.getAllProduct('', 100);
             
-            // Xác định tên hiển thị
-            if (typeof type === 'object' && type !== null) {
-                setTypeName(type.name || 'Sản phẩm');
+            if (res?.status === 'OK' && res?.data) {
+                // Lọc sản phẩm theo typeId
+                const filtered = res.data.filter(product => 
+                    product.type === typeId || 
+                    (typeof product.type === 'object' && product.type?._id === typeId)
+                );
+                
+                setProducts(filtered);
+                setPanigate({
+                    page: 0,
+                    limit: filtered.length,
+                    total: filtered.length
+                });
             } else {
-                setTypeName(type || 'Sản phẩm');
+                setProducts([]);
             }
-            
-            // Trường hợp là "all" hoặc không có type
-            if (type === 'all' || !type) {
-                const res = await ProductService.getAllProduct('', limit);
+        } catch (error) {
+            console.error('Error fetching products by typeId:', error);
+            setProducts([]);
+        } finally {
+            setIsPending(false);
+        }
+    };
+    
+    // Lấy sản phẩm dựa trên tên loại
+    const fetchProductsByTypeName = async (typeName, page, limit) => {
+        setIsPending(true);
+        try {
+            // Nếu typeName là 'all', lấy tất cả sản phẩm
+            if (typeName === 'all') {
+                setTypeName('Tất cả sản phẩm');
+                const res = await ProductService.getAllProduct('', 100);
                 if (res?.status === 'OK') {
                     setProducts(res.data || []);
                     setPanigate({
-                        page: Number(res.pageCurrent || 1) - 1,
-                        limit: limit,
-                        total: res.total || 0
+                        page: 0,
+                        limit: res.data.length,
+                        total: res.data.length
                     });
                 }
                 setIsPending(false);
                 return;
             }
             
-            // Gọi API với type
-            const res = await ProductService.getProductType(type, page, limit);
-            console.log('API response:', res);
+            // Tìm typeId từ tên loại
+            const matchedType = availableTypes.find(type => 
+                type.name.toLowerCase() === typeName.toLowerCase()
+            );
             
-            if (res?.status === 'OK') {
-                setProducts(res.data || []);
-                setPanigate({
-                    page: Number(res.pageCurrent || 1) - 1,
-                    limit: limit,
-                    total: res.total || 0
-                });
+            if (matchedType) {
+                setTypeName(matchedType.name);
+                await fetchProductsByTypeId(matchedType._id, page, limit);
             } else {
-                setProducts([]);
-                message.warning(res?.message || 'Không tìm thấy sản phẩm nào');
+                // Nếu không tìm thấy loại chính xác, lấy tất cả sản phẩm
+                console.log(`Type "${typeName}" not found. Available types:`, availableTypes.map(t => t.name));
+                
+                const res = await ProductService.getAllProduct('', 100);
+                // Lọc sản phẩm tương đối theo tên loại
+                const filtered = res.data.filter(product => {
+                    const productTypeName = typeof product.type === 'object' ? 
+                        product.type?.name : String(product.type);
+                    
+                    return productTypeName && productTypeName.toLowerCase().includes(typeName.toLowerCase());
+                });
+                
+                setTypeName(typeName || 'Sản phẩm');
+                setProducts(filtered);
+                setPanigate({
+                    page: 0,
+                    limit: filtered.length,
+                    total: filtered.length
+                });
             }
         } catch (error) {
-            console.error('Error fetching products:', error);
+            console.error('Error in fetchProductsByTypeName:', error);
             setProducts([]);
             message.error('Có lỗi xảy ra khi tải sản phẩm');
         } finally {
             setIsPending(false);
         }
     };
-
-    // Xử lý type từ URL
-    const getTypeFromUrl = () => {
-        const path = window.location.pathname;
-        const parts = path.split('/');
-        const lastPart = parts[parts.length - 1];
-        
-        // Chuẩn hóa URL (thay thế _ bằng dấu cách)
-        let decodedType = decodeURIComponent(lastPart);
-        decodedType = decodedType.replace(/_/g, ' ');
-        
-        console.log('Type from URL:', decodedType);
-        return decodedType;
-    };
     
-    // Trong useEffect
+    // Xử lý type từ URL hoặc state
     useEffect(() => {
+        if (!availableTypes.length) return; // Đợi cho đến khi có danh sách loại
+        
         if (state) {
             console.log('Using state from navigation:', state);
-            fetchProductType(state, panigate.page, panigate.limit);
+            
+            if (typeof state === 'object' && state._id) {
+                // Nếu có _id, lấy sản phẩm theo id
+                setTypeName(state.name || 'Sản phẩm');
+                fetchProductsByTypeId(state._id, panigate.page, panigate.limit);
+            } else if (typeof state === 'object' && state.name) {
+                // Nếu có name, lấy sản phẩm theo tên
+                fetchProductsByTypeName(state.name, panigate.page, panigate.limit);
+            } else {
+                // Nếu state là chuỗi
+                fetchProductsByTypeName(state, panigate.page, panigate.limit);
+            }
         } else {
-            const typeFromUrl = getTypeFromUrl();
-            console.log('Using type from URL:', typeFromUrl);
-            fetchProductType(typeFromUrl, panigate.page, panigate.limit);
+            // Lấy từ URL
+            const path = window.location.pathname;
+            const parts = path.split('/');
+            const lastPart = parts[parts.length - 1];
+            
+            // Chuẩn hóa URL (thay thế _ bằng dấu cách)
+            let decodedType = decodeURIComponent(lastPart);
+            decodedType = decodedType.replace(/_/g, ' ');
+            
+            console.log('Type from URL:', decodedType);
+            fetchProductsByTypeName(decodedType, panigate.page, panigate.limit);
         }
-    }, [state, panigate.page, panigate.limit]);
+    }, [state, panigate.page, panigate.limit, availableTypes]);
     
-    // Xử lý khi thay đổi trang
     const onChange = (current, pageSize) => {
         setPanigate({...panigate, page: current - 1, limit: pageSize});
     };
@@ -153,9 +211,15 @@ const TypeProductPage = () => {
                                         />
                                     ))
                                 ) : !isPending && (
-                                    <div style={{textAlign: 'center', padding: '30px', width: '100%'}}>
-                                        <Title level={4} style={{color: '#999'}}>Không tìm thấy sản phẩm nào</Title>
-                                    </div>
+                                    <Empty 
+                                        description={
+                                            <span>
+                                                Không tìm thấy sản phẩm thuộc loại "{typeName}".<br/>
+                                                <a onClick={() => navigate('/')}>Xem tất cả sản phẩm</a>
+                                            </span>
+                                        }
+                                        style={{margin: '40px auto'}}
+                                    />
                                 )}
                             </WrapperProducts>  
                             {products?.length > 0 && (

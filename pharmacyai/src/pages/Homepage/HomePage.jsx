@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Row, Col, Carousel, Input, Button, Typography, Badge, Card, Tabs, Divider } from 'antd';
+import { Row, Col, Carousel, Input, Button, Typography, Badge, Card, Tabs, Divider, Empty } from 'antd';
 import { SearchOutlined, HeartOutlined, ShoppingCartOutlined, StarFilled, PhoneFilled, ClockCircleFilled, EnvironmentFilled } from '@ant-design/icons';
 import styled from 'styled-components';
 
@@ -151,10 +151,13 @@ const ProductGrid = styled.div`
   margin-top: 20px;
 `;
 
+const EmptyState = styled(Empty)`
+  margin: 30px 0;
+`;
+
 const HomePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  console.log("Current location:", location);
   
   const searchProduct = useSelector((state) => state?.product?.search);
   const searchDebounce = useDebounce(searchProduct, 500);
@@ -162,6 +165,7 @@ const HomePage = () => {
   const [limit, setLimit] = useState(8);
   const [typeProduct, setTypeProduct] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [categories, setCategories] = useState([]);
   
   const fetchProductAll = async (context) => {
     const search = context?.queryKey && context?.queryKey[2];
@@ -170,13 +174,14 @@ const HomePage = () => {
     return res;
   };
 
+  // Lấy danh sách loại từ cơ sở dữ liệu
   const fetchAllTypeProduct = async () => {
     try {
       const res = await ProductService.getAllTypeProduct();
       if (res?.status === 'OK') {  
-        // Log để kiểm tra định dạng dữ liệu
         console.log("Type data format:", res?.data);
         setTypeProduct(res?.data);
+        setCategories(res?.data || []);
       }
     } catch (error) {
       console.error("Error fetching product types:", error);
@@ -196,6 +201,21 @@ const HomePage = () => {
 
   const handleViewMore = () => {
     setLimit((prev) => prev + 8);
+  };
+  
+  // Lọc sản phẩm theo loại được chọn
+  const filterProductsByType = (typeId) => {
+    if (!products?.data || !typeId || typeId === 'all') return products?.data;
+    
+    return products?.data.filter(product => {
+      // Trường hợp type là một đối tượng
+      if (typeof product.type === 'object' && product.type !== null) {
+        return product.type._id === typeId;
+      }
+      
+      // Trường hợp type là một chuỗi ID
+      return product.type === typeId;
+    });
   };
 
   const featuresData = [
@@ -218,8 +238,6 @@ const HomePage = () => {
 
   return (
     <Loading isPending={isPending || pending}>
-    
-      
       {/* Main Content Area with Background */}
       <div className='body' style={{ width: '100%', background: '#f7f7f7', paddingTop: '20px', paddingBottom: '40px' }}>
         <div className="container" style={{ width: '1270px', margin: '0 auto' }}>
@@ -261,92 +279,54 @@ const HomePage = () => {
             <StyledTabs defaultActiveKey="all" onChange={(key) => setActiveCategory(key)}>
               <TabPane tab="Tất cả sản phẩm" key="all">
                 <ProductGrid>
-                  {products?.data?.map((product) => (
-                    <CardComponent
-                      key={product._id}
-                      countInStock={product.countInStock}
-                      description={product.description}
-                      image={product.image}
-                      name={product.name}
-                      price={product.price}
-                      rating={product.rating}
-                      type={product.type}
-                      selled={product.selled}
-                      discount={product.discount}
-                      id={product._id}
-                    />
-                  ))}
+                  {products?.data?.length > 0 ? (
+                    products.data.map((product) => (
+                      <CardComponent
+                        key={product._id}
+                        countInStock={product.countInStock}
+                        description={product.description}
+                        image={product.image}
+                        name={product.name}
+                        price={product.price}
+                        rating={product.rating}
+                        type={product.type}
+                        selled={product.selled}
+                        discount={product.discount}
+                        id={product._id}
+                      />
+                    ))
+                  ) : (
+                    <EmptyState description="Không tìm thấy sản phẩm nào" />
+                  )}
                 </ProductGrid>
               </TabPane>
-              <TabPane tab="Dược mỹ phẩm" key="duoc-my-pham">
-                <ProductGrid>
-                  {products?.data?.filter(product => 
-                    typeof product.type === 'object' 
-                      ? product.type.name === 'Dược mỹ phẩm'
-                      : product.type === 'Dược mỹ phẩm'
-                  ).map((product) => (
-                    <CardComponent
-                      key={product._id}
-                      countInStock={product.countInStock}
-                      description={product.description}
-                      image={product.image}
-                      name={product.name}
-                      price={product.price}
-                      rating={product.rating}
-                      type={product.type}
-                      selled={product.selled}
-                      discount={product.discount}
-                      id={product._id}
-                    />
-                  ))}
-                </ProductGrid>
-              </TabPane>
-              <TabPane tab="Thực phẩm chức năng" key="thuc-pham-chuc-nang">
-                <ProductGrid>
-                  {products?.data?.filter(product => 
-                    typeof product.type === 'object' 
-                      ? product.type.name === 'Thực phẩm chức năng'
-                      : product.type === 'Thực phẩm chức năng'
-                  ).map((product) => (
-                    <CardComponent
-                      key={product._id}
-                      countInStock={product.countInStock}
-                      description={product.description}
-                      image={product.image}
-                      name={product.name}
-                      price={product.price}
-                      rating={product.rating}
-                      type={product.type}
-                      selled={product.selled}
-                      discount={product.discount}
-                      id={product._id}
-                    />
-                  ))}
-                </ProductGrid>
-              </TabPane>
-              <TabPane tab="Thiết bị y tế" key="thiet-bi-y-te">
-                <ProductGrid>
-                  {products?.data?.filter(product => 
-                    typeof product.type === 'object' 
-                      ? product.type.name === 'Thiết bị y tế'
-                      : product.type === 'Thiết bị y tế'
-                  ).map((product) => (
-                    <CardComponent
-                      key={product._id}
-                      countInStock={product.countInStock}
-                      description={product.description}
-                      image={product.image}
-                      name={product.name}
-                      price={product.price}
-                      rating={product.rating}
-                      type={product.type}
-                      selled={product.selled}
-                      discount={product.discount}
-                      id={product._id}
-                    />
-                  ))}
-                </ProductGrid>
-              </TabPane>
+              
+              {/* Render tabs động từ danh mục lấy từ API */}
+              {categories.map(category => (
+                <TabPane tab={category.name} key={category._id}>
+                  <ProductGrid>
+                    {filterProductsByType(category._id)?.length > 0 ? (
+                      filterProductsByType(category._id).map((product) => (
+                        <CardComponent
+                          key={product._id}
+                          countInStock={product.countInStock}
+                          description={product.description}
+                          image={product.image}
+                          name={product.name}
+                          price={product.price}
+                          rating={product.rating}
+                          type={product.type}
+                          selled={product.selled}
+                          discount={product.discount}
+                          id={product._id}
+                        />
+                      ))
+                    ) : (
+                      <EmptyState description={`Không có sản phẩm thuộc loại "${category.name}"`} />
+                    )}
+                  </ProductGrid>
+                </TabPane>
+              ))}
             </StyledTabs>
             
             <div style={{ textAlign: 'center', marginTop: '30px' }}>
@@ -359,24 +339,28 @@ const HomePage = () => {
           {/* Featured Products */}
           <ProductSection>
             <CategoryTitle level={3}>Sản Phẩm Nổi Bật</CategoryTitle>
-            <Row gutter={[20, 20]}>
-              {products?.data?.filter(product => product.rating >= 4.5).slice(0, 4).map((product) => (
-                <Col span={6} key={product._id}>
-                  <CardComponent
-                    countInStock={product.countInStock}
-                    description={product.description}
-                    image={product.image}
-                    name={product.name}
-                    price={product.price}
-                    rating={product.rating}
-                    type={product.type}
-                    selled={product.selled}
-                    discount={product.discount}
-                    id={product._id}
-                  />
-                </Col>
-              ))}
-            </Row>
+            {products?.data?.filter(product => product.rating >= 4.5).length > 0 ? (
+              <Row gutter={[20, 20]}>
+                {products?.data?.filter(product => product.rating >= 4.5).slice(0, 4).map((product) => (
+                  <Col span={6} key={product._id}>
+                    <CardComponent
+                      countInStock={product.countInStock}
+                      description={product.description}
+                      image={product.image}
+                      name={product.name}
+                      price={product.price}
+                      rating={product.rating}
+                      type={product.type}
+                      selled={product.selled}
+                      discount={product.discount}
+                      id={product._id}
+                    />
+                  </Col>
+                ))}
+              </Row>
+            ) : (
+              <EmptyState description="Không có sản phẩm nổi bật nào" />
+            )}
           </ProductSection>
           
           {/* About Us Section */}
