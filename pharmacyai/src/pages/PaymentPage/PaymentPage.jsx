@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Label, WrapperCountOrder, WrapperInfo, WrapperInfodiv, WrapperInfospan, WrapperItemOrder, WrapperLeft, WrapperListOrder, WrapperRadio, WrapperRight, WrapperStyleHeader, WrapperTotal } from './style';
-import { Button, Checkbox, Form, message, Modal, Radio } from 'antd';
+import { Label, WrapperCountOrder, WrapperInfo, WrapperInfodiv, WrapperInfospan, WrapperItemOrder, 
+  WrapperLeft, WrapperListOrder, WrapperRadio, WrapperRight, WrapperStyleHeader, WrapperTotal, 
+  PaymentMethodCard, PaymentIcon, PaymentMethodTitle, PaymentMethodDesc, OrderSummaryTitle, 
+  MethodContent, DeliveryInfo, OrderItemsList, PageContainer, PageContent, SectionTitle } from './style';
+import { Alert, Button, Checkbox, Form, message, Modal, Radio, Space, Steps } from 'antd';
 import { DeleteOutlined, MinusOutlined, PlusOutlined, } from '@ant-design/icons'
 import { WrapperInputNumber } from '../../components/ProductDetailComponents/style';
 import { increaseAmount, decreaseAmount, removeOrderProduct, removeAllOrderProduct, selectedOrder } from '../../redux/slide/orderSlide';
 import { convertPrice } from '../../utils';
 import ButtonComponent from '../../components/ButtonComponents/ButtonComponent';
-import ModalComponent from '../../components/ModalComponent/ModalComponent';
 import { useLocation, useNavigate } from 'react-router-dom';
 import InputComponents from '../../components/InputComponents/InputComponents';
 import { useMutationHooks } from '../../hooks/useMutationHook';
@@ -16,6 +18,9 @@ import * as OrderService from '../../services/OrderService'
 import * as PaymentService from '../../services/PaymentService'
 import Loading from '../../components/LoadingComponent/Loading';
 import { updateUser } from '../../redux/slide/userSlide';
+
+// Import icons
+import momoIcon from '../../assets/img/momo_logo.png'; // Hãy đảm bảo bạn có file này
 
 const PaymentPage = () => {
   const location = useLocation()
@@ -32,6 +37,7 @@ const PaymentPage = () => {
     city: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
 
   const [form] = Form.useForm();
   const dispatch = useDispatch()
@@ -118,6 +124,12 @@ const PaymentPage = () => {
     }
   )
 
+  const mutationMomoPayment = useMutationHooks(
+    (data) => {
+      return PaymentService.createMomoPayment(data);
+    }
+  )
+
   const showConfirmationModal = () => {
     const modal = Modal.success({
       title: 'Đặt hàng thành công!',
@@ -133,6 +145,67 @@ const PaymentPage = () => {
     });
   };
 
+  const handleMomoPayment = async () => {
+    if (!user?.access_token || !order?.ordersItemSelected?.length) {
+      message.error('Có lỗi xảy ra, vui lòng đăng nhập lại');
+      return;
+    }
+
+    if (!user?.name || !user?.address || !user?.phone || !user?.city) {
+      message.error('Vui lòng cập nhật thông tin giao hàng');
+      setIsOpenModalUpdateInfo(true);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      // Lưu đơn hàng tạm thời vào localStorage để xử lý sau khi thanh toán MoMo
+      const pendingOrder = {
+        orderItems: order?.ordersItemSelected,
+        fullName: user?.name,
+        address: user?.address,
+        phone: user?.phone,
+        city: user?.city,
+        paymentMethod: 'momo',
+        itemsPrice: priceMemo,
+        shippingPrice: DeliveryPriceMemo,
+        totalPrice: TotalPriceMemo,
+        user: user?.id
+      };
+      
+      localStorage.setItem('pendingMomoOrder', JSON.stringify(pendingOrder));
+      
+      // Gọi API tạo giao dịch MoMo
+      const momoData = {
+        orderId: `ORDER_${Date.now()}`,
+        amount: TotalPriceMemo,
+        orderInfo: `Thanh toán đơn hàng từ Nhà thuốc tiện lợi - Khách hàng: ${user?.name}`
+      };
+      
+      mutationMomoPayment.mutate(momoData, {
+        onSuccess: (data) => {
+          // Chuyển hướng người dùng đến trang thanh toán MoMo
+          if (data && data.payUrl) {
+            window.location.href = data.payUrl;
+          } else {
+            message.error('Không thể tạo đơn hàng MoMo');
+            setIsSubmitting(false);
+          }
+        },
+        onError: (error) => {
+          console.error('Error creating MoMo payment:', error);
+          message.error('Đã xảy ra lỗi khi tạo thanh toán MoMo');
+          setIsSubmitting(false);
+        }
+      });
+    } catch (error) {
+      console.error('Error processing MoMo payment:', error);
+      message.error('Đã xảy ra lỗi khi xử lý thanh toán');
+      setIsSubmitting(false);
+    }
+  };
+
   const handleAddOrder = () => {
     if (isSubmitting) return;
 
@@ -145,6 +218,12 @@ const PaymentPage = () => {
     if (!user?.name || !user?.address || !user?.phone || !user?.city) {
       message.error('Vui lòng cập nhật thông tin giao hàng');
       setIsOpenModalUpdateInfo(true);
+      return;
+    }
+    
+    // Nếu phương thức thanh toán là MoMo, xử lý thanh toán MoMo
+    if (payment === 'momo') {
+      handleMomoPayment();
       return;
     }
 
@@ -217,6 +296,7 @@ const PaymentPage = () => {
 
   const { isPending, data } = mutationUpdate
   const { isPending: isPendingAddOrder } = mutationAddOrder
+  const { isPending: isPendingMomoPayment } = mutationMomoPayment
 
   const handleCancelUpdate = () => {
     setStateUserDetails({
@@ -292,47 +372,88 @@ const PaymentPage = () => {
     ))
   }
 
+  const steps = [
+    {
+      title: 'Giỏ hàng',
+      description: 'Chọn sản phẩm',
+    },
+    {
+      title: 'Thanh toán',
+      description: 'Chọn phương thức',
+    },
+    {
+      title: 'Hoàn tất',
+      description: 'Đặt hàng thành công',
+    },
+  ];
+
   return (
-    <div style={{ background: '#f5f5fa', width: '100%', height: '100%', padding: '20px 0' }}>
-      <div style={{ width: '100%', maxWidth: '1270px', margin: '0 auto' }}>
-        <h3 style={{ padding: '10px 0' }}>Thanh toán</h3>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
+    <PageContainer>
+      <PageContent>
+        <SectionTitle>Thanh toán</SectionTitle>
+        <Steps current={1} items={steps} style={{ marginBottom: '24px' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px' }}>
           <WrapperLeft>
             <WrapperInfo>
-              <Label>Thông tin giao hàng</Label>
-              <div style={{ marginTop: '10px' }}>
-                <div style={{ marginBottom: '5px' }}><strong>Người nhận:</strong> {user?.name}</div>
-                <div style={{ marginBottom: '5px' }}><strong>Số điện thoại:</strong> {user?.phone}</div>
-                <div style={{ marginBottom: '5px' }}><strong>Địa chỉ:</strong> {user?.address}, {user?.city}</div>
-                <Button 
-                  type="link" 
-                  onClick={() => setIsOpenModalUpdateInfo(true)}
-                  style={{ padding: 0 }}
-                >
-                  Thay đổi
-                </Button>
-              </div>
+              <DeliveryInfo>
+                <Label>Thông tin giao hàng</Label>
+                <div style={{ marginTop: '10px' }}>
+                  <div style={{ marginBottom: '5px' }}><strong>Người nhận:</strong> {user?.name}</div>
+                  <div style={{ marginBottom: '5px' }}><strong>Số điện thoại:</strong> {user?.phone}</div>
+                  <div style={{ marginBottom: '5px' }}><strong>Địa chỉ:</strong> {user?.address}, {user?.city}</div>
+                  <Button 
+                    type="link" 
+                    onClick={() => setIsOpenModalUpdateInfo(true)}
+                    style={{ padding: 0 }}
+                  >
+                    Thay đổi
+                  </Button>
+                </div>
+              </DeliveryInfo>
             </WrapperInfo>
 
             <WrapperInfo style={{ marginTop: '20px' }}>
               <Label>Danh sách sản phẩm</Label>
-              <div style={{ marginTop: '10px' }}>
+              <OrderItemsList>
                 {renderOrderItems()}
-              </div>
+              </OrderItemsList>
             </WrapperInfo>
 
             <WrapperInfo style={{ marginTop: '20px' }}>
               <Label>Phương thức thanh toán</Label>
-              <WrapperRadio onChange={handlePayment} value={payment}>
-                <Radio value="later_money">Thanh toán bằng tiền mặt khi nhận hàng</Radio>
-              </WrapperRadio>
+              <div style={{ marginTop: '16px' }}>
+                <Radio.Group onChange={handlePayment} value={payment} style={{ width: '100%' }}>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <PaymentMethodCard isSelected={payment === 'later_money'}>
+                      <Radio value="later_money">
+                        <MethodContent>
+                          <PaymentMethodTitle>Thanh toán khi nhận hàng (COD)</PaymentMethodTitle>
+                          <PaymentMethodDesc>Thanh toán bằng tiền mặt khi nhận hàng tại nhà</PaymentMethodDesc>
+                        </MethodContent>
+                      </Radio>
+                    </PaymentMethodCard>
+
+                    <PaymentMethodCard isSelected={payment === 'momo'}>
+                      <Radio value="momo">
+                        <MethodContent>
+                          <PaymentIcon src={momoIcon || 'https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png'} alt="MoMo" />
+                          <div>
+                            <PaymentMethodTitle>Ví MoMo</PaymentMethodTitle>
+                            <PaymentMethodDesc>Thanh toán qua ứng dụng MoMo</PaymentMethodDesc>
+                          </div>
+                        </MethodContent>
+                      </Radio>
+                    </PaymentMethodCard>
+                  </Space>
+                </Radio.Group>
+              </div>
             </WrapperInfo>
           </WrapperLeft>
           
           <WrapperRight>
             <div style={{ width: '100%' }}>
               <WrapperInfo>
-                <Label>Thông tin đơn hàng</Label>
+                <OrderSummaryTitle>Thông tin đơn hàng</OrderSummaryTitle>
                 <WrapperInfodiv>
                   <span>Tạm tính ({order?.ordersItemSelected?.length || 0} sản phẩm)</span>
                   <WrapperInfospan>{convertPrice(priceMemo)}</WrapperInfospan>
@@ -358,6 +479,16 @@ const PaymentPage = () => {
                 </span>
               </WrapperTotal>
 
+              {payment === 'momo' && (
+                <Alert
+                  message="Thanh toán MoMo"
+                  description="Bạn sẽ được chuyển đến trang thanh toán MoMo để hoàn tất giao dịch."
+                  type="info"
+                  showIcon
+                  style={{ marginTop: '16px', marginBottom: '16px' }}
+                />
+              )}
+
               <ButtonComponent
                 onClick={handleAddOrder}
                 size={40}
@@ -369,16 +500,16 @@ const PaymentPage = () => {
                   borderRadius: '4px',
                   marginTop: '20px'
                 }}
-                textButton={'Đặt hàng'}
+                textButton={payment === 'momo' ? 'Thanh toán MoMo' : 'Đặt hàng'}
                 styleTextButton={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}
-                disabled={isPendingAddOrder || isSubmitting}
+                disabled={isPendingAddOrder || isPendingMomoPayment || isSubmitting}
               />
               
-              {(isPendingAddOrder || isSubmitting) && <div style={{ textAlign: 'center', marginTop: '10px' }}>Đang xử lý đơn hàng...</div>}
+              {(isPendingAddOrder || isPendingMomoPayment || isSubmitting) && <div style={{ textAlign: 'center', marginTop: '10px' }}>Đang xử lý đơn hàng...</div>}
             </div>
           </WrapperRight>
         </div>
-      </div>
+      </PageContent>
 
       <Modal 
         title="Cập nhật thông tin giao hàng" 
@@ -430,7 +561,7 @@ const PaymentPage = () => {
           </Form>
         </Loading>
       </Modal>
-    </div>
+    </PageContainer>
   )
 }
 
