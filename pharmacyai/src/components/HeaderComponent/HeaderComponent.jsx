@@ -1,4 +1,4 @@
-import { Badge, Col, Input, Popover, Avatar, Button, Dropdown } from 'antd'
+import { Badge, Col, Input, Popover, Avatar, Button, Dropdown, Drawer, Tooltip } from 'antd'
 import React, { useEffect, useState } from 'react'
 import { 
   UserOutlined, 
@@ -9,7 +9,12 @@ import {
   HeartOutlined,
   LogoutOutlined, 
   SettingOutlined, 
-  UserSwitchOutlined
+  UserSwitchOutlined,
+  MenuOutlined,
+  CloseOutlined,
+  HomeOutlined,
+  MedicineBoxOutlined,
+  PhoneOutlined
 } from '@ant-design/icons';
 import ButtonInputSearch from '../ButtonInputSearch/ButtonInputSearch'
 import { useNavigate } from 'react-router-dom';
@@ -21,21 +26,27 @@ import { useMutationHooks } from '../../hooks/useMutationHook';
 import { searchProduct } from '../../redux/slide/productSlide';
 
 import { 
-  WrapperHeader, 
-  WrapperTextHeader, 
-  WrapperHeaderAccount, 
-  WrapperTextCart, 
-  WrapperHeaderCart, 
-  WrapperTextHeaderSmall, 
-  WrapperContentPopup,
-  Logo,
-  HeaderSearch,
-  HeaderActions,
-  SearchIconWrapper,
-  UserActionGroup,
-  CartBadge,
   HeaderContainer,
-  LogoText
+  HeaderContent,
+  LogoContainer,
+  LogoText,
+  SearchContainer,
+  ActionContainer,
+  UserContainer,
+  CartContainer,
+  UserAvatar,
+  UserInfo,
+  UserName,
+  CartBadge,
+  CartText,
+  MobileMenuButton,
+  MobileDrawerContent,
+  MobileMenuList,
+  MobileMenuItem,
+  MobileSearchContainer,
+  MobileUserInfo,
+  CategoryMenu,
+  CategoryItem
 } from './style'
 
 const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
@@ -51,6 +62,19 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   const order = useSelector((state) => state.order)
   const [search, setSearch] = useState('')
   const { isPending } = mutation
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  // Theo dõi scroll để thêm shadow cho header
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   // Event handlers
   const handleNavigateLogin = () => {
@@ -60,19 +84,34 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   const handleLogout = async () => {
     await UserService.logoutUser()
     localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     dispatch(resetUser())
+    setMobileMenuOpen(false)
   }
 
   const handleNavigateProfile = () => {
     navigate('/profile-user')
+    setMobileMenuOpen(false)
   }
 
   const handleNavigateAdmin = () => {
     navigate('/system/admin')
+    setMobileMenuOpen(false)
   }
 
   const handleNavigateCart = () => {
     navigate('/order')
+    setMobileMenuOpen(false)
+  }
+  
+  const handleNavigateHome = () => {
+    navigate('/')
+    setMobileMenuOpen(false)
+  }
+
+  const handleNavigateCategory = (category) => {
+    navigate(`/product/${category}`)
+    setMobileMenuOpen(false)
   }
 
   const onSearch = (e) => {
@@ -109,6 +148,35 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
     }
   ];
 
+  // Categories
+  const categories = [
+    {
+      key: 'all',
+      label: 'Tất cả sản phẩm',
+      onClick: () => handleNavigateCategory('all')
+    },
+    {
+      key: 'medicine',
+      label: 'Dược phẩm',
+      onClick: () => handleNavigateCategory('Dược phẩm')
+    },
+    {
+      key: 'supplement',
+      label: 'Thực phẩm chức năng',
+      onClick: () => handleNavigateCategory('Thực phẩm chức năng')
+    },
+    {
+      key: 'equipment',
+      label: 'Thiết bị y tế',
+      onClick: () => handleNavigateCategory('Thiết bị y tế')
+    },
+    {
+      key: 'cosmetic',
+      label: 'Dược mỹ phẩm',
+      onClick: () => handleNavigateCategory('Dược mỹ phẩm')
+    }
+  ]
+
   // Effects
   useEffect(() => {
     setUserName(user?.name)
@@ -116,84 +184,186 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
   }, [user?.name, user?.avatar])
 
   return (
-    <div style={{width:'100%', background:'#4cb551', display:'flex', justifyContent:'center'}}>
-      <HeaderContainer style={{ justifyContent: isHiddenCart && isHiddenSearch ? 'space-between' : 'unset'}} >
+    <HeaderContainer scrolled={isScrolled}>
+      <HeaderContent>
         {/* Logo */}
-        <Col span={5} onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          <Logo>
-            <WrapperTextHeader>
-              <LogoText>NHÀ THUỐC TIỆN LỢI</LogoText>
-            </WrapperTextHeader>
-          </Logo>
-        </Col>
+        <LogoContainer onClick={handleNavigateHome}>
+          <MedicineBoxOutlined style={{ fontSize: '24px', marginRight: '8px' }} />
+          <LogoText>NHÀ THUỐC TIỆN LỢI</LogoText>
+        </LogoContainer>
         
-        {/* Search */}
+        {/* Mobile menu button */}
+        <MobileMenuButton onClick={() => setMobileMenuOpen(true)}>
+          <MenuOutlined />
+        </MobileMenuButton>
+        
+        {/* Desktop Search */}
         {!isHiddenSearch && (
-          <Col span={13}>
-            <HeaderSearch>
-              <ButtonInputSearch
-                size="large"
-                placeholder="Tìm kiếm sản phẩm..."
-                textButton="Tìm kiếm"
-                bordered={false}
-                variant="borderless"
-                onChange={onSearch}
-                value={search}
-              />
-            </HeaderSearch>
-          </Col>
+          <SearchContainer>
+            <ButtonInputSearch
+              size="large"
+              placeholder="Tìm kiếm sản phẩm..."
+              textButton="Tìm kiếm"
+              bordered={false}
+              variant="borderless"
+              onChange={onSearch}
+              value={search}
+            />
+          </SearchContainer>
         )}
         
-        {/* User & Cart */}
-        <Col span={6}>
-          <HeaderActions>
-            <Loading isPending={isPending}>
+        {/* Desktop Actions */}
+        <ActionContainer>
+          <Loading isPending={isPending}>
+            {/* User section */}
+            <UserContainer>
               {user?.access_token ? (
-                <UserActionGroup>
-                  <Dropdown 
-                    menu={{ items: userMenuItems }} 
-                    placement="bottomRight" 
-                    arrow
-                  >
-                    <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                      {userAvatar ? (
-                        <Avatar src={userAvatar} size="small" />
-                      ) : (
-                        <Avatar icon={<UserOutlined />} size="small" style={{ backgroundColor: '#fff', color: '#4cb551' }} />
-                      )}
-                      <span style={{ marginLeft: '8px', color: '#fff' }}>
-                        {userName?.length ? userName : user?.email}
-                      </span>
-                      <DownOutlined style={{ fontSize: '12px', marginLeft: '6px', color: '#fff' }} />
-                    </div>
-                  </Dropdown>
-                </UserActionGroup>
-              ) : (
-                <WrapperHeaderAccount onClick={handleNavigateLogin}>
-                  <UserOutlined style={{fontSize: '20px', color: '#fff'}} />
-                  <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '5px' }}>
-                    <WrapperTextHeaderSmall>Đăng nhập/Đăng ký</WrapperTextHeaderSmall>
-                    <div>
-                      <WrapperTextHeaderSmall>Tài khoản</WrapperTextHeaderSmall>
-                      <DownOutlined style={{ fontSize: '10px', marginLeft: '2px', color: '#fff' }} />
-                    </div>
+                <Dropdown 
+                  menu={{ items: userMenuItems }} 
+                  placement="bottomRight" 
+                  arrow
+                >
+                  <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    {userAvatar ? (
+                      <UserAvatar src={userAvatar} />
+                    ) : (
+                      <UserAvatar icon={<UserOutlined />} />
+                    )}
+                    <UserInfo>
+                      <UserName>
+                        {userName?.length ? userName : user?.email?.split('@')[0]}
+                      </UserName>
+                      <DownOutlined style={{ fontSize: '10px', color: '#fff', opacity: 0.8 }} />
+                    </UserInfo>
                   </div>
-                </WrapperHeaderAccount>
+                </Dropdown>
+              ) : (
+                <Button 
+                  type="text" 
+                  onClick={handleNavigateLogin}
+                  icon={<UserOutlined style={{ fontSize: '18px' }} />}
+                  style={{ color: '#fff', display: 'flex', alignItems: 'center' }}
+                >
+                  Đăng nhập
+                </Button>
               )}
-              
-              {!isHiddenCart && (
-                <CartBadge onClick={handleNavigateCart}>
-                  <Badge count={order?.orderItems?.length} size='small'>
-                    <ShoppingCartOutlined style={{ fontSize: '24px', color:'#fff' }} />
-                  </Badge>
-                  <WrapperTextCart>Giỏ hàng</WrapperTextCart>
-                </CartBadge>
+            </UserContainer>
+            
+            {/* Cart section */}
+            {!isHiddenCart && (
+              <CartContainer onClick={handleNavigateCart}>
+                <Badge count={order?.orderItems?.length} size='small' style={{ backgroundColor: '#ff4d4f' }}>
+                  <ShoppingCartOutlined style={{ fontSize: '22px' }} />
+                </Badge>
+                <CartText>Giỏ hàng</CartText>
+              </CartContainer>
+            )}
+          </Loading>
+        </ActionContainer>
+      </HeaderContent>
+      
+      {/* Category navigation - desktop */}
+      <CategoryMenu>
+        {categories.map(category => (
+          <CategoryItem key={category.key} onClick={category.onClick}>
+            {category.label}
+          </CategoryItem>
+        ))}
+      </CategoryMenu>
+      
+      {/* Mobile menu drawer */}
+      <Drawer
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>Menu</span>
+            <Button type="text" onClick={() => setMobileMenuOpen(false)} icon={<CloseOutlined />} />
+          </div>
+        }
+        placement="left"
+        onClose={() => setMobileMenuOpen(false)}
+        open={mobileMenuOpen}
+        width={280}
+      >
+        <MobileDrawerContent>
+          {/* Mobile user info */}
+          {user?.access_token ? (
+            <MobileUserInfo>
+              {userAvatar ? (
+                <Avatar src={userAvatar} size={64} />
+              ) : (
+                <Avatar icon={<UserOutlined />} size={64} style={{ backgroundColor: '#4cb551' }} />
               )}
-            </Loading>
-          </HeaderActions>
-        </Col>
-      </HeaderContainer>
-    </div>
+              <div>
+                <h3>{userName?.length ? userName : user?.email?.split('@')[0]}</h3>
+                <p>{user?.email}</p>
+              </div>
+            </MobileUserInfo>
+          ) : (
+            <Button 
+              block 
+              type="primary" 
+              size="large" 
+              onClick={handleNavigateLogin} 
+              style={{ marginBottom: '16px', backgroundColor: '#4cb551', borderColor: '#4cb551' }}
+            >
+              Đăng nhập / Đăng ký
+            </Button>
+          )}
+          
+          {/* Mobile search */}
+          <MobileSearchContainer>
+            <Input
+              placeholder="Tìm kiếm..."
+              prefix={<SearchOutlined />}
+              onChange={onSearch}
+              value={search}
+            />
+          </MobileSearchContainer>
+          
+          {/* Mobile menu */}
+          <MobileMenuList>
+            <MobileMenuItem onClick={handleNavigateHome}>
+              <HomeOutlined /> Trang chủ
+            </MobileMenuItem>
+            
+            {categories.map(category => (
+              <MobileMenuItem key={category.key} onClick={category.onClick}>
+                <MedicineBoxOutlined /> {category.label}
+              </MobileMenuItem>
+            ))}
+            
+            <MobileMenuItem onClick={handleNavigateCart}>
+              <ShoppingCartOutlined /> Giỏ hàng 
+              {order?.orderItems?.length > 0 && (
+                <Badge count={order?.orderItems?.length} size="small" style={{ marginLeft: '8px' }} />
+              )}
+            </MobileMenuItem>
+            
+            {user?.access_token && (
+              <MobileMenuItem onClick={handleNavigateProfile}>
+                <UserOutlined /> Tài khoản của tôi
+              </MobileMenuItem>
+            )}
+            
+            {user?.isAdmin && (
+              <MobileMenuItem onClick={handleNavigateAdmin}>
+                <SettingOutlined /> Quản lý hệ thống
+              </MobileMenuItem>
+            )}
+            
+            {user?.access_token && (
+              <MobileMenuItem onClick={handleLogout} danger>
+                <LogoutOutlined /> Đăng xuất
+              </MobileMenuItem>
+            )}
+            
+            <MobileMenuItem>
+              <PhoneOutlined /> Hotline: 1900-6868
+            </MobileMenuItem>
+          </MobileMenuList>
+        </MobileDrawerContent>
+      </Drawer>
+    </HeaderContainer>
   )
 }
 
