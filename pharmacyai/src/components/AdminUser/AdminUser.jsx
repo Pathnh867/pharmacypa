@@ -102,7 +102,7 @@ const AdminUser = () => {
   // Mutations
   const createMutation = useMutationHooks(
     (data) => {
-      return UserService.createUser(data.userData, data.token);
+      return UserService.create(data.userData, data.token);
     }
   );
   
