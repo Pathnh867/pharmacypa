@@ -1,22 +1,33 @@
-// Cập nhật file pharmacyai/src/pages/AdminPage/AdminPage.jsx để thêm AdminOrder
+// pharmacyai/src/pages/AdminPage/AdminPage.jsx
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Layout, Menu, Typography, Avatar, Dropdown, Badge, Space } from 'antd'
 import { UserOutlined, ProductOutlined, DashboardOutlined, 
   LogoutOutlined, BellOutlined, SettingOutlined, OrderedListOutlined,
-  AppstoreOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
+  AppstoreOutlined, MenuFoldOutlined, MenuUnfoldOutlined, BarChartOutlined,
+  ShoppingOutlined, TeamOutlined, NotificationOutlined, HomeOutlined } from '@ant-design/icons'
 import { getItem } from '../../utils';
-import HeaderComponent from '../../components/HeaderComponent/HeaderComponent';
 import AdminUser from '../../components/AdminUser/AdminUser';
 import AdminProduct from '../../components/AdminProduct/AdminProduct';
-import AdminOrder from '../../components/AdminOrder/AdminOrder'; // Thêm import AdminOrder
+import AdminOrder from '../../components/AdminOrder/AdminOrder';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { resetUser } from '../../redux/slide/userSlide';
-import { WrapperHeader, WrapperContent, WrapperSider, WrapperHeaderAdmin, 
-  HeaderLogo, HeaderActions, AdminTitle, NotificationBadge, ContentWrapper } from './style';
+import Dashboard from '../../components/Dashboard/Dashboard';
 
-const { Content, Sider } = Layout;
+// Import style mới
+import {
+  AdminContainer,
+  AdminSider,
+  AdminLogoContainer,
+  AdminHeader,
+  AdminTitle,
+  AdminHeaderActions,
+  AdminContent,
+  AdminBadge,
+  colors
+} from './style';
+
 const { Title } = Typography;
 
 function AdminPage() {
@@ -26,12 +37,19 @@ function AdminPage() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    // Menu items for sidebar - Thêm mục quản lý đơn hàng
+    // Kiểm tra nếu người dùng không phải là admin, chuyển hướng về trang chủ
+    useEffect(() => {
+      if (!user?.isAdmin) {
+        navigate('/');
+      }
+    }, [user, navigate]);
+
+    // Menu items for sidebar
     const items = [
         getItem('Dashboard', 'dashboard', <DashboardOutlined />),
-        getItem('Người dùng', 'user', <UserOutlined />),
+        getItem('Người dùng', 'user', <TeamOutlined />),
         getItem('Sản phẩm', 'product', <ProductOutlined />),
-        getItem('Đơn hàng', 'order', <OrderedListOutlined />), // Thêm mục quản lý đơn hàng
+        getItem('Đơn hàng', 'order', <ShoppingOutlined />),
         getItem('Cài đặt', 'settings', <SettingOutlined />),
     ];
 
@@ -74,6 +92,15 @@ function AdminPage() {
             type: 'divider',
         },
         {
+            label: 'Về trang chủ',
+            key: 'home',
+            icon: <HomeOutlined />,
+            onClick: () => navigate('/')
+        },
+        {
+            type: 'divider',
+        },
+        {
             label: 'Đăng xuất',
             key: 'logout',
             icon: <LogoutOutlined />,
@@ -95,6 +122,8 @@ function AdminPage() {
     const handleMenuClick = ({ key }) => {
         if (key === 'logout') {
             handleLogout();
+        } else if (key === 'profile') {
+            navigate('/profile-user');
         }
     };
 
@@ -104,122 +133,112 @@ function AdminPage() {
         navigate('/sign-in');
     };
 
-    // Render content based on selected key - Thêm render AdminOrder
+    // Render content based on selected key
     const renderPage = (key) => {
         switch (key) {
             case 'user':
                 return <AdminUser />;
             case 'product':
                 return <AdminProduct />;
-            case 'order': // Thêm case để render AdminOrder
+            case 'order':
                 return <AdminOrder />;
             case 'dashboard':
-                return (
-                    <div style={{ padding: '24px' }}>
-                        <Title level={4}>Dashboard</Title>
-                        <p>Chào mừng đến với trang quản trị hệ thống Nhà thuốc Tiện lợi!</p>
-                        <p>Sử dụng menu bên trái để điều hướng đến các phần quản lý khác nhau.</p>
-                    </div>
-                );
             default:
                 return (
-                    <div style={{ padding: '24px' }}>
-                        <Title level={4}>Tính năng đang phát triển</Title>
-                        <p>Chức năng này đang được phát triển và sẽ sớm được cập nhật.</p>
-                    </div>
+                    <Dashboard />
                 );
         }
     };
 
     return (
-        <Layout style={{ minHeight: '100vh' }}>
-            <WrapperSider 
-                width={260} 
-                collapsed={collapsed}
-                onCollapse={(value) => setCollapsed(value)}
-                collapsible
-                trigger={null}
-            >
-                <HeaderLogo collapsed={collapsed}>
-                    {!collapsed ? (
-                        <Title level={4} style={{ color: '#fff', margin: 0 }}>
-                            <AppstoreOutlined /> Admin Portal
-                        </Title>
-                    ) : (
-                        <AppstoreOutlined style={{ fontSize: '24px', color: '#fff' }} />
-                    )}
-                </HeaderLogo>
-                <Menu
+        <AdminContainer>
+            <Layout style={{ minHeight: '100vh' }}>
+                <AdminSider 
+                    width={250} 
+                    collapsed={collapsed}
+                    onCollapse={(value) => setCollapsed(value)}
+                    collapsible
+                    trigger={null}
                     theme="dark"
-                    mode="inline"
-                    defaultSelectedKeys={['dashboard']}
-                    selectedKeys={[keySelected]}
-                    items={items}
-                    onClick={handleOnClick}
-                />
-            </WrapperSider>
-            <Layout>
-                <WrapperHeaderAdmin>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                        {React.createElement(
-                            collapsed ? MenuUnfoldOutlined : MenuFoldOutlined, 
-                            { 
-                                className: 'trigger', 
-                                onClick: toggleCollapsed,
-                                style: { fontSize: '18px', padding: '0 24px' }
-                            }
+                >
+                    <AdminLogoContainer collapsed={collapsed}>
+                        {!collapsed ? (
+                            <Title level={4} style={{ color: '#fff', margin: 0 }}>
+                                <AppstoreOutlined /> Admin Portal
+                            </Title>
+                        ) : (
+                            <AppstoreOutlined style={{ fontSize: '24px', color: '#fff' }} />
                         )}
-                        <AdminTitle>
-                            {keySelected === 'dashboard' && 'Dashboard'}
-                            {keySelected === 'user' && 'Quản lý người dùng'}
-                            {keySelected === 'product' && 'Quản lý sản phẩm'}
-                            {keySelected === 'order' && 'Quản lý đơn hàng'} {/* Thêm title cho quản lý đơn hàng */}
-                            {keySelected === 'settings' && 'Cài đặt hệ thống'}
-                        </AdminTitle>
-                    </div>
-                    <HeaderActions>
-                        <Dropdown
-                            menu={{ items: notificationItems }}
-                            placement="bottomRight"
-                            arrow
-                            trigger={['click']}
-                        >
-                            <NotificationBadge>
-                                <Badge count={3}>
-                                    <BellOutlined style={{ fontSize: '18px' }} />
-                                </Badge>
-                            </NotificationBadge>
-                        </Dropdown>
-                        <Dropdown
-                            menu={{ 
-                                items: userMenuItems,
-                                onClick: handleMenuClick
-                            }}
-                            placement="bottomRight"
-                            arrow
-                            trigger={['click']}
-                        >
-                            <Space style={{ cursor: 'pointer' }}>
-                                <Avatar 
-                                    src={user?.avatar} 
-                                    icon={!user?.avatar && <UserOutlined />} 
-                                    size="small"
-                                    style={{ backgroundColor: '#4cb551' }}
-                                />
-                                <span style={{ marginLeft: '8px', display: collapsed ? 'none' : 'inline' }}>
-                                    {user?.name || user?.email || 'Admin'}
-                                </span>
-                            </Space>
-                        </Dropdown>
-                    </HeaderActions>
-                </WrapperHeaderAdmin>
-                <ContentWrapper>
-                    <WrapperContent>
+                    </AdminLogoContainer>
+                    <Menu
+                        theme="dark"
+                        mode="inline"
+                        defaultSelectedKeys={['dashboard']}
+                        selectedKeys={[keySelected]}
+                        items={items}
+                        onClick={handleOnClick}
+                    />
+                </AdminSider>
+                <Layout>
+                    <AdminHeader collapsed={collapsed}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            {React.createElement(
+                                collapsed ? MenuUnfoldOutlined : MenuFoldOutlined, 
+                                { 
+                                    className: 'trigger', 
+                                    onClick: toggleCollapsed,
+                                }
+                            )}
+                            <AdminTitle>
+                                {keySelected === 'dashboard' && 'Dashboard'}
+                                {keySelected === 'user' && 'Quản lý người dùng'}
+                                {keySelected === 'product' && 'Quản lý sản phẩm'}
+                                {keySelected === 'order' && 'Quản lý đơn hàng'}
+                                {keySelected === 'settings' && 'Cài đặt hệ thống'}
+                            </AdminTitle>
+                        </div>
+                        <AdminHeaderActions>
+                            <Dropdown
+                                menu={{ items: notificationItems }}
+                                placement="bottomRight"
+                                arrow
+                                trigger={['click']}
+                            >
+                                <div style={{ cursor: 'pointer', padding: '0 8px' }}>
+                                    <AdminBadge count={3}>
+                                        <NotificationOutlined style={{ fontSize: '18px' }} />
+                                    </AdminBadge>
+                                </div>
+                            </Dropdown>
+                            <Dropdown
+                                menu={{ 
+                                    items: userMenuItems,
+                                    onClick: handleMenuClick
+                                }}
+                                placement="bottomRight"
+                                arrow
+                                trigger={['click']}
+                            >
+                                <Space style={{ cursor: 'pointer' }}>
+                                    <Avatar 
+                                        src={user?.avatar} 
+                                        icon={!user?.avatar && <UserOutlined />} 
+                                        size="small"
+                                        style={{ backgroundColor: colors.primary }}
+                                    />
+                                    <span style={{ marginLeft: '8px', display: collapsed ? 'none' : 'inline' }}>
+                                        {user?.name || user?.email || 'Admin'}
+                                    </span>
+                                </Space>
+                            </Dropdown>
+                        </AdminHeaderActions>
+                    </AdminHeader>
+                    <AdminContent collapsed={collapsed}>
                         {renderPage(keySelected)}
-                    </WrapperContent>
-                </ContentWrapper>
+                    </AdminContent>
+                </Layout>
             </Layout>
-        </Layout>
+        </AdminContainer>
     );
 }
 
