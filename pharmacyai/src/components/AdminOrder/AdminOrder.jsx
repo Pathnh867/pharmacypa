@@ -1,3 +1,4 @@
+// pharmacyai/src/components/AdminOrder/AdminOrder.jsx
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { 
@@ -32,7 +33,6 @@ import {
   CloseCircleOutlined,
   EditOutlined,
   ClockCircleOutlined,
-  InfoCircleOutlined,
   ExclamationCircleOutlined,
   PhoneOutlined,
   UserOutlined,
@@ -41,12 +41,14 @@ import {
   FilterOutlined,
   ReloadOutlined,
   DollarOutlined,
-  CalendarOutlined,
   MailOutlined
 } from '@ant-design/icons';
 import * as OrderService from '../../services/OrderService';
 import * as UserService from '../../services/UserService';
 import { convertPrice, formatOrderDate } from '../../utils';
+import moment from 'moment';
+
+// Import style từ file style.js
 import { 
   WrapperHeader, 
   OrderItem, 
@@ -54,16 +56,28 @@ import {
   StatusBadge, 
   StatsCard, 
   TimelineContainer,
-  OrderSummary 
+  OrderSummary,
+  colors
 } from './style';
-import moment from 'moment';
 
-const { Title, Text, Paragraph } = Typography;
+// Import các component styled chung từ AdminUser để đồng bộ style
+import {
+  AdminSectionTitle,
+  AdminCard,
+  AdminTable,
+  AdminButton,
+  AdminInput,
+  AdminSelect,
+  AdminSearchContainer
+} from '../AdminUser/style';
+
+const { Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 
 const AdminOrder = () => {
+  // State quản lý danh sách đơn hàng và phân trang
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -71,19 +85,23 @@ const AdminOrder = () => {
     pageSize: 10,
     total: 0
   });
+
+  // State quản lý drawer và modal
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [form] = Form.useForm();
+  
+  // Lấy thông tin user từ redux store
   const user = useSelector((state) => state.user);
   
-  // Thêm state cho tìm kiếm và lọc
+  // State cho tìm kiếm và lọc
   const [searchText, setSearchText] = useState('');
   const [dateRange, setDateRange] = useState(null);
   const [statusFilter, setStatusFilter] = useState(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState(null);
   
-  // Thêm state cho user info
+  // State cho thông tin khách hàng
   const [customerInfo, setCustomerInfo] = useState(null);
   const [loadingCustomer, setLoadingCustomer] = useState(false);
   
@@ -99,21 +117,25 @@ const AdminOrder = () => {
     pendingRevenue: 0
   });
   
+  // Tải đơn hàng khi component mount
   useEffect(() => {
-    loadOrders(pagination.current - 1, pagination.pageSize);
+    loadOrders(0, pagination.pageSize);
   }, []);
   
   // Tính toán thống kê từ danh sách đơn hàng
   useEffect(() => {
     if (orders.length > 0) {
+      // Tính doanh thu từ đơn hàng đã giao
       const totalRevenue = orders
         .filter(order => order.status === 'delivered')
         .reduce((total, order) => total + order.totalPrice, 0);
       
+      // Tính doanh thu từ đơn hàng đang xử lý
       const pendingRevenue = orders
         .filter(order => ['pending', 'processing', 'shipping'].includes(order.status))
         .reduce((total, order) => total + order.totalPrice, 0);
         
+      // Cập nhật stats
       const newStats = {
         total: orders.length,
         pending: orders.filter(order => order.status === 'pending').length,
@@ -142,7 +164,7 @@ const AdminOrder = () => {
         setOrders(response.data);
         setPagination({
           ...pagination,
-          current: response.currentPage,
+          current: page + 1,
           pageSize: pageSize,
           total: response.total
         });
@@ -179,31 +201,31 @@ const AdminOrder = () => {
     switch (status) {
       case 'pending':
         return { 
-          color: 'orange', 
+          color: colors.warning, 
           text: 'Chờ xử lý', 
           icon: <ClockCircleOutlined /> 
         };
       case 'processing':
         return { 
-          color: 'blue', 
+          color: colors.info, 
           text: 'Đang xử lý', 
           icon: <ShoppingOutlined /> 
         };
       case 'shipping':
         return { 
-          color: 'purple', 
+          color: '#722ed1', 
           text: 'Đang giao hàng', 
           icon: <CarOutlined /> 
         };
       case 'delivered':
         return { 
-          color: 'green', 
+          color: colors.success, 
           text: 'Đã giao hàng', 
           icon: <CheckCircleOutlined /> 
         };
       case 'cancelled':
         return { 
-          color: 'red', 
+          color: colors.error, 
           text: 'Đã hủy', 
           icon: <CloseCircleOutlined /> 
         };
@@ -303,14 +325,6 @@ const AdminOrder = () => {
   
   // Xử lý tìm kiếm và lọc
   const handleSearch = () => {
-    // Tạo params cho API
-    let params = {
-      ...pagination,
-      current: 1
-    };
-    
-    // TODO: Gọi API với các điều kiện filter
-    // Hiện tại chỉ refresh lại dữ liệu
     loadOrders(0, pagination.pageSize);
   };
   
@@ -360,7 +374,7 @@ const AdminOrder = () => {
   const renderOrderItems = (items) => {
     return (
       <OrderItemsList>
-        {items.map((item, index) => (
+        {items && items.map((item, index) => (
           <OrderItem key={index}>
             <div className="item-image">
               <img src={item.image} alt={item.name} />
@@ -377,13 +391,46 @@ const AdminOrder = () => {
     );
   };
   
+  // Filter data
+  const filterData = (data) => {
+    if (!data) return [];
+    
+    return data.filter(item => {
+      // Tìm kiếm theo mã đơn hàng hoặc tên khách hàng
+      const searchMatch = !searchText || 
+                         item._id.toLowerCase().includes(searchText.toLowerCase()) ||
+                         (item.shippingAddress?.fullName && item.shippingAddress.fullName.toLowerCase().includes(searchText.toLowerCase()));
+      
+      // Lọc theo trạng thái
+      const statusMatch = !statusFilter || item.status === statusFilter;
+      
+      // Lọc theo phương thức thanh toán
+      const paymentMatch = !paymentMethodFilter || item.paymentMethod === paymentMethodFilter;
+      
+      // Lọc theo khoảng thời gian
+      let dateMatch = true;
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        const orderDate = new Date(item.createdAt);
+        const startDate = dateRange[0].startOf('day').toDate();
+        const endDate = dateRange[1].endOf('day').toDate();
+        dateMatch = orderDate >= startDate && orderDate <= endDate;
+      }
+      
+      return searchMatch && statusMatch && paymentMatch && dateMatch;
+    });
+  };
+  
   // Định nghĩa các cột cho bảng
   const columns = [
     {
       title: 'Mã đơn hàng',
       dataIndex: '_id',
       key: '_id',
-      render: id => <a onClick={() => showOrderDetails(orders.find(o => o._id === id))}>{id.slice(-8).toUpperCase()}</a>,
+      render: id => (
+        <a onClick={() => showOrderDetails(orders.find(o => o._id === id))}>
+          {id.slice(-8).toUpperCase()}
+        </a>
+      ),
       width: 100,
     },
     {
@@ -391,9 +438,19 @@ const AdminOrder = () => {
       dataIndex: 'shippingAddress',
       key: 'customer',
       render: (shippingAddress, record) => (
-        <span>{shippingAddress?.fullName || (record.user && (typeof record.user === 'object' ? (record.user.name || record.user.email) : 'User: ' + record.user.slice(-6))) || 'Không xác định'}</span>
+        <div>
+          <div style={{ fontWeight: '500' }}>
+            {shippingAddress?.fullName || (record.user && (typeof record.user === 'object' ? (record.user.name || record.user.email) : 'User: ' + record.user.slice(-6))) || 'Không xác định'}
+          </div>
+          {shippingAddress?.phone && (
+            <div style={{ fontSize: '12px', color: colors.textSecondary }}>
+              <PhoneOutlined style={{ marginRight: '5px' }} />
+              {shippingAddress.phone}
+            </div>
+          )}
+        </div>
       ),
-      width: 150,
+      width: 180,
     },
     {
       title: 'Ngày đặt',
@@ -407,7 +464,11 @@ const AdminOrder = () => {
       title: 'Tổng tiền',
       dataIndex: 'totalPrice',
       key: 'totalPrice',
-      render: price => convertPrice(price),
+      render: price => (
+        <div style={{ color: colors.primary, fontWeight: '600' }}>
+          {convertPrice(price)}
+        </div>
+      ),
       width: 120,
       sorter: (a, b) => a.totalPrice - b.totalPrice,
     },
@@ -419,9 +480,9 @@ const AdminOrder = () => {
         <div>
           <div>{method === 'momo' ? 'Ví MoMo' : 'Thanh toán khi nhận hàng'}</div>
           {record.isPaid ? (
-            <Tag color="green">Đã thanh toán</Tag>
+            <Tag color="success">Đã thanh toán</Tag>
           ) : (
-            <Tag color="orange">Chưa thanh toán</Tag>
+            <Tag color="warning">Chưa thanh toán</Tag>
           )}
         </div>
       ),
@@ -459,27 +520,37 @@ const AdminOrder = () => {
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Button 
-            type="primary" 
-            size="small" 
-            icon={<EyeOutlined />}
-            onClick={() => showOrderDetails(record)}
-          >
-            Chi tiết
-          </Button>
-          <Button 
-            type="default" 
-            size="small" 
-            icon={<EditOutlined />}
-            onClick={() => showStatusModal(record)}
-          >
-            Cập nhật
-          </Button>
+          <Tooltip title="Chi tiết">
+            <Button 
+              type="primary" 
+              size="small" 
+              icon={<EyeOutlined />}
+              onClick={() => showOrderDetails(record)}
+            >
+              Chi tiết
+            </Button>
+          </Tooltip>
+          <Tooltip title="Cập nhật trạng thái">
+            <Button 
+              type="default" 
+              size="small" 
+              icon={<EditOutlined />}
+              onClick={() => showStatusModal(record)}
+            >
+              Cập nhật
+            </Button>
+          </Tooltip>
         </Space>
       ),
       width: 180,
     },
   ];
+  
+  // Data source cho bảng
+  const dataSource = orders ? filterData(orders).map(item => ({
+    ...item,
+    key: item._id
+  })) : [];
   
   // Các option cho filter trạng thái
   const statusOptions = [
@@ -498,7 +569,7 @@ const AdminOrder = () => {
   
   return (
     <div>
-      <WrapperHeader>Quản lý đơn hàng</WrapperHeader>
+      <AdminSectionTitle>Quản lý đơn hàng</AdminSectionTitle>
       
       {/* Thống kê đơn hàng */}
       <Row gutter={16} style={{ marginBottom: '24px' }}>
@@ -508,7 +579,7 @@ const AdminOrder = () => {
               title="Tổng đơn hàng"
               value={stats.total}
               prefix={<ShoppingOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: colors.info }}
             />
           </Card>
         </Col>
@@ -518,7 +589,7 @@ const AdminOrder = () => {
               title="Chờ xử lý"
               value={stats.pending}
               prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: '#faad14' }}
+              valueStyle={{ color: colors.warning }}
             />
           </Card>
         </Col>
@@ -538,7 +609,7 @@ const AdminOrder = () => {
               title="Đã giao"
               value={stats.delivered}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
+              valueStyle={{ color: colors.success }}
             />
           </Card>
         </Col>
@@ -548,7 +619,7 @@ const AdminOrder = () => {
               title="Đã hủy"
               value={stats.cancelled}
               prefix={<CloseCircleOutlined />}
-              valueStyle={{ color: '#ff4d4f' }}
+              valueStyle={{ color: colors.error }}
             />
           </Card>
         </Col>
@@ -558,7 +629,7 @@ const AdminOrder = () => {
               title="Doanh thu"
               value={stats.totalRevenue}
               prefix={<DollarOutlined />}
-              valueStyle={{ color: '#4cb551' }}
+              valueStyle={{ color: colors.primary }}
               formatter={(value) => `${value.toLocaleString('vi-VN')}đ`}
             />
           </Card>
@@ -566,18 +637,18 @@ const AdminOrder = () => {
       </Row>
       
       {/* Bộ lọc tìm kiếm */}
-      <Card style={{ marginBottom: '20px' }}>
-        <Row gutter={16}>
-          <Col span={6}>
-            <Input 
+      <AdminCard style={{ marginBottom: '24px' }}>
+        <AdminSearchContainer>
+          <div className="search-item">
+            <AdminInput 
               placeholder="Tìm kiếm theo mã đơn hàng hoặc tên khách hàng" 
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
               prefix={<SearchOutlined />}
               allowClear
             />
-          </Col>
-          <Col span={6}>
+          </div>
+          <div className="search-item">
             <RangePicker 
               style={{ width: '100%' }}
               value={dateRange}
@@ -585,9 +656,9 @@ const AdminOrder = () => {
               placeholder={['Từ ngày', 'Đến ngày']}
               format="DD/MM/YYYY"
             />
-          </Col>
-          <Col span={4}>
-            <Select
+          </div>
+          <div className="search-item">
+            <AdminSelect
               placeholder="Trạng thái"
               style={{ width: '100%' }}
               value={statusFilter}
@@ -597,10 +668,10 @@ const AdminOrder = () => {
               {statusOptions.map(option => (
                 <Option key={option.value} value={option.value}>{option.label}</Option>
               ))}
-            </Select>
-          </Col>
-          <Col span={4}>
-            <Select
+            </AdminSelect>
+          </div>
+          <div className="search-item">
+            <AdminSelect
               placeholder="Phương thức thanh toán"
               style={{ width: '100%' }}
               value={paymentMethodFilter}
@@ -610,33 +681,31 @@ const AdminOrder = () => {
               {paymentMethodOptions.map(option => (
                 <Option key={option.value} value={option.value}>{option.label}</Option>
               ))}
-            </Select>
-          </Col>
-          <Col span={4}>
-            <Space>
-              <Button type="primary" icon={<FilterOutlined />} onClick={handleSearch}>
-                Lọc
-              </Button>
-              <Button icon={<ReloadOutlined />} onClick={handleResetSearch}>
-                Đặt lại
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
+            </AdminSelect>
+          </div>
+          <div className="search-actions">
+            <AdminButton type="primary" icon={<FilterOutlined />} onClick={handleSearch} ghost>
+              Lọc
+            </AdminButton>
+            <AdminButton icon={<ReloadOutlined />} onClick={handleResetSearch}>
+              Đặt lại
+            </AdminButton>
+          </div>
+        </AdminSearchContainer>
+      </AdminCard>
       
       {/* Bảng danh sách đơn hàng */}
-      <div style={{ background: 'white', padding: '20px', borderRadius: '8px' }}>
-        <Table
+      <AdminCard>
+        <AdminTable
           columns={columns}
-          dataSource={orders}
+          dataSource={dataSource}
           rowKey="_id"
           pagination={pagination}
           loading={loading}
           onChange={handleTableChange}
           scroll={{ x: 1000 }}
         />
-      </div>
+      </AdminCard>
       
       {/* Drawer chi tiết đơn hàng */}
       <Drawer
@@ -646,7 +715,7 @@ const AdminOrder = () => {
         open={drawerVisible}
         width={720}
         extra={
-          <Button 
+          <AdminButton 
             type="primary" 
             onClick={() => {
               setDrawerVisible(false);
@@ -654,14 +723,14 @@ const AdminOrder = () => {
             }}
           >
             Cập nhật trạng thái
-          </Button>
+          </AdminButton>
         }
       >
         {selectedOrder && (
           <div className="order-details">
             <Row gutter={16}>
               <Col span={12}>
-                <Card title="Thông tin đơn hàng" bordered={false}>
+                <AdminCard title="Thông tin đơn hàng" bordered={false}>
                   <Descriptions column={1} size="small">
                     <Descriptions.Item label="Mã đơn hàng">
                       {selectedOrder._id}
@@ -693,9 +762,9 @@ const AdminOrder = () => {
                       </Descriptions.Item>
                     )}
                   </Descriptions>
-                </Card>
+                </AdminCard>
                 
-                <Card title="Thông tin khách hàng" bordered={false} style={{ marginTop: '16px' }}>
+                <AdminCard title="Thông tin khách hàng" bordered={false} style={{ marginTop: '16px' }}>
                   {loadingCustomer ? (
                     <div style={{ textAlign: 'center', padding: '20px' }}>
                       <Spin size="small" />
@@ -718,17 +787,17 @@ const AdminOrder = () => {
                       )}
                     </Descriptions>
                   )}
-                </Card>
+                </AdminCard>
               </Col>
               
               <Col span={12}>
-                <Card title="Lịch sử trạng thái" bordered={false}>
+                <AdminCard title="Lịch sử trạng thái" bordered={false}>
                   {renderStatusTimeline(selectedOrder.statusHistory)}
-                </Card>
+                </AdminCard>
               </Col>
             </Row>
             
-            <Card title="Sản phẩm đã đặt" style={{ marginTop: '16px' }}>
+            <AdminCard title="Sản phẩm đã đặt" style={{ marginTop: '16px' }}>
               {renderOrderItems(selectedOrder.orderItems)}
               
               <OrderSummary>
@@ -745,10 +814,10 @@ const AdminOrder = () => {
                   <span>{convertPrice(selectedOrder.totalPrice)}</span>
                 </div>
               </OrderSummary>
-            </Card>
+            </AdminCard>
             
             {/* Phần ghi chú hành động */}
-            <Card title="Ghi chú quản trị" style={{ marginTop: '16px' }}>
+            <AdminCard title="Ghi chú quản trị" style={{ marginTop: '16px' }}>
               <Form layout="vertical">
                 <Form.Item label="Ghi chú mới">
                   <TextArea 
@@ -757,10 +826,10 @@ const AdminOrder = () => {
                   />
                 </Form.Item>
                 <Form.Item>
-                  <Button type="primary">Lưu ghi chú</Button>
+                  <AdminButton type="primary">Lưu ghi chú</AdminButton>
                 </Form.Item>
               </Form>
-            </Card>
+            </AdminCard>
           </div>
         )}
       </Drawer>
@@ -770,8 +839,8 @@ const AdminOrder = () => {
         title="Cập nhật trạng thái đơn hàng"
         open={statusModalVisible}
         onCancel={() => setStatusModalVisible(false)}
-        onOk={handleUpdateStatus}
-        confirmLoading={loading}
+        footer={null}
+        width={500}
       >
         <Form
           form={form}
@@ -782,13 +851,13 @@ const AdminOrder = () => {
             label="Trạng thái"
             rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
           >
-            <Select>
+            <AdminSelect>
               <Option value="pending">Chờ xử lý</Option>
               <Option value="processing">Đang xử lý</Option>
               <Option value="shipping">Đang giao hàng</Option>
               <Option value="delivered">Đã giao hàng</Option>
               <Option value="cancelled">Đã hủy</Option>
-            </Select>
+            </AdminSelect>
           </Form.Item>
           
           <Form.Item
@@ -810,6 +879,15 @@ const AdminOrder = () => {
               />
             </Form.Item>
           )}
+          
+          <div style={{ textAlign: 'right', marginTop: '20px' }}>
+            <Button onClick={() => setStatusModalVisible(false)} style={{ marginRight: '10px' }}>
+              Hủy
+            </Button>
+            <AdminButton type="primary" onClick={handleUpdateStatus} loading={loading}>
+              Cập nhật trạng thái
+            </AdminButton>
+          </div>
         </Form>
       </Modal>
     </div>

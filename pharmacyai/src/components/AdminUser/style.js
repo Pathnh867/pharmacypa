@@ -1,4 +1,4 @@
-// pharmacyai/src/styles/AdminStyles.js
+// pharmacyai/src/components/AdminUser/style.js
 import styled from 'styled-components';
 import { Layout, Typography, Button, Card, Input, Select, Table, Tabs, Badge } from 'antd';
 
@@ -282,44 +282,6 @@ export const AdminSectionTitle = styled.h3`
   }
 `;
 
-export const AdminStatCard = styled.div`
-  background: ${colors.white};
-  border-radius: ${sizes.borderRadius};
-  padding: 20px;
-  box-shadow: ${sizes.boxShadow};
-  transition: all 0.3s;
-  height: 100%;
-  
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: ${sizes.boxShadowHover};
-  }
-  
-  .stat-title {
-    color: ${colors.textSecondary};
-    font-size: 14px;
-    margin-bottom: 8px;
-  }
-  
-  .stat-value {
-    font-size: 24px;
-    font-weight: 700;
-    color: ${props => props.valueColor || colors.textPrimary};
-  }
-  
-  .stat-icon {
-    font-size: 24px;
-    color: ${props => props.iconColor || colors.primary};
-    margin-bottom: 12px;
-  }
-  
-  .stat-footer {
-    margin-top: 12px;
-    font-size: 12px;
-    color: ${colors.textLight};
-  }
-`;
-
 export const AdminSearchContainer = styled.div`
   display: flex;
   gap: 12px;
@@ -346,40 +308,57 @@ export const AdminSearchContainer = styled.div`
   }
 `;
 
-export const AdminEmptyState = styled.div`
+export const UserCard = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
+  padding: 24px;
   background: ${colors.white};
   border-radius: ${sizes.borderRadius};
-  text-align: center;
+  box-shadow: ${sizes.boxShadow};
+  transition: all 0.3s;
+  height: 100%;
   
-  .ant-empty-image {
-    margin-bottom: 20px;
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: ${sizes.boxShadowHover};
   }
   
-  .ant-empty-description {
-    color: ${colors.textSecondary};
-    margin-bottom: 20px;
+  .avatar {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 16px;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
   }
-`;
-
-export const AdminFormItem = styled.div`
-  margin-bottom: 24px;
   
-  .form-label {
-    display: block;
-    font-weight: 500;
+  .user-name {
+    font-size: 16px;
+    font-weight: 600;
     margin-bottom: 8px;
-    color: ${colors.textPrimary};
+    text-align: center;
   }
   
-  .form-error {
-    color: ${colors.error};
-    font-size: 12px;
-    margin-top: 4px;
+  .user-email {
+    font-size: 14px;
+    color: ${colors.textSecondary};
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  
+  .user-role {
+    margin-bottom: 16px;
+  }
+  
+  .user-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
   }
 `;
 
@@ -394,73 +373,6 @@ export const statusColors = {
   active: '#4cb551',
   inactive: '#f5222d',
 };
-
-// Các style cho component cụ thể
-export const OrderItemList = styled.div`
-  max-height: 400px;
-  overflow-y: auto;
-  
-  &::-webkit-scrollbar {
-    width: 5px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: #f1f1f1;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 8px;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: #555;
-  }
-`;
-
-export const OrderItem = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid ${colors.border};
-  
-  &:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-  }
-  
-  .item-image {
-    width: 80px;
-    height: 80px;
-    margin-right: 16px;
-    border-radius: ${sizes.borderRadiusSmall};
-    overflow: hidden;
-    flex-shrink: 0;
-    
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  }
-  
-  .item-info {
-    flex: 1;
-    
-    .item-name {
-      font-weight: 500;
-      margin-bottom: 8px;
-      color: ${colors.textPrimary};
-    }
-    
-    .item-price {
-      color: ${colors.textSecondary};
-      font-size: 14px;
-    }
-  }
-`;
 
 export default {
   colors,
@@ -480,11 +392,7 @@ export default {
   AdminTabs,
   AdminBadge,
   AdminSectionTitle,
-  AdminStatCard,
   AdminSearchContainer,
-  AdminEmptyState,
-  AdminFormItem,
-  statusColors,
-  OrderItemList,
-  OrderItem
+  UserCard,
+  statusColors
 };
