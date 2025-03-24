@@ -1,12 +1,15 @@
+// Cập nhật file pharmacyai/src/pages/AdminPage/AdminPage.jsx để thêm AdminOrder
+
 import React, { useState } from 'react'
 import { Layout, Menu, Typography, Avatar, Dropdown, Badge, Space } from 'antd'
 import { UserOutlined, ProductOutlined, DashboardOutlined, 
   LogoutOutlined, BellOutlined, SettingOutlined, OrderedListOutlined,
-  AppstoreOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+  AppstoreOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
 import { getItem } from '../../utils';
 import HeaderComponent from '../../components/HeaderComponent/HeaderComponent';
 import AdminUser from '../../components/AdminUser/AdminUser';
 import AdminProduct from '../../components/AdminProduct/AdminProduct';
+import AdminOrder from '../../components/AdminOrder/AdminOrder'; // Thêm import AdminOrder
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { resetUser } from '../../redux/slide/userSlide';
@@ -23,12 +26,12 @@ function AdminPage() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    // Menu items for sidebar
+    // Menu items for sidebar - Thêm mục quản lý đơn hàng
     const items = [
         getItem('Dashboard', 'dashboard', <DashboardOutlined />),
         getItem('Người dùng', 'user', <UserOutlined />),
         getItem('Sản phẩm', 'product', <ProductOutlined />),
-        getItem('Đơn hàng', 'order', <OrderedListOutlined />),
+        getItem('Đơn hàng', 'order', <OrderedListOutlined />), // Thêm mục quản lý đơn hàng
         getItem('Cài đặt', 'settings', <SettingOutlined />),
     ];
 
@@ -101,13 +104,15 @@ function AdminPage() {
         navigate('/sign-in');
     };
 
-    // Render content based on selected key
+    // Render content based on selected key - Thêm render AdminOrder
     const renderPage = (key) => {
         switch (key) {
             case 'user':
                 return <AdminUser />;
             case 'product':
                 return <AdminProduct />;
+            case 'order': // Thêm case để render AdminOrder
+                return <AdminOrder />;
             case 'dashboard':
                 return (
                     <div style={{ padding: '24px' }}>
@@ -168,7 +173,7 @@ function AdminPage() {
                             {keySelected === 'dashboard' && 'Dashboard'}
                             {keySelected === 'user' && 'Quản lý người dùng'}
                             {keySelected === 'product' && 'Quản lý sản phẩm'}
-                            {keySelected === 'order' && 'Quản lý đơn hàng'}
+                            {keySelected === 'order' && 'Quản lý đơn hàng'} {/* Thêm title cho quản lý đơn hàng */}
                             {keySelected === 'settings' && 'Cài đặt hệ thống'}
                         </AdminTitle>
                     </div>
@@ -218,4 +223,4 @@ function AdminPage() {
     );
 }
 
-export default AdminPage;
+export default AdminPage
