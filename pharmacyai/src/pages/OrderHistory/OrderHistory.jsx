@@ -1,5 +1,3 @@
-// File đầy đủ: pharmacyai/src/pages/OrderHistory/OrderHistory.jsx
-
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -38,7 +36,15 @@ import {
 } from '@ant-design/icons';
 import * as OrderService from '../../services/OrderService';
 import { convertPrice } from '../../utils';
-import './style.css';
+import { 
+  WrapperHeader, 
+  OrderItem, 
+  OrderItemsList, 
+  StatusBadge, 
+  StatsCard, 
+  TimelineContainer,
+  OrderSummary 
+} from './style';
 
 const { Title, Text, Paragraph } = Typography;
 const { confirm } = Modal;
@@ -254,71 +260,74 @@ const OrderHistory = () => {
     if (!statusHistory || !statusHistory.length) return null;
     
     return (
-      <Timeline mode="left">
-        {statusHistory.map((item, index) => {
-          const { color, icon } = getStatusInfo(item.status);
-          return (
-            <Timeline.Item 
-              key={index} 
-              color={color} 
-              dot={icon}
-            >
-              <div>
-                <Text strong>{getStatusInfo(item.status).text}</Text>
+      <TimelineContainer>
+        <Timeline mode="left">
+          {statusHistory.map((item, index) => {
+            const { color, icon } = getStatusInfo(item.status);
+            return (
+              <Timeline.Item 
+                key={index} 
+                color={color} 
+                dot={icon}
+              >
                 <div>
-                  <Text type="secondary">
-                    {new Date(item.timestamp).toLocaleDateString('vi-VN', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </Text>
+                  <Text strong>{getStatusInfo(item.status).text}</Text>
+                  <div>
+                    <Text type="secondary">
+                      {new Date(item.timestamp).toLocaleDateString('vi-VN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </Text>
+                  </div>
+                  {item.note && <div>{item.note}</div>}
                 </div>
-                {item.note && <div>{item.note}</div>}
-              </div>
-            </Timeline.Item>
-          );
-        })}
-      </Timeline>
+              </Timeline.Item>
+            );
+          })}
+        </Timeline>
+      </TimelineContainer>
     );
   };
   
   // Render sản phẩm trong modal chi tiết
   const renderOrderItems = (items) => {
     return (
-      <div className="order-items">
+      <OrderItemsList>
         {items.map((item, index) => (
-          <div key={index} className="order-item">
+          <OrderItem key={index}>
             <div className="item-image">
               <img src={item.image} alt={item.name} />
             </div>
-            <div className="item-details">
+            <div className="item-info">
               <div className="item-name">{item.name}</div>
-              <div className="item-quantity">Số lượng: {item.amount}</div>
+              <div className="item-price">
+                {convertPrice(item.price)} x {item.amount} = {convertPrice(item.price * item.amount)}
+              </div>
             </div>
-            <div className="item-price">{convertPrice(item.price * item.amount)}</div>
-          </div>
+          </OrderItem>
         ))}
-      </div>
+      </OrderItemsList>
     );
   };
   
   return (
-    <div className="order-history-container">
-      <div className="order-history-header">
-        <Title level={2}>Lịch sử đơn hàng</Title>
+    <div style={{ width: '1270px', margin: '0 auto', padding: '20px 15px' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <WrapperHeader>Lịch sử đơn hàng</WrapperHeader>
         <Text>Xem thông tin và trạng thái các đơn hàng của bạn</Text>
       </div>
       
       {loading ? (
-        <div className="loading-container">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px' }}>
           <Spin size="large" />
-          <div>Đang tải dữ liệu đơn hàng...</div>
+          <div style={{ marginTop: '16px' }}>Đang tải dữ liệu đơn hàng...</div>
         </div>
       ) : orders.length > 0 ? (
-        <div className="order-table">
+        <div style={{ background: 'white', borderRadius: '8px', padding: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
           <Table 
             columns={columns} 
             dataSource={orders}
@@ -332,7 +341,7 @@ const OrderHistory = () => {
           />
         </div>
       ) : (
-        <div className="empty-orders">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 0' }}>
           <Empty 
             description="Bạn chưa có đơn hàng nào"
             image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -341,6 +350,7 @@ const OrderHistory = () => {
             type="primary" 
             onClick={() => navigate('/')}
             icon={<ShoppingOutlined />}
+            style={{ marginTop: '16px' }}
           >
             Mua sắm ngay
           </Button>
@@ -372,17 +382,17 @@ const OrderHistory = () => {
         width={800}
       >
         {selectedOrder && (
-          <div className="order-details">
-            <div className="order-details-grid">
-              <div className="order-info">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
                 <Card title="Thông tin đơn hàng" bordered={false}>
-                  <div className="info-row">
-                    <span className="info-label">Mã đơn hàng:</span>
-                    <span className="info-value">{selectedOrder._id}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 500, color: '#666' }}>Mã đơn hàng:</span>
+                    <span>{selectedOrder._id}</span>
                   </div>
-                  <div className="info-row">
-                    <span className="info-label">Ngày đặt:</span>
-                    <span className="info-value">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 500, color: '#666' }}>Ngày đặt:</span>
+                    <span>
                       {new Date(selectedOrder.createdAt).toLocaleDateString('vi-VN', {
                         year: 'numeric',
                         month: '2-digit',
@@ -392,9 +402,9 @@ const OrderHistory = () => {
                       })}
                     </span>
                   </div>
-                  <div className="info-row">
-                    <span className="info-label">Phương thức thanh toán:</span>
-                    <span className="info-value">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 500, color: '#666' }}>Phương thức thanh toán:</span>
+                    <span>
                       {selectedOrder.paymentMethod === 'momo' ? (
                         <span><DollarOutlined /> Ví MoMo</span>
                       ) : (
@@ -402,18 +412,18 @@ const OrderHistory = () => {
                       )}
                     </span>
                   </div>
-                  <div className="info-row">
-                    <span className="info-label">Trạng thái:</span>
-                    <span className="info-value">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 500, color: '#666' }}>Trạng thái:</span>
+                    <span>
                       <Tag color={getStatusInfo(selectedOrder.status).color} icon={getStatusInfo(selectedOrder.status).icon}>
                         {getStatusInfo(selectedOrder.status).text}
                       </Tag>
                     </span>
                   </div>
                   {selectedOrder.estimatedDeliveryDate && (
-                    <div className="info-row">
-                      <span className="info-label">Ngày giao dự kiến:</span>
-                      <span className="info-value">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: 500, color: '#666' }}>Ngày giao dự kiến:</span>
+                      <span>
                         {new Date(selectedOrder.estimatedDeliveryDate).toLocaleDateString('vi-VN', {
                           year: 'numeric',
                           month: '2-digit',
@@ -425,38 +435,38 @@ const OrderHistory = () => {
                 </Card>
                 
                 <Card title="Địa chỉ giao hàng" bordered={false} style={{ marginTop: '16px' }}>
-                  <div className="info-row">
-                    <span className="info-label">Người nhận:</span>
-                    <span className="info-value">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 500, color: '#666' }}>Người nhận:</span>
+                    <span>
                       <UserOutlined /> {selectedOrder.shippingAddress.fullName}
                     </span>
                   </div>
-                  <div className="info-row">
-                    <span className="info-label">Số điện thoại:</span>
-                    <span className="info-value">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 500, color: '#666' }}>Số điện thoại:</span>
+                    <span>
                       <PhoneOutlined /> {selectedOrder.shippingAddress.phone}
                     </span>
                   </div>
-                  <div className="info-row">
-                    <span className="info-label">Địa chỉ:</span>
-                    <span className="info-value">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 500, color: '#666' }}>Địa chỉ:</span>
+                    <span>
                       <EnvironmentOutlined /> {selectedOrder.shippingAddress.address}, {selectedOrder.shippingAddress.city}
                     </span>
                   </div>
                 </Card>
               </div>
               
-              <div className="order-status">
+              <div>
                 <Card title="Lịch sử trạng thái" bordered={false}>
                   {renderStatusTimeline(selectedOrder.statusHistory)}
                 </Card>
               </div>
             </div>
             
-            <Card title="Sản phẩm" bordered={false} style={{ marginTop: '16px' }}>
+            <Card title="Sản phẩm" bordered={false}>
               {renderOrderItems(selectedOrder.orderItems)}
               
-              <div className="order-summary">
+              <OrderSummary>
                 <div className="summary-row">
                   <span>Tạm tính:</span>
                   <span>{convertPrice(selectedOrder.itemsPrice)}</span>
@@ -465,11 +475,11 @@ const OrderHistory = () => {
                   <span>Phí vận chuyển:</span>
                   <span>{convertPrice(selectedOrder.shippingPrice)}</span>
                 </div>
-                <div className="summary-row total">
+                <div className="summary-row">
                   <span>Tổng cộng:</span>
                   <span>{convertPrice(selectedOrder.totalPrice)}</span>
                 </div>
-              </div>
+              </OrderSummary>
             </Card>
             
             {/* Hướng dẫn theo dõi đơn hàng */}
