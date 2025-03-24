@@ -96,7 +96,7 @@ const AdminUser = () => {
   // Queries
   const queryUsers = useQuery({
     queryKey: ['users'],
-    queryFn: () => UserService.getAllUsers(user?.access_token),
+    queryFn: () => UserService.getAllUser(user?.access_token),
   });
   
   // Mutations
