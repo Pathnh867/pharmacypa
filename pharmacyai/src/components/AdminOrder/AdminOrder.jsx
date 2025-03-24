@@ -58,6 +58,7 @@ import {
   TimelineContainer,
   OrderSummary 
 } from './style';
+import moment from 'moment';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;

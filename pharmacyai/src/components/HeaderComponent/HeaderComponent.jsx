@@ -14,7 +14,8 @@ import {
   CloseOutlined,
   HomeOutlined,
   MedicineBoxOutlined,
-  PhoneOutlined
+  PhoneOutlined,
+  ShoppingOutlined
 } from '@ant-design/icons';
 import ButtonInputSearch from '../ButtonInputSearch/ButtonInputSearch'
 import { useNavigate } from 'react-router-dom';
@@ -124,6 +125,11 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
     setMobileMenuOpen(false)
   }
   
+  const handleNavigateOrderHistory = () => {
+    navigate('/order-history')
+    setMobileMenuOpen(false)
+  }
+  
   const handleNavigateHome = () => {
     navigate('/')
     setMobileMenuOpen(false)
@@ -158,6 +164,12 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
       label: 'Thông tin người dùng',
       icon: <UserOutlined />,
       onClick: handleNavigateProfile
+    },
+    {
+      key: 'orderHistory',
+      label: 'Lịch sử đơn hàng',
+      icon: <ShoppingOutlined />,
+      onClick: handleNavigateOrderHistory
     },
     {
       key: 'divider',
@@ -368,6 +380,12 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
             {user?.access_token && (
               <MobileMenuItem onClick={handleNavigateProfile}>
                 <UserOutlined /> Tài khoản của tôi
+              </MobileMenuItem>
+            )}
+
+            {user?.access_token && (
+              <MobileMenuItem onClick={handleNavigateOrderHistory}>
+                <ShoppingOutlined /> Lịch sử đơn hàng
               </MobileMenuItem>
             )}
             

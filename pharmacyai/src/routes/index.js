@@ -10,6 +10,7 @@ import AdminPage from "../pages/AdminPage/AdminPage";
 import PaymentPage from "../pages/PaymentPage/PaymentPage";
 import PaymentResultPage from "../pages/PaymentResultPage/PaymentResultPage";
 import ProfilePage from "../pages/Profile/ProfilePage";
+import OrderHistory from "../pages/OrderHistory/OrderHistory";
 // import PaymentPage from "../pages/Payment/PaymentPage";
 
 export const routes = [
@@ -76,4 +77,9 @@ export const routes = [
         page: PaymentResultPage,
         isShowHeader: true
     },
+    {
+        path: '/order-history',
+        page: OrderHistory,
+        isShowHeader: true
+    }
 ]
