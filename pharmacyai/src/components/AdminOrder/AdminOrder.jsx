@@ -22,7 +22,8 @@ import {
   Col,
   Badge,
   Descriptions,
-  Popconfirm
+    Popconfirm,
+  Spin
 } from 'antd';
 import {
   EyeOutlined,
