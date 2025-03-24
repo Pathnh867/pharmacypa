@@ -9,7 +9,6 @@ import { useSelector } from 'react-redux'
 import * as ProductService from '../../services/ProductService'
 import { useMutationHooks } from '../../hooks/useMutationHook'
 import Loading from '../LoadingComponent/Loading'
-import * as message from '../Message/Message'
 import { getBase64, renderOptions } from '../../utils'
 import { convertPrice } from '../../utils'
 
