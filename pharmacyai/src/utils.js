@@ -65,3 +65,29 @@ export const convertPrice = (price) => {
         return null
     }
 }
+export const formatOrderDate = (dateString, includeTime = true) => {
+  try {
+    if (!dateString) return 'N/A';
+    
+    const dateObj = new Date(dateString);
+    
+    // Kiểm tra nếu ngày hợp lệ
+    if (isNaN(dateObj.getTime())) return 'Ngày không hợp lệ';
+    
+    const options = {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    };
+    
+    if (includeTime) {
+      options.hour = '2-digit';
+      options.minute = '2-digit';
+    }
+    
+    return dateObj.toLocaleDateString('vi-VN', options);
+  } catch (error) {
+    console.error("Lỗi định dạng ngày tháng:", error);
+    return 'Lỗi';
+  }
+};

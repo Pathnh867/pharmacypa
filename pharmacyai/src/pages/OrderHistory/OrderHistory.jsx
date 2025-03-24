@@ -35,7 +35,7 @@ import {
   PhoneOutlined
 } from '@ant-design/icons';
 import * as OrderService from '../../services/OrderService';
-import { convertPrice } from '../../utils';
+import { convertPrice, formatOrderDate } from '../../utils';
 import { 
   WrapperHeader, 
   OrderItem, 
@@ -180,13 +180,7 @@ const OrderHistory = () => {
       title: 'Ngày đặt',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: date => new Date(date).toLocaleDateString('vi-VN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
+      render: date => formatOrderDate(date),
       width: 180,
       sorter: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
     },
@@ -274,13 +268,7 @@ const OrderHistory = () => {
                   <Text strong>{getStatusInfo(item.status).text}</Text>
                   <div>
                     <Text type="secondary">
-                      {new Date(item.timestamp).toLocaleDateString('vi-VN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {formatOrderDate(item.timestamp)}
                     </Text>
                   </div>
                   {item.note && <div>{item.note}</div>}
@@ -393,13 +381,7 @@ const OrderHistory = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ fontWeight: 500, color: '#666' }}>Ngày đặt:</span>
                     <span>
-                      {new Date(selectedOrder.createdAt).toLocaleDateString('vi-VN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {formatOrderDate(selectedOrder.createdAt)}
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -424,11 +406,7 @@ const OrderHistory = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <span style={{ fontWeight: 500, color: '#666' }}>Ngày giao dự kiến:</span>
                       <span>
-                        {new Date(selectedOrder.estimatedDeliveryDate).toLocaleDateString('vi-VN', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit'
-                        })}
+                        {formatOrderDate(selectedOrder.estimatedDeliveryDate, false)}
                       </span>
                     </div>
                   )}
@@ -490,7 +468,7 @@ const OrderHistory = () => {
                   <div>
                     <p>Đơn hàng của bạn đang được xử lý. Bạn có thể theo dõi trạng thái đơn hàng tại đây.</p>
                     {selectedOrder.status === 'shipping' && (
-                      <p>Đơn hàng đang được vận chuyển. Dự kiến sẽ giao hàng vào ngày {selectedOrder.estimatedDeliveryDate ? new Date(selectedOrder.estimatedDeliveryDate).toLocaleDateString('vi-VN') : 'trong vài ngày tới'}.</p>
+                      <p>Đơn hàng đang được vận chuyển. Dự kiến sẽ giao hàng vào ngày {selectedOrder.estimatedDeliveryDate ? formatOrderDate(selectedOrder.estimatedDeliveryDate, false) : 'trong vài ngày tới'}.</p>
                     )}
                   </div>
                 }

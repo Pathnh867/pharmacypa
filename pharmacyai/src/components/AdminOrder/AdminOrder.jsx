@@ -1,6 +1,5 @@
-// File đầy đủ: pharmacyai/src/components/AdminOrder/AdminOrder.jsx
-
 import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { 
   Table, 
   Button, 
@@ -22,7 +21,7 @@ import {
   Col,
   Badge,
   Descriptions,
-    Popconfirm,
+  Popconfirm,
   Spin
 } from 'antd';
 import {
@@ -45,11 +44,9 @@ import {
   CalendarOutlined,
   MailOutlined
 } from '@ant-design/icons';
-import { useSelector } from 'react-redux';
-import moment from 'moment';
 import * as OrderService from '../../services/OrderService';
 import * as UserService from '../../services/UserService';
-import { convertPrice } from '../../utils';
+import { convertPrice, formatOrderDate } from '../../utils';
 import { 
   WrapperHeader, 
   OrderItem, 
@@ -345,13 +342,7 @@ const AdminOrder = () => {
                   <Text strong>{getStatusInfo(item.status).text}</Text>
                   <div>
                     <Text type="secondary">
-                      {new Date(item.timestamp).toLocaleDateString('vi-VN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {formatOrderDate(item.timestamp)}
                     </Text>
                   </div>
                   {item.note && <div>{item.note}</div>}
@@ -407,13 +398,7 @@ const AdminOrder = () => {
       title: 'Ngày đặt',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: date => new Date(date).toLocaleDateString('vi-VN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
+      render: date => formatOrderDate(date),
       width: 150,
       sorter: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
     },
@@ -681,13 +666,7 @@ const AdminOrder = () => {
                       {selectedOrder._id}
                     </Descriptions.Item>
                     <Descriptions.Item label="Ngày đặt hàng">
-                      {new Date(selectedOrder.createdAt).toLocaleDateString('vi-VN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {formatOrderDate(selectedOrder.createdAt)}
                     </Descriptions.Item>
                     <Descriptions.Item label="Phương thức thanh toán">
                       {selectedOrder.paymentMethod === 'momo' ? 'Ví MoMo' : 'Thanh toán khi nhận hàng'}
@@ -709,7 +688,7 @@ const AdminOrder = () => {
                     </Descriptions.Item>
                     {selectedOrder.estimatedDeliveryDate && (
                       <Descriptions.Item label="Ngày giao dự kiến">
-                        {new Date(selectedOrder.estimatedDeliveryDate).toLocaleDateString('vi-VN')}
+                        {formatOrderDate(selectedOrder.estimatedDeliveryDate, false)}
                       </Descriptions.Item>
                     )}
                   </Descriptions>
