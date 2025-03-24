@@ -94,7 +94,7 @@ const Dashboard = () => {
   
   const usersQuery = useQuery({
     queryKey: ['dashboard-users'],
-    queryFn: () => UserService.getAllUsers(user?.access_token),
+    queryFn: () => UserService.getAllUser(user?.access_token),
     enabled: !!user?.access_token
   });
   
