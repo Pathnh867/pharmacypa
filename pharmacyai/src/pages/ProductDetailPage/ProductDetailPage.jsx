@@ -183,8 +183,7 @@ const ProductDetailPage = () => {
           </Breadcrumb>
         </BreadcrumbContainer>
         
-        {/* Sử dụng product thay vì chỉ truyền ID để tránh gọi API lại */}
-        <ProductDetailComponent idProduct={id} initialProduct={product} />
+        <ProductDetailComponent idProduct={id} />
       </ContentContainer>
     </PageContainer>
   )
