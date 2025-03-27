@@ -28,9 +28,6 @@ import {
 } from '@ant-design/icons';
 import { Column, Pie } from '@ant-design/plots';
 import { useSelector } from 'react-redux';
-import { useQuery } from '@tanstack/react-query';
-import * as OrderService from '../../services/OrderService';
-import * as ProductService from '../../services/ProductService';
 import * as RevenueService from '../../services/RevenueService';
 import moment from 'moment';
 import { convertPrice } from '../../utils';
@@ -73,95 +70,22 @@ const RevenueManagement = () => {
     averageOrderValue: 0,
     completionRate: 0
   });
+  const [isLoading, setIsLoading] = useState(false);
   
   const user = useSelector((state) => state.user);
   
-  // Query hooks for fetching data
-  const ordersQuery = useQuery({
-    queryKey: ['revenue-orders'],
-    queryFn: () => OrderService.getAllOrders(user?.access_token, 1000, 0),
-    enabled: !!user?.access_token
-  });
-  
-  const productsQuery = useQuery({
-    queryKey: ['revenue-products'],
-    queryFn: () => ProductService.getAllProduct('', 1000),
-    enabled: !!user?.access_token
-  });
-  
-  const typesQuery = useQuery({
-    queryKey: ['revenue-types'],
-    queryFn: ProductService.getAllTypeProduct,
-    enabled: !!user?.access_token
-  });
-  
-  // Fetch data from API
-  const fetchData = async () => {
-    try {
-      // Fetch revenue stats
-      const revenueResponse = await RevenueService.getRevenueStats(
-        user?.access_token,
-        dateRange[0],
-        dateRange[1]
-      );
-      
-      if (revenueResponse?.status === 'OK' && revenueResponse?.data) {
-        const data = revenueResponse.data;
-        
-        // Set revenue summary
-        setRevenueSummary({
-          totalRevenue: data.totalRevenue || 0,
-          totalOrders: data.totalOrders || 0,
-          averageOrderValue: data.averageOrderValue || 0,
-          completionRate: data.totalOrders > 0 ? (data.totalDeliveredOrders / data.totalOrders * 100) : 0
-        });
-        
-        // Process time series data based on timeUnit
-        processTimeSeriesData(data.dailyRevenue || []);
-      }
-      
-      // Fetch product stats
-      const productResponse = await RevenueService.getProductRevenueStats(
-        user?.access_token,
-        dateRange[0],
-        dateRange[1],
-        10 // Limit to top 10
-      );
-      
-      if (productResponse?.status === 'OK' && productResponse?.data) {
-        setProductSalesData(productResponse.data || []);
-      }
-      
-      // Fetch category stats
-      const categoryResponse = await RevenueService.getCategoryRevenueStats(
-        user?.access_token,
-        dateRange[0],
-        dateRange[1]
-      );
-      
-      if (categoryResponse?.status === 'OK' && categoryResponse?.data) {
-        // Transform data format
-        const transformedData = categoryResponse.data.map(item => ({
-          category: item.typeName,
-          typeId: item.typeId,
-          quantity: item.quantity,
-          revenue: item.revenue
-        }));
-        
-        setCategorySalesData(transformedData || []);
-      }
-    } catch (error) {
-      console.error("Error fetching revenue data:", error);
-      message.error("Không thể tải dữ liệu doanh thu");
+  // Format time labels for charts
+  const formatTimeLabel = (timeKey, unit) => {
+    if (unit === 'day') {
+      return moment(timeKey).format('DD/MM');
+    } else if (unit === 'week') {
+      const [year, week] = timeKey.split('-W');
+      return `Tuần ${week}, ${year}`;
+    } else if (unit === 'month') {
+      return moment(timeKey).format('MM/YYYY');
     }
+    return timeKey;
   };
-  
-  // Fetch data when dateRange or timeUnit changes
-  useEffect(() => {
-    if (user?.access_token) {
-      fetchData();
-    }
-  }, [user?.access_token, dateRange, timeUnit]);
   
   // Process time series data based on selected timeUnit
   const processTimeSeriesData = (dailyData) => {
@@ -217,134 +141,77 @@ const RevenueManagement = () => {
     setSalesData(result);
   };
   
-  // Generate time series data for revenue chart
-  const generateTimeSeriesData = (orders) => {
-    // Group orders by time unit (day, week, month)
-    const groupedData = {};
-    
-    orders.forEach(order => {
-      let timeKey;
-      const orderDate = moment(order.createdAt);
+  // Fetch data from API
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
       
-      if (timeUnit === 'day') {
-        timeKey = orderDate.format('YYYY-MM-DD');
-      } else if (timeUnit === 'week') {
-        timeKey = `${orderDate.year()}-W${orderDate.week()}`;
-      } else if (timeUnit === 'month') {
-        timeKey = orderDate.format('YYYY-MM');
-      } else {
-        timeKey = orderDate.format('YYYY-MM-DD');
-      }
+      // Fetch revenue stats
+      const revenueResponse = await RevenueService.getRevenueStats(
+        user?.access_token,
+        dateRange[0],
+        dateRange[1]
+      );
       
-      if (!groupedData[timeKey]) {
-        groupedData[timeKey] = {
-          timeKey,
-          revenue: 0,
-          orders: 0,
-          displayLabel: formatTimeLabel(timeKey, timeUnit)
-        };
-      }
-      
-      groupedData[timeKey].revenue += order.totalPrice;
-      groupedData[timeKey].orders += 1;
-    });
-    
-    // Convert to array and sort by time
-    const result = Object.values(groupedData).sort((a, b) => {
-      return a.timeKey.localeCompare(b.timeKey);
-    });
-    
-    setSalesData(result);
-  };
-  
-  // Generate product sales data for product performance chart
-  const generateProductSalesData = (orders, products) => {
-    // Count sales by product
-    const productSales = {};
-    
-    orders.forEach(order => {
-      if (order.orderItems) {
-        order.orderItems.forEach(item => {
-          if (!productSales[item.product]) {
-            productSales[item.product] = {
-              productId: item.product,
-              name: item.name,
-              quantity: 0,
-              revenue: 0
-            };
-          }
-          productSales[item.product].quantity += item.amount;
-          productSales[item.product].revenue += item.price * item.amount;
+      if (revenueResponse?.status === 'OK' && revenueResponse?.data) {
+        const data = revenueResponse.data;
+        
+        // Set revenue summary
+        setRevenueSummary({
+          totalRevenue: data.totalRevenue || 0,
+          totalOrders: data.totalOrders || 0,
+          averageOrderValue: data.averageOrderValue || 0,
+          completionRate: data.totalOrders > 0 ? (data.totalDeliveredOrders / data.totalOrders * 100) : 0
         });
+        
+        // Process time series data based on timeUnit
+        processTimeSeriesData(data.dailyRevenue || []);
       }
-    });
-    
-    // Convert to array and sort by revenue
-    const result = Object.values(productSales)
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 10); // Top 10 products
-    
-    setProductSalesData(result);
-  };
-  
-  // Generate category sales data for category performance chart
-  const generateCategorySalesData = (orders, products, types) => {
-    // Create type lookup map
-    const typeMap = {};
-    types.forEach(type => {
-      typeMap[type._id] = type.name;
-    });
-    
-    // Create product to type lookup map
-    const productTypeMap = {};
-    products.forEach(product => {
-      const typeId = product.type;
-      const typeName = typeMap[typeId] || 'Không xác định';
-      productTypeMap[product._id] = typeName;
-    });
-    
-    // Count sales by category
-    const categorySales = {};
-    
-    orders.forEach(order => {
-      if (order.orderItems) {
-        order.orderItems.forEach(item => {
-          const productId = item.product;
-          const category = productTypeMap[productId] || 'Không xác định';
-          
-          if (!categorySales[category]) {
-            categorySales[category] = {
-              category,
-              quantity: 0,
-              revenue: 0
-            };
-          }
-          
-          categorySales[category].quantity += item.amount;
-          categorySales[category].revenue += item.price * item.amount;
-        });
+      
+      // Fetch product stats
+      const productResponse = await RevenueService.getProductRevenueStats(
+        user?.access_token,
+        dateRange[0],
+        dateRange[1],
+        10 // Limit to top 10
+      );
+      
+      if (productResponse?.status === 'OK' && productResponse?.data) {
+        setProductSalesData(productResponse.data || []);
       }
-    });
-    
-    // Convert to array and sort by revenue
-    const result = Object.values(categorySales)
-      .sort((a, b) => b.revenue - a.revenue);
-    
-    setCategorySalesData(result);
-  };
-  
-  // Format time labels for charts
-  const formatTimeLabel = (timeKey, unit) => {
-    if (unit === 'day') {
-      return moment(timeKey).format('DD/MM');
-    } else if (unit === 'week') {
-      const [year, week] = timeKey.split('-W');
-      return `Tuần ${week}, ${year}`;
-    } else if (unit === 'month') {
-      return moment(timeKey).format('MM/YYYY');
+      
+      // Fetch category stats
+      const categoryResponse = await RevenueService.getCategoryRevenueStats(
+        user?.access_token,
+        dateRange[0],
+        dateRange[1]
+      );
+      
+      if (categoryResponse?.status === 'OK' && categoryResponse?.data) {
+        // Transform data format
+        const transformedData = categoryResponse.data.map(item => ({
+          category: item.typeName,
+          typeId: item.typeId,
+          quantity: item.quantity,
+          revenue: item.revenue
+        }));
+        
+        setCategorySalesData(transformedData || []);
+      }
+    } catch (error) {
+      console.error("Error fetching revenue data:", error);
+      message.error("Không thể tải dữ liệu doanh thu");
+    } finally {
+      setIsLoading(false);
     }
-    return timeKey;
   };
+  
+  // Fetch data when dateRange or timeUnit changes
+  useEffect(() => {
+    if (user?.access_token) {
+      fetchData();
+    }
+  }, [user?.access_token, dateRange, timeUnit]);
   
   // Handle date range change
   const handleDateRangeChange = (dates) => {
@@ -535,74 +402,6 @@ const RevenueManagement = () => {
       },
     },
   ];
-  
-  // Loading state
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Update fetchData to handle loading state
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Fetch revenue stats
-      const revenueResponse = await RevenueService.getRevenueStats(
-        user?.access_token,
-        dateRange[0],
-        dateRange[1]
-      );
-      
-      if (revenueResponse?.status === 'OK' && revenueResponse?.data) {
-        const data = revenueResponse.data;
-        
-        // Set revenue summary
-        setRevenueSummary({
-          totalRevenue: data.totalRevenue || 0,
-          totalOrders: data.totalOrders || 0,
-          averageOrderValue: data.averageOrderValue || 0,
-          completionRate: data.totalOrders > 0 ? (data.totalDeliveredOrders / data.totalOrders * 100) : 0
-        });
-        
-        // Process time series data based on timeUnit
-        processTimeSeriesData(data.dailyRevenue || []);
-      }
-      
-      // Fetch product stats
-      const productResponse = await RevenueService.getProductRevenueStats(
-        user?.access_token,
-        dateRange[0],
-        dateRange[1],
-        10 // Limit to top 10
-      );
-      
-      if (productResponse?.status === 'OK' && productResponse?.data) {
-        setProductSalesData(productResponse.data || []);
-      }
-      
-      // Fetch category stats
-      const categoryResponse = await RevenueService.getCategoryRevenueStats(
-        user?.access_token,
-        dateRange[0],
-        dateRange[1]
-      );
-      
-      if (categoryResponse?.status === 'OK' && categoryResponse?.data) {
-        // Transform data format
-        const transformedData = categoryResponse.data.map(item => ({
-          category: item.typeName,
-          typeId: item.typeId,
-          quantity: item.quantity,
-          revenue: item.revenue
-        }));
-        
-        setCategorySalesData(transformedData || []);
-      }
-    } catch (error) {
-      console.error("Error fetching revenue data:", error);
-      message.error("Không thể tải dữ liệu doanh thu");
-    } finally {
-      setIsLoading(false);
-    }
-  };
   
   return (
     <RevenueContainer>
