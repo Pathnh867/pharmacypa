@@ -300,6 +300,7 @@ const AdminUser = () => {
           return;
         }
         userData.password = values.password;
+        userData.confirmPassword = values.confirmPassword;
       }
       
       // Add avatar if exists
