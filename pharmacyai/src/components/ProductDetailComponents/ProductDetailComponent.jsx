@@ -1,4 +1,3 @@
-// Sửa import để tránh xung đột tên với HTML img tag
 import React, { useState, useEffect } from 'react';
 import { 
   Col, 
@@ -67,7 +66,7 @@ import {
 const { TabPane } = Tabs;
 const { TextArea } = Input;
 
-// Demo data for reviews (giữ nguyên)
+// Demo data for reviews
 const demoReviews = [
   {
     id: 1,
@@ -269,7 +268,6 @@ const ProductDetailComponent = ({ idProduct }) => {
       <WrapperContainer>
         <WrapperMainContent>
           <Col span={10} style={{borderRight: '1px solid #e5e5e5', paddingRight:'24px'}}>
-            {/* Sửa đổi ở đây, sử dụng AntImage thay vì Image */}
             <AntImage 
               src={productDetails?.image} 
               alt={productDetails?.name}

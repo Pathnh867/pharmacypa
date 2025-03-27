@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { Tabs, InputNumber } from "antd";
+import { Image as AntImage } from 'antd'; // Đổi tên import để tránh xung đột
 
 // Styling cho tabs
 export const StyledTabs = styled(Tabs)`
@@ -356,7 +357,8 @@ export const WrapperStyleNameProduct = styled.h1`
   margin-bottom: 8px;
 `;
 
-export const WrapperStyleImageSmall = styled(Image)`
+// Sửa đổi tên component Image để tránh xung đột
+export const WrapperStyleImageSmall = styled(AntImage)`
   height: 64px;
   width: 64px;
   border-radius: 4px;
