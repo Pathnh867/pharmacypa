@@ -208,3 +208,15 @@ export const getAllUser = async (access_token) => {
     return res.data;
 };
 
+export const createUser = async (userData, token) => {
+    const res = await axiosJWT.post(
+        `${process.env.REACT_APP_API_URL}/user/sign-up`,
+        userData,
+        {
+            headers: {
+                token: `Bearer ${token}`
+            }
+        }
+    );
+    return res.data;
+};
