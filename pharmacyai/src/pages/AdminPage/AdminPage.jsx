@@ -5,11 +5,13 @@ import { Layout, Menu, Typography, Avatar, Dropdown, Badge, Space } from 'antd'
 import { UserOutlined, ProductOutlined, DashboardOutlined, 
   LogoutOutlined, BellOutlined, SettingOutlined, OrderedListOutlined,
   AppstoreOutlined, MenuFoldOutlined, MenuUnfoldOutlined, BarChartOutlined,
-  ShoppingOutlined, TeamOutlined, NotificationOutlined, HomeOutlined } from '@ant-design/icons'
+  ShoppingOutlined, TeamOutlined, NotificationOutlined, HomeOutlined,
+  DollarOutlined } from '@ant-design/icons'
 import { getItem } from '../../utils';
 import AdminUser from '../../components/AdminUser/AdminUser';
 import AdminProduct from '../../components/AdminProduct/AdminProduct';
 import AdminOrder from '../../components/AdminOrder/AdminOrder';
+import RevenueManagement from '../../components/RevenueManagement/RevenueManagement';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { resetUser } from '../../redux/slide/userSlide';
@@ -50,6 +52,7 @@ function AdminPage() {
         getItem('Người dùng', 'user', <TeamOutlined />),
         getItem('Sản phẩm', 'product', <ProductOutlined />),
         getItem('Đơn hàng', 'order', <ShoppingOutlined />),
+        getItem('Báo cáo doanh thu', 'revenue', <DollarOutlined />),
         getItem('Cài đặt', 'settings', <SettingOutlined />),
     ];
 
@@ -142,6 +145,8 @@ function AdminPage() {
                 return <AdminProduct />;
             case 'order':
                 return <AdminOrder />;
+            case 'revenue':
+                return <RevenueManagement />;
             case 'dashboard':
             default:
                 return (
@@ -194,6 +199,7 @@ function AdminPage() {
                                 {keySelected === 'user' && 'Quản lý người dùng'}
                                 {keySelected === 'product' && 'Quản lý sản phẩm'}
                                 {keySelected === 'order' && 'Quản lý đơn hàng'}
+                                {keySelected === 'revenue' && 'Báo cáo doanh thu'}
                                 {keySelected === 'settings' && 'Cài đặt hệ thống'}
                             </AdminTitle>
                         </div>

@@ -1,10 +1,12 @@
-// Đảm bảo đã import AddressRouter trong routes/index.js
+// pharmacyai-backend/src/routes/index.js
+
 const UserRouter = require('./UserRouter');
 const ProductRouter = require('./ProductRouter');
 const OrderRouter = require('./OrderRouter');
 const PaymentRouter = require('./PaymentRouter');
 const TypeRouter = require('./TypeRouter');
 const AddressRouter = require('./AddressRouter');
+const OrderStatsRouter = require('./OrderStatsRouter');
 
 const routes = (app) => {
     app.use('/api/user', UserRouter);
@@ -13,6 +15,7 @@ const routes = (app) => {
     app.use('/api/payment', PaymentRouter);
     app.use('/api/type', TypeRouter);
     app.use('/api/address', AddressRouter);
+    app.use('/api/stats', OrderStatsRouter);
 };
 
 module.exports = routes;
