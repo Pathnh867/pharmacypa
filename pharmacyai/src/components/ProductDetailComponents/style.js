@@ -359,8 +359,8 @@ export const WrapperStyleNameProduct = styled.h1`
 
 // Sửa đổi tên component Image để tránh xung đột
 export const WrapperStyleImageSmall = styled(AntImage)`
-  height: 48px;  
-  width: 48px;   
+  height: 8px;  
+  width: 8px;   
   border-radius: 4px;
   
   &.active {
