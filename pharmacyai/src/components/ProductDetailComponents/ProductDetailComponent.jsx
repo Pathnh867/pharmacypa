@@ -1,11 +1,4 @@
-import { useDispatch, useSelector } from 'react-redux';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import styled from 'styled-components';
-import * as ProductService from '../../services/ProductService';
-import { addOrderProduct } from '../../redux/slide/orderSlide';
-import Loading from '../../components/LoadingComponent/Loading';
-import ButtonComponent from '../ButtonComponents/ButtonComponent';import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Col, 
   Image, 
@@ -37,346 +30,38 @@ import {
   MessageOutlined,
   UserOutlined
 } from '@ant-design/icons';
+import { useDispatch, useSelector } from 'react-redux';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import * as ProductService from '../../services/ProductService';
+import { addOrderProduct } from '../../redux/slide/orderSlide';
+import Loading from '../../components/LoadingComponent/Loading';
+import ButtonComponent from '../ButtonComponents/ButtonComponent';
+import { 
+  WrapperStyleHeader, 
+  WrapperStyleHeaderSmall, 
+  WrapperPriceProduct, 
+  WrapperPriceTextProduct, 
+  WrapperAddressProduct, 
+  WrapperQualityProduct, 
+  WrapperInputNumber, 
+  WrapperStyleNameProduct, 
+  WrapperStyleImageSmall, 
+  WrapperStyleColImage, 
+  WrapperStyleTextSell, 
+  WrapperProductInfo, 
+  WrapperFeatureItem, 
+  WrapperFeatures, 
+  WrapperContainer, 
+  WrapperBreadcrumb, 
+  WrapperMainContent,
+  WrapperActions, 
+  WrapperTabs,
+  ProductDetailContainer
+} from './style';
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
-
-// Styled Components
-const ProductContainer = styled.div`
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  margin-bottom: 24px;
-  overflow: hidden;
-`
-
-const MainContent = styled.div`
-  display: flex;
-  padding: 24px;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`
-
-const ImageColumn = styled(Col)`
-  border-right: 1px solid #e8e8e8;
-  padding-right: 24px;
-  
-  @media (max-width: 768px) {
-    border-right: none;
-    border-bottom: 1px solid #e8e8e8;
-    padding-right: 0;
-    padding-bottom: 24px;
-    margin-bottom: 24px;
-  }
-`
-
-const ImageGallery = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-`
-
-const ThumbnailImage = styled(Image)`
-  width: 64px;
-  height: 64px;
-  object-fit: cover;
-  border-radius: 4px;
-  cursor: pointer;
-  border: ${props => props.active ? '2px solid #4cb551' : '2px solid transparent'};
-  transition: all 0.2s ease;
-  
-  &:hover {
-    border: 2px solid #4cb551;
-    transform: translateY(-2px);
-  }
-`
-
-const ProductInfo = styled(Col)`
-  padding-left: 24px;
-  
-  @media (max-width: 768px) {
-    padding-left: 0;
-  }
-`
-
-const ProductName = styled.h1`
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 12px;
-  line-height: 1.4;
-`
-
-const RatingWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-`
-
-const SellingInfo = styled.div`
-  color: #666;
-  font-size: 14px;
-  
-  span {
-    margin-left: 8px;
-    color: #4cb551;
-    font-weight: 500;
-  }
-`
-
-const StockInfo = styled.div`
-  display: flex;
-  align-items: center;
-  margin: 16px 0;
-  
-  .icon {
-    color: ${props => props.inStock ? '#4cb551' : '#ff4d4f'};
-    font-size: 16px;
-    margin-right: 8px;
-  }
-  
-  .text {
-    color: ${props => props.inStock ? '#4cb551' : '#ff4d4f'};
-    font-weight: 500;
-  }
-`
-
-const PriceContainer = styled.div`
-  background: #f9f9f9;
-  border-radius: 8px;
-  padding: 16px;
-  margin: 16px 0;
-`
-
-const MainPrice = styled.span`
-  font-size: 28px;
-  font-weight: 600;
-  color: #ff4d4f;
-`
-
-const OriginalPrice = styled.span`
-  text-decoration: line-through;
-  color: #999;
-  margin-left: 12px;
-  font-size: 16px;
-`
-
-const DiscountBadge = styled.span`
-  background: #ff4d4f;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-left: 12px;
-  font-weight: 500;
-  font-size: 14px;
-`
-
-const ShippingInfo = styled.div`
-  margin: 16px 0;
-  
-  .heading {
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 8px;
-  }
-  
-  .address {
-    font-weight: 500;
-    text-decoration: underline;
-    cursor: pointer;
-  }
-  
-  .change {
-    color: #4cb551;
-    margin-left: 8px;
-    cursor: pointer;
-    
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-`
-
-const QuantityWrapper = styled.div`
-  margin: 24px 0;
-  
-  .label {
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 8px;
-  }
-`
-
-const QuantityControls = styled.div`
-  display: flex;
-  align-items: center;
-  width: 140px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  overflow: hidden;
-  
-  button {
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    &:hover {
-      background: #f5f5f5;
-    }
-    
-    &:disabled {
-      cursor: not-allowed;
-      color: #d9d9d9;
-    }
-  }
-  
-  .ant-input-number {
-    width: 60px;
-    border-left: 1px solid #d9d9d9;
-    border-right: 1px solid #d9d9d9;
-    border-top: none;
-    border-bottom: none;
-    
-    .ant-input-number-handler-wrap {
-      display: none;
-    }
-  }
-`
-
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 16px;
-  margin-top: 24px;
-  
-  @media (max-width: 576px) {
-    flex-direction: column;
-  }
-`
-
-const FeatureList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 24px;
-`
-
-const FeatureItem = styled.div`
-  flex: 1;
-  min-width: 200px;
-  padding: 16px;
-  background: #f9f9f9;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  
-  .icon {
-    color: #4cb551;
-    font-size: 24px;
-    margin-right: 16px;
-  }
-  
-  .content {
-    .title {
-      font-weight: 500;
-      color: #333;
-      margin-bottom: 4px;
-    }
-    
-    .description {
-      color: #666;
-      font-size: 13px;
-    }
-  }
-`
-
-const StyledTabs = styled(Tabs)`
-  padding: 0 24px 24px;
-  
-  .ant-tabs-nav {
-    margin-bottom: 16px;
-  }
-  
-  .ant-tabs-tab {
-    padding: 12px 16px;
-    font-size: 16px;
-  }
-  
-  .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
-    color: #4cb551;
-    font-weight: 500;
-  }
-  
-  .ant-tabs-ink-bar {
-    background: #4cb551;
-  }
-`
-
-const ReviewFormWrapper = styled.div`
-  background: #f9f9f9;
-  border-radius: 8px;
-  padding: 24px;
-  margin-top: 24px;
-`
-
-const ReviewList = styled(List)`
-  margin-top: 24px;
-  
-  .ant-list-item {
-    padding: 16px;
-    border-radius: 8px;
-    border: 1px solid #f0f0f0;
-    margin-bottom: 16px;
-    
-    &:hover {
-      background: #f9f9f9;
-    }
-  }
-  
-  .ant-comment-content-author-name {
-    color: #333;
-    font-weight: 500;
-  }
-  
-  .ant-comment-content-detail {
-    color: #666;
-  }
-`
-
-const EmptyStateWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32px 0;
-  
-  .icon {
-    font-size: 48px;
-    color: #d9d9d9;
-    margin-bottom: 16px;
-  }
-  
-  .title {
-    font-size: 18px;
-    color: #333;
-    margin-bottom: 8px;
-  }
-  
-  .subtitle {
-    color: #666;
-    text-align: center;
-    max-width: 500px;
-  }
-`
 
 // Demo data for reviews
 const demoReviews = [
@@ -565,165 +250,172 @@ const ProductDetailComponent = ({ idProduct }) => {
 
   return (
     <Loading isPending={isPending}>
-      <ProductContainer>
-        <MainContent>
-          <ImageColumn span={10}>
-            <Image
-              src={productDetails?.image}
+      <WrapperContainer>
+        <WrapperMainContent>
+          <Col span={10} style={{borderRight: '1px solid #e5e5e5', paddingRight:'24px'}}>
+            <Image 
+              src={productDetails?.image} 
               alt={productDetails?.name}
               width="100%"
-              height="auto"
               preview={false}
               style={{ borderRadius: '8px' }}
             />
             
-            <ImageGallery>
+            <div style={{paddingTop:'16px', display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
               {productImages.map((image, index) => (
-                <ThumbnailImage
-                  key={index}
-                  src={image}
-                  alt={`Thumbnail ${index}`}
-                  preview={false}
-                  active={selectedImage === index}
-                  onClick={() => setSelectedImage(index)}
-                />
+                <WrapperStyleColImage key={index} onClick={() => setSelectedImage(index)}>
+                  <WrapperStyleImageSmall 
+                    src={image} 
+                    alt={`Thumbnail ${index}`} 
+                    preview={false} 
+                    className={selectedImage === index ? 'active' : ''}
+                  />
+                </WrapperStyleColImage>
               ))}
-            </ImageGallery>
-          </ImageColumn>
+            </div>
+          </Col>
           
-          <ProductInfo span={14}>
-            <ProductName>{productDetails?.name}</ProductName>
-            
-            <RatingWrapper>
-              <Rate disabled value={productDetails?.rating} allowHalf />
-              <SellingInfo>
-                Đã bán:<span>{productDetails?.selled || 200}+</span>
-              </SellingInfo>
-            </RatingWrapper>
-            
-            <StockInfo inStock={productDetails?.countInStock > 0}>
-              <CheckCircleOutlined className="icon" />
-              <span className="text">
-                {productDetails?.countInStock > 0 
-                  ? `Còn hàng (${productDetails?.countInStock} sản phẩm)` 
-                  : 'Hết hàng'}
-              </span>
-            </StockInfo>
-            
-            <PriceContainer>
-              <MainPrice>
-                {formatPrice(calculateDiscountPrice(productDetails?.price, productDetails?.discount))}
-              </MainPrice>
+          <Col span={14} style={{paddingLeft: '24px'}}>
+            <WrapperProductInfo>
+              <WrapperStyleNameProduct>{productDetails?.name}</WrapperStyleNameProduct>
               
-              {productDetails?.discount > 0 && (
-                <>
-                  <OriginalPrice>
-                    {formatPrice(productDetails?.price)}
-                  </OriginalPrice>
-                  <DiscountBadge>
-                    -{productDetails?.discount}%
-                  </DiscountBadge>
-                </>
-              )}
-            </PriceContainer>
-            
-            <ShippingInfo>
-              <div className="heading">Giao hàng đến:</div>
-              <span className="address">Phường 13, Quận Tân Bình, TP. Hồ Chí Minh</span>
-              <span className="change">Đổi địa chỉ</span>
-            </ShippingInfo>
-            
-            <Divider />
-            
-            <QuantityWrapper>
-              <div className="label">Số lượng</div>
-              <QuantityControls>
-                <button 
-                  onClick={() => handleChangeCount('decrease')}
-                  disabled={numProduct <= 1}
-                >
-                  <MinusOutlined />
-                </button>
-                <InputNumber
-                  min={1}
-                  max={productDetails?.countInStock || 999}
-                  value={numProduct}
-                  onChange={onChange}
-                  controls={false}
+              <div style={{display: 'flex', alignItems: 'center', gap: '10px', margin: '10px 0'}}>
+                <Rate allowHalf disabled value={productDetails?.rating} />
+                <WrapperStyleTextSell> | Đã bán {productDetails?.selled || 200}+</WrapperStyleTextSell>
+              </div>
+              
+              <div style={{display: 'flex', alignItems: 'center', margin: '16px 0'}}>
+                <CheckCircleOutlined style={{ fontSize: '16px', color: '#4cb551', marginRight: '8px' }} />
+                <span style={{ color: '#4cb551', fontWeight: '500' }}>
+                  {productDetails?.countInStock > 0 
+                    ? `Còn hàng (${productDetails?.countInStock} sản phẩm)` 
+                    : 'Hết hàng'}
+                </span>
+              </div>
+              
+              <WrapperPriceProduct>
+                <WrapperPriceTextProduct>
+                  {formatPrice(calculateDiscountPrice(productDetails?.price, productDetails?.discount))}
+                </WrapperPriceTextProduct>
+                {productDetails?.discount > 0 && (
+                  <div style={{display: 'flex', alignItems: 'center'}}>
+                    <span style={{textDecoration: 'line-through', color: '#999', marginLeft: '10px'}}>
+                      {formatPrice(productDetails?.price)}
+                    </span>
+                    <span style={{
+                      background: '#ff4d4f', 
+                      color: 'white', 
+                      padding: '2px 8px', 
+                      borderRadius: '4px', 
+                      marginLeft: '10px',
+                      fontSize: '14px'
+                    }}>
+                      -{productDetails?.discount}%
+                    </span>
+                  </div>
+                )}
+              </WrapperPriceProduct>
+              
+              <WrapperAddressProduct>
+                <div style={{ fontWeight: '500', color: '#333', marginBottom: '8px' }}>Giao hàng đến:</div>
+                <span className='address'>Phường 13, Quận Tân Bình, Hồ Chí Minh</span>
+                <span className='changeAddress'> Đổi địa chỉ</span>
+              </WrapperAddressProduct>
+              
+              <Divider style={{ margin: '16px 0' }} />
+              
+              <div style={{margin:'20px 0'}}>
+                <div style={{marginBottom: '8px', fontWeight: '500', color: '#333'}}>Số Lượng</div>
+                <WrapperQualityProduct>
+                  <button 
+                    style={{ border:'none', background:'transparent', cursor: 'pointer', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center'}} 
+                    onClick={() => handleChangeCount('decrease')}
+                    disabled={numProduct <= 1}
+                  >
+                    <MinusOutlined style={{color: numProduct <= 1 ? '#d9d9d9' : '#333', fontSize:'16px'}} />
+                  </button>
+                  <WrapperInputNumber 
+                    onChange={onChange} 
+                    value={numProduct} 
+                    size="small" 
+                    min={1} 
+                    max={productDetails?.countInStock || 999}
+                    controls={false}
+                  />
+                  <button 
+                    style={{ border:'none', background:'transparent', cursor: 'pointer', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center'}} 
+                    onClick={() => handleChangeCount('increase')}
+                    disabled={numProduct >= (productDetails?.countInStock || 999)}
+                  >
+                    <PlusOutlined style={{ color: numProduct >= (productDetails?.countInStock || 999) ? '#d9d9d9' : '#333', fontSize: '16px' }} />
+                  </button>
+                </WrapperQualityProduct>
+              </div>
+              
+              <WrapperActions>
+                <ButtonComponent
+                  size={40}
+                  styleButton={{
+                    background: '#4cb551',
+                    height: '48px',
+                    width: '220px',
+                    border: 'none',
+                    borderRadius: '8px'
+                  }}
+                  onClick={handleBuyNow}
+                  textButton={'Mua ngay'}
+                  styleTextButton={{color:'#fff', fontSize:'16px', fontWeight:'600'}}
+                  disabled={!productDetails?.countInStock}
                 />
-                <button 
-                  onClick={() => handleChangeCount('increase')}
-                  disabled={numProduct >= (productDetails?.countInStock || 999)}
-                >
-                  <PlusOutlined />
-                </button>
-              </QuantityControls>
-            </QuantityWrapper>
-            
-            <ActionButtons>
-              <ButtonComponent
-                size={40}
-                styleButton={{
-                  background: '#4cb551',
-                  height: '48px',
-                  width: '220px',
-                  border: 'none',
-                  borderRadius: '8px'
-                }}
-                onClick={handleBuyNow}
-                textButton={'Mua ngay'}
-                styleTextButton={{color:'#fff', fontSize:'16px', fontWeight:'600'}}
-                disabled={!productDetails?.countInStock}
-              />
+                <ButtonComponent
+                  size={40}
+                  styleButton={{
+                    background: '#fff',
+                    height: '48px',
+                    width: '220px',
+                    border: '1px solid #4cb551',
+                    borderRadius: '8px'
+                  }}
+                  icon={<ShoppingCartOutlined style={{fontSize: '20px'}} />}
+                  onClick={handleAddOrderProduct}
+                  textButton={'Thêm vào giỏ hàng'}
+                  styleTextButton={{color:'#4cb551', fontSize:'16px', fontWeight: '500'}}
+                  disabled={!productDetails?.countInStock}
+                />
+              </WrapperActions>
               
-              <ButtonComponent
-                size={40}
-                styleButton={{
-                  background: '#fff',
-                  height: '48px',
-                  width: '220px',
-                  border: '1px solid #4cb551',
-                  borderRadius: '8px'
-                }}
-                icon={<ShoppingCartOutlined style={{fontSize: '20px'}} />}
-                onClick={handleAddOrderProduct}
-                textButton={'Thêm vào giỏ hàng'}
-                styleTextButton={{color:'#4cb551', fontSize:'16px', fontWeight:'500'}}
-                disabled={!productDetails?.countInStock}
-              />
-            </ActionButtons>
-            
-            <Divider />
-            
-            <FeatureList>
-              <FeatureItem>
-                <SafetyCertificateOutlined className="icon" />
-                <div className="content">
-                  <div className="title">Sản phẩm chính hãng</div>
-                  <div className="description">100% sản phẩm có nguồn gốc rõ ràng</div>
-                </div>
-              </FeatureItem>
+              <Divider style={{ margin: '24px 0' }} />
               
-              <FeatureItem>
-                <ClockCircleOutlined className="icon" />
-                <div className="content">
-                  <div className="title">Giao hàng nhanh</div>
-                  <div className="description">Nhận hàng trong ngày</div>
-                </div>
-              </FeatureItem>
-              
-              <FeatureItem>
-                <PhoneOutlined className="icon" />
-                <div className="content">
-                  <div className="title">Tư vấn miễn phí</div>
-                  <div className="description">Đội ngũ dược sĩ giàu kinh nghiệm</div>
-                </div>
-              </FeatureItem>
-            </FeatureList>
-          </ProductInfo>
-        </MainContent>
+              <WrapperFeatures>
+                <WrapperFeatureItem>
+                  <SafetyCertificateOutlined className="feature-icon" />
+                  <div>
+                    <WrapperStyleHeader>Sản phẩm chính hãng</WrapperStyleHeader>
+                    <WrapperStyleHeaderSmall>100% sản phẩm có nguồn gốc rõ ràng</WrapperStyleHeaderSmall>
+                  </div>
+                </WrapperFeatureItem>
+                
+                <WrapperFeatureItem>
+                  <ClockCircleOutlined className="feature-icon" />
+                  <div>
+                    <WrapperStyleHeader>Giao nhanh</WrapperStyleHeader>
+                    <WrapperStyleHeaderSmall>Nhận hàng trong ngày</WrapperStyleHeaderSmall>
+                  </div>
+                </WrapperFeatureItem>
+                
+                <WrapperFeatureItem>
+                  <PhoneOutlined className="feature-icon" />
+                  <div>
+                    <WrapperStyleHeader>Tư vấn miễn phí</WrapperStyleHeader>
+                    <WrapperStyleHeaderSmall>Đội ngũ dược sĩ giàu kinh nghiệm</WrapperStyleHeaderSmall>
+                  </div>
+                </WrapperFeatureItem>
+              </WrapperFeatures>
+            </WrapperProductInfo>
+          </Col>
+        </WrapperMainContent>
         
-        <StyledTabs activeKey={activeTab} onChange={setActiveTab}>
+        <WrapperTabs activeKey={activeTab} onChange={setActiveTab}>
           <TabPane 
             tab={
               <span>
@@ -819,47 +511,56 @@ const ProductDetailComponent = ({ idProduct }) => {
               </div>
               
               {reviews.length > 0 ? (
-                <ReviewList
+                <List
+                  className="review-list"
                   itemLayout="horizontal"
                   dataSource={reviews}
+                  style={{ marginTop: '24px' }}
                   renderItem={item => (
-                    <Comment
-                      author={<a>{item.author}</a>}
-                      avatar={<Avatar src={item.avatar} alt={item.author} />}
-                      content={
-                        <div>
-                          <Rate disabled value={item.rating} style={{ fontSize: 14, marginBottom: 8 }} />
-                          <p>{item.content}</p>
-                        </div>
-                      }
-                      datetime={<span>{item.date}</span>}
-                    />
+                    <List.Item style={{ padding: '16px', border: '1px solid #f0f0f0', borderRadius: '8px', marginBottom: '16px' }}>
+                      <Comment
+                        author={<a>{item.author}</a>}
+                        avatar={<Avatar src={item.avatar} alt={item.author} />}
+                        content={
+                          <div>
+                            <Rate disabled value={item.rating} style={{ fontSize: 14, marginBottom: 8 }} />
+                            <p>{item.content}</p>
+                          </div>
+                        }
+                        datetime={<span>{item.date}</span>}
+                      />
+                    </List.Item>
                   )}
                 />
               ) : (
-                <EmptyStateWrapper>
-                  <StarOutlined className="icon" />
-                  <div className="title">Chưa có đánh giá nào</div>
-                  <div className="subtitle">
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '32px 0'
+                }}>
+                  <StarOutlined style={{ fontSize: '48px', color: '#d9d9d9', marginBottom: '16px' }} />
+                  <div style={{ fontSize: '18px', color: '#333', marginBottom: '8px' }}>Chưa có đánh giá nào</div>
+                  <div style={{ color: '#666', textAlign: 'center', maxWidth: '500px' }}>
                     Hãy là người đầu tiên đánh giá sản phẩm này và chia sẻ trải nghiệm của bạn với những khách hàng khác.
                   </div>
                   <Button 
                     type="primary" 
                     icon={<StarOutlined />} 
-                    style={{ marginTop: 16, background: '#4cb551', borderColor: '#4cb551' }}
+                    style={{ marginTop: '16px', background: '#4cb551', borderColor: '#4cb551' }}
                     onClick={showReviewModal}
                   >
                     Viết đánh giá
                   </Button>
-                </EmptyStateWrapper>
+                </div>
               )}
             </Card>
           </TabPane>
-        </StyledTabs>
-      </ProductContainer>
+        </WrapperTabs>
+      </WrapperContainer>
       
       {/* Sản phẩm tương tự */}
-      <ProductContainer>
+      <WrapperContainer>
         <div style={{ padding: '16px 24px' }}>
           <h3 style={{ 
             borderBottom: '3px solid #4cb551', 
@@ -875,7 +576,7 @@ const ProductDetailComponent = ({ idProduct }) => {
             description="Đang tải sản phẩm tương tự..." 
           />
         </div>
-      </ProductContainer>
+      </WrapperContainer>
       
       {/* Modal đánh giá sản phẩm */}
       <Modal
