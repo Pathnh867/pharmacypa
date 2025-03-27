@@ -13,10 +13,10 @@ import {
   Input, 
   Avatar, 
   List, 
-  Comment,
   Modal,
   Empty
 } from 'antd';
+import { Comment } from '@ant-design/compatible';
 import { 
   CheckCircleOutlined, 
   MinusOutlined, 
