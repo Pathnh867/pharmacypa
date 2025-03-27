@@ -2,6 +2,29 @@ import styled from "styled-components";
 import { Tabs, InputNumber } from "antd";
 import { Image as AntImage } from 'antd'; // Đổi tên import để tránh xung đột
 
+// Thêm style cho container ảnh chính
+export const MainImageContainer = styled.div`
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+  
+  .ant-image {
+    width: 100%;
+    display: block;
+  }
+  
+  img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+`;
+
 // Styling cho tabs
 export const StyledTabs = styled(Tabs)`
   .ant-tabs-nav {
@@ -357,27 +380,7 @@ export const WrapperStyleNameProduct = styled.h1`
   margin-bottom: 8px;
 `;
 
-// Sửa đổi tên component Image để tránh xung đột
-export const WrapperStyleImageSmall = styled(AntImage)`
-  height: 8px;  
-  width: 8px;   
-  border-radius: 4px;
-  
-  &.active {
-    border: 2px solid #4cb551;
-  }
-`;
-
-export const WrapperStyleColImage = styled.div`
-  flex-basis: unset;
-  display: flex;
-  cursor: pointer;
-  
-  &:hover {
-    transform: translateY(-2px);
-    transition: all 0.3s;
-  }
-`;
+// Đã xóa WrapperStyleImageSmall và WrapperStyleColImage vì không còn dùng thumbnails
 
 export const WrapperStyleTextSell = styled.span`
   font-size: 15px;

@@ -49,8 +49,6 @@ import {
   WrapperQualityProduct, 
   WrapperInputNumber, 
   WrapperStyleNameProduct, 
-  WrapperStyleImageSmall, 
-  WrapperStyleColImage, 
   WrapperStyleTextSell, 
   WrapperProductInfo, 
   WrapperFeatureItem, 
@@ -60,7 +58,8 @@ import {
   WrapperMainContent,
   WrapperActions, 
   WrapperTabs,
-  ProductDetailContainer
+  ProductDetailContainer,
+  MainImageContainer
 } from './style';
 
 const { TabPane } = Tabs;
@@ -96,7 +95,6 @@ const demoReviews = [
 
 const ProductDetailComponent = ({ idProduct }) => {
   const [numProduct, setNumProduct] = useState(1);
-  const [selectedImage, setSelectedImage] = useState(0);
   const [reviews, setReviews] = useState(demoReviews);
   const [reviewForm] = Form.useForm();
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
@@ -187,15 +185,6 @@ const ProductDetailComponent = ({ idProduct }) => {
     refetchOnWindowFocus: false
   });
   
-  // Tạo mảng ảnh cho gallery (hiện tại chỉ có 1 ảnh, nên nhân bản để demo)
-  const productImages = productDetails?.image ? 
-    [
-      productDetails?.image,
-      productDetails?.image, 
-      productDetails?.image, 
-      productDetails?.image
-    ] : [];
-  
   // Format giá tiền
   const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -268,26 +257,16 @@ const ProductDetailComponent = ({ idProduct }) => {
       <WrapperContainer>
         <WrapperMainContent>
           <Col span={10} style={{borderRight: '1px solid #e5e5e5', paddingRight:'24px'}}>
-            <AntImage 
-              src={productDetails?.image} 
-              alt={productDetails?.name}
-              width="100%"
-              preview={false}
-              style={{ borderRadius: '8px' }}
-            />
-            
-            <div style={{paddingTop:'16px', display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-              {productImages.map((image, index) => (
-                <WrapperStyleColImage key={index} onClick={() => setSelectedImage(index)}>
-                  <WrapperStyleImageSmall 
-                    src={image} 
-                    alt={`Thumbnail ${index}`} 
-                    preview={false} 
-                    className={selectedImage === index ? 'active' : ''}
-                  />
-                </WrapperStyleColImage>
-              ))}
-            </div>
+            <MainImageContainer>
+              <AntImage 
+                src={productDetails?.image} 
+                alt={productDetails?.name}
+                width="100%"
+                preview={true}
+                style={{ borderRadius: '8px' }}
+              />
+            </MainImageContainer>
+            {/* Đã loại bỏ phần thumbnails */}
           </Col>
           
           <Col span={14} style={{paddingLeft: '24px'}}>
