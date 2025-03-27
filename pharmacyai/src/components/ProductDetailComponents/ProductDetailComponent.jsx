@@ -14,7 +14,8 @@ import {
   Avatar, 
   List, 
   Modal,
-  Empty
+  Empty,
+  Alert
 } from 'antd';
 import { Comment } from '@ant-design/compatible';
 import { 
@@ -28,7 +29,9 @@ import {
   PhoneOutlined,
   StarOutlined,
   MessageOutlined,
-  UserOutlined
+  UserOutlined,
+  LoadingOutlined,
+  WarningOutlined
 } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -132,9 +135,20 @@ const ProductDetailComponent = ({ idProduct }) => {
   const fetchGetDetailsProduct = async (context) => {
     const id = context?.queryKey && context?.queryKey[1];
     if (id) {
-      const res = await ProductService.getDetailsProduct(id);
-      return res.data;
+      try {
+        console.log('Fetching product details for id:', id);
+        const res = await ProductService.getDetailsProduct(id);
+        console.log('Product details fetched:', res);
+        if (res?.status === 'OK') {
+          return res.data;
+        }
+        return null;
+      } catch (error) {
+        console.error('Error fetching product details:', error);
+        throw error;
+      }
     }
+    return null;
   };
   
   // Thêm vào giỏ hàng
@@ -169,7 +183,8 @@ const ProductDetailComponent = ({ idProduct }) => {
   const {isPending, data: productDetails} = useQuery({
     queryKey: ['product-details', idProduct],
     queryFn: fetchGetDetailsProduct,
-    enabled: !!idProduct
+    enabled: !!idProduct,
+    refetchOnWindowFocus: false
   });
   
   // Tạo mảng ảnh cho gallery (hiện tại chỉ có 1 ảnh, nên nhân bản để demo)
