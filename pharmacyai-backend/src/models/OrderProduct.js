@@ -1,5 +1,3 @@
-// Cập nhật mô hình Order trong pharmacyai-backend/src/models/OrderProduct.js
-
 const mongoose = require('mongoose')
 
 const orderSchema = new mongoose.Schema({

@@ -102,13 +102,17 @@ const OrderPage = () => {
   }, [order])
   
   const priceDiscountMemo = useMemo(() => {
+    // Tính tổng số tiền giảm giá từ tất cả sản phẩm được chọn
     const result = order?.ordersItemSelected?.reduce((total, cur) => {
-      return total + ((cur.discount * cur.amount))
-    }, 0)
+      // Tính số tiền giảm giá cho từng sản phẩm: giá * số lượng * phần trăm giảm giá / 100
+      const discountAmount = (cur.price * cur.amount * cur.discount) / 100;
+      return total + discountAmount;
+    }, 0);
+    
     if (Number(result)) {
-      return result
+      return Number(result);
     }
-    return 0
+    return 0;
   }, [order])
   
   const DeliveryPriceMemo = useMemo(() => {
@@ -401,8 +405,14 @@ const OrderPage = () => {
                 
                 {priceDiscountMemo > 0 && (
                   <SummaryRow>
-                    <span>Giảm giá</span>
-                    <span>-{priceDiscountMemo}%</span>
+                    <span>
+                      <Tooltip title="Tổng số tiền giảm giá từ tất cả sản phẩm đã chọn">
+                        <span style={{ display: 'flex', alignItems: 'center' }}>
+                          Tổng tiền giảm giá <InfoCircleOutlined style={{ marginLeft: '5px' }} />
+                        </span>
+                      </Tooltip>
+                    </span>
+                    <span style={{ color: '#ff4d4f' }}>-{convertPrice(priceDiscountMemo)}</span>
                   </SummaryRow>
                 )}
                 
