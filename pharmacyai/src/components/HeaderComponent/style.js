@@ -33,9 +33,23 @@ export const LogoContainer = styled.div`
   padding: 4px 0;
   transition: all 0.3s;
   
-  .pharmacy-logo {
-    height: 40px;
-    width: auto;
+  .logo-flex {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .logo-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .logo-text {
+    color: white;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
   }
   
   &:hover {
@@ -47,9 +61,13 @@ export const LogoContainer = styled.div`
     flex: 1;
     justify-content: center;
     
-    .pharmacy-logo {
-      height: 32px;
-      width: auto;
+    .logo-text {
+      font-size: 16px;
+    }
+    
+    .logo-icon svg {
+      width: 24px;
+      height: 24px;
     }
   }
 `;
