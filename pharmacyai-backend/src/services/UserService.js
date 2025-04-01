@@ -123,15 +123,21 @@ const loginUser = (userLogin) => {
 const updateUser = (id, data) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const checkUser = await User.findById(id)
+            const checkUser = await User.findById(id);
             if (checkUser === null) {
                 resolve({
                     status: 'ERR',
                     message: 'The user is not defined!'
-                })
+                });
                 return;
             }
-            const updatedUser = await User.findByIdAndUpdate(id, data, { new: true })
+            
+            // Nếu không thấy isAdmin trong data, giữ lại giá trị hiện tại
+            if (data.isAdmin === undefined) {
+                data.isAdmin = checkUser.isAdmin;
+            }
+            
+            const updatedUser = await User.findByIdAndUpdate(id, data, { new: true });
 
             resolve({
                 status: 'OK',

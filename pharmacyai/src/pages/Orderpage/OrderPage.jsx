@@ -195,49 +195,54 @@ const OrderPage = () => {
     setIsOpenModalUpdateInfo(false)
   }
   
-  const handleUpdateInforUser = () => {
-    const { name, phone, address, city } = stateUserDetails;
+  
+const handleUpdateInforUser = () => {
+  const { name, phone, address, city } = stateUserDetails;
 
-    // Chuẩn hóa dữ liệu (xóa khoảng trắng thừa)
-    const updateData = {
+  // Chuẩn hóa dữ liệu (xóa khoảng trắng thừa)
+  const updateData = {
       name: name?.trim(),
       phone: phone?.trim(),
       address: address?.trim(),
-      city: city?.trim()
-    };
-
-    if (updateData.name && updateData.phone && updateData.address && updateData.city) {
-      mutationUpdate.mutate(
-        { id: user?.id, token: user?.access_token, ...updateData },
-        {
-          onSuccess: (data) => {
-            if (data?.status === 'OK') {
-              // Cập nhật Redux store với dữ liệu mới
-              dispatch(updateUser({
-                ...user,
-                name: updateData.name,
-                phone: updateData.phone,
-                address: updateData.address,
-                city: updateData.city,
-                // Đảm bảo giữ refreshToken
-                refreshToken: user?.refreshToken
-              }));
-              message.success('Cập nhật thông tin thành công!');
-              setIsOpenModalUpdateInfo(false);
-            } else {
-              message.error(data?.message || 'Cập nhật thông tin thất bại');
-            }
-          },
-          onError: (error) => {
-            console.error('Lỗi cập nhật:', error);
-            message.error('Có lỗi xảy ra: ' + (error.message || 'Không xác định'));
-          }
-        }
-      );
-    } else {
-      message.error('Vui lòng điền đầy đủ thông tin');
-    }
+      city: city?.trim(),
+      // Quan trọng: Giữ lại giá trị isAdmin từ user hiện tại
+      isAdmin: user.isAdmin 
   };
+
+  if (updateData.name && updateData.phone && updateData.address && updateData.city) {
+      mutationUpdate.mutate(
+          { id: user?.id, token: user?.access_token, ...updateData },
+          {
+              onSuccess: (data) => {
+                  if (data?.status === 'OK') {
+                      // Cập nhật Redux store với dữ liệu mới
+                      dispatch(updateUser({
+                          ...user,
+                          name: updateData.name,
+                          phone: updateData.phone,
+                          address: updateData.address,
+                          city: updateData.city,
+                          // Đảm bảo giữ nguyên giá trị isAdmin
+                          isAdmin: user.isAdmin,
+                          // Đảm bảo giữ refreshToken
+                          refreshToken: user?.refreshToken
+                      }));
+                      message.success('Cập nhật thông tin thành công!');
+                      setIsOpenModalUpdateInfo(false);
+                  } else {
+                      message.error(data?.message || 'Cập nhật thông tin thất bại');
+                  }
+              },
+              onError: (error) => {
+                  console.error('Lỗi cập nhật:', error);
+                  message.error('Có lỗi xảy ra: ' + (error.message || 'Không xác định'));
+              }
+          }
+      );
+  } else {
+      message.error('Vui lòng điền đầy đủ thông tin');
+  }
+};
 
   // Bước hiện tại trong quy trình thanh toán
   const steps = [

@@ -1,6 +1,7 @@
 const UserService = require('../services/UserService')
 const JWTService = require('../services/JwtService')
 
+// Sửa phần createUser trong file pharmacyai-backend/src/controllers/UserController.js
 const createUser = async (req, res) => {
     try {
         const { email, password, confirmPassword, name, phone, address, avatar } = req.body;
@@ -27,13 +28,14 @@ const createUser = async (req, res) => {
         }
         
         // Phân quyền: Kiểm tra xem request có phải từ admin không
-        // Chỉ admin mới có thể tạo tài khoản admin khác
         const isAdminRequest = req.headers.token && req.user?.isAdmin;
         
-        // Nếu không phải admin, đảm bảo isAdmin = false
+        // Chỉ ghi đè isAdmin thành false nếu KHÔNG phải request từ admin
+        // Nếu là request từ admin, giữ nguyên giá trị isAdmin đã gửi lên
         if (!isAdminRequest) {
             req.body.isAdmin = false;
         }
+        // Nếu là admin request thì sẽ giữ nguyên giá trị req.body.isAdmin
         
         // Gọi service để tạo người dùng
         const response = await UserService.createUser(req.body);
