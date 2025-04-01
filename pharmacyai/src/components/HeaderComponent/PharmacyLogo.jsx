@@ -11,15 +11,16 @@ const PharmacyLogo = () => {
         </svg>
       </div>
       
-      {/* Text với chữ H được thay bằng biểu tượng bệnh viện */}
+      {/* Text với chữ H được thay bằng biểu tượng ngôi nhà */}
       <div className="logo-text-container">
         <span className="logo-text">N</span>
         
-        {/* Biểu tượng bệnh viện thay thế chữ H */}
-        <svg className="hospital-icon" viewBox="0 0 24 24" width="24" height="25">
-          <rect x="4" y="4" width="16" height="17" rx="2" fill="white"/>
-          <path d="M12,8 L12,17 M8,12.5 L16,12.5" stroke="#4cb551" strokeWidth="2.5" strokeLinecap="round"/>
-          <path d="M4,8 L20,8" stroke="white" strokeWidth="2"/>
+        {/* Biểu tượng ngôi nhà thay thế chữ H */}
+        <svg className="house-icon" viewBox="0 0 24 24" width="24" height="24">
+          <path d="M3,12 L12,3 L21,12 M5,10 L5,21 L19,21 L19,10" 
+                stroke="white" strokeWidth="2.5" fill="none" strokeLinejoin="round" strokeLinecap="round"/>
+          {/* Dấu cộng cho biểu tượng hospital (tùy chọn) */}
+          <path d="M12,12 L12,18 M9,15 L15,15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
         </svg>
         
         <span className="logo-text">À THUỐC TIỆN LỢI</span>
