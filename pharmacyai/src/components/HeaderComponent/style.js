@@ -45,11 +45,23 @@ export const LogoContainer = styled.div`
     justify-content: center;
   }
   
+  .logo-text-container {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  
   .logo-text {
     color: white;
     font-size: 20px;
     font-weight: 700;
     letter-spacing: 0.5px;
+  }
+  
+  .house-icon, .hospital-icon {
+    margin: 0 1px;
+    position: relative;
+    top: 1px;
   }
   
   &:hover {
@@ -68,6 +80,11 @@ export const LogoContainer = styled.div`
     .logo-icon svg {
       width: 24px;
       height: 24px;
+    }
+    
+    .house-icon, .hospital-icon {
+      width: 20px;
+      height: 20px;
     }
   }
 `;
