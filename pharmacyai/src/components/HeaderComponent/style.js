@@ -28,25 +28,27 @@ export const HeaderContent = styled.div`
 export const LogoContainer = styled.div`
   display: flex;
   align-items: center;
+  justify-content: center;
   cursor: pointer;
   padding: 4px 0;
   transition: all 0.3s;
   
-  svg {
-    height: 36px;
+  .pharmacy-logo {
+    height: 40px;
     width: auto;
   }
   
   &:hover {
     opacity: 0.9;
+    transform: scale(1.02);
   }
   
   @media (max-width: 768px) {
     flex: 1;
     justify-content: center;
     
-    svg {
-      height: 30px;
+    .pharmacy-logo {
+      height: 32px;
       width: auto;
     }
   }
