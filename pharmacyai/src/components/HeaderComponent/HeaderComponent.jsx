@@ -203,8 +203,28 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
       <HeaderContent>
         {/* Logo */}
         <LogoContainer onClick={handleNavigateHome}>
-          <LogoText>NHÀ THUỐC TIỆN LỢI</LogoText>
-        </LogoContainer>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 60" width="180" height="36">
+            {/* Background shape */}
+            <rect x="5" y="5" width="290" height="50" rx="8" fill="#ffffff" opacity="0.2" />
+            
+            {/* Pharmacy Icon */}
+            <g transform="translate(20, 15) scale(0.9)">
+              <rect x="2" y="2" width="26" height="26" rx="4" fill="#ffffff" />
+              <rect x="13" y="4" width="4" height="22" rx="1" fill="#4cb551" />
+              <rect x="4" y="13" width="22" height="4" rx="1" fill="#4cb551" />
+            </g>
+            
+            {/* Text */}
+            <g transform="translate(60, 32)">
+              <text fontFamily="Arial, sans-serif" fontSize="16" fontWeight="800" letterSpacing="0.5" fill="#ffffff">
+                NHÀ THUỐC TIỆN LỢI
+              </text>
+            </g>
+            
+            {/* Decorative line under text */}
+            <line x1="60" y1="38" x2="280" y2="38" stroke="#ffffff" strokeWidth="1.5" opacity="0.6" />
+          </svg>
+          </LogoContainer>
         
         {/* Mobile menu button */}
         <MobileMenuButton onClick={() => setMobileMenuOpen(true)}>

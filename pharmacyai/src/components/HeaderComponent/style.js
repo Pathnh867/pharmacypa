@@ -32,6 +32,11 @@ export const LogoContainer = styled.div`
   padding: 4px 0;
   transition: all 0.3s;
   
+  svg {
+    height: 36px;
+    width: auto;
+  }
+  
   &:hover {
     opacity: 0.9;
   }
@@ -39,10 +44,16 @@ export const LogoContainer = styled.div`
   @media (max-width: 768px) {
     flex: 1;
     justify-content: center;
+    
+    svg {
+      height: 30px;
+      width: auto;
+    }
   }
 `;
 
 export const LogoText = styled.span`
+  display: none;
   color: white;
   font-size: 20px;
   font-weight: 700;
