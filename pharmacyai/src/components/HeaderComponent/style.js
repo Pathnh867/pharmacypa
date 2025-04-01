@@ -56,12 +56,15 @@ export const LogoContainer = styled.div`
     font-size: 20px;
     font-weight: 700;
     letter-spacing: 0.5px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
   }
   
-  .house-icon, .hospital-icon {
-    margin: 0 1px;
+  .house-icon {
     position: relative;
-    top: 1px;
+    top: 0; /* Đã điều chỉnh để không còn lệch xuống dưới */
+    margin: 0 2px;
   }
   
   &:hover {
@@ -82,9 +85,9 @@ export const LogoContainer = styled.div`
       height: 24px;
     }
     
-    .house-icon, .hospital-icon {
-      width: 20px;
-      height: 20px;
+    .house-icon {
+      width: 18px;
+      height: 18px;
     }
   }
 `;
