@@ -219,4 +219,17 @@ export const createUser = async (userData, token) => {
       }
     );
     return res.data;
+};
+  
+export const createUserByAdmin = async (userData, token) => {
+    const res = await axiosJWT.post(
+      `${process.env.REACT_APP_API_URL}/user/admin/create-user`,
+      userData,
+      {
+        headers: {
+          token: `Bearer ${token}`
+        }
+      }
+    );
+    return res.data;
   };

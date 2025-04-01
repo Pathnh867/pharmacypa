@@ -175,7 +175,54 @@ const logoutUser = async (req, res) => {
         })
     }
 }
-
+const createUserByAdmin = async (req, res) => {
+    try {
+        const { email, password, confirmPassword, name, phone, address, avatar, isAdmin } = req.body;
+        
+        // Kiểm tra các trường bắt buộc
+        const reg = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/;
+        const isCheckEmail = reg.test(email);
+        
+        if (!email || !password || !confirmPassword) {
+            return res.status(400).json({
+                status: 'ERR',
+                message: 'Email, mật khẩu và xác nhận mật khẩu là bắt buộc'
+            });
+        } else if (!isCheckEmail) {
+            return res.status(400).json({
+                status: 'ERR',
+                message: 'Email không hợp lệ'
+            });
+        } else if (password !== confirmPassword) {
+            return res.status(400).json({
+                status: 'ERR',
+                message: 'Mật khẩu và xác nhận mật khẩu không khớp'
+            });
+        }
+        
+        // Route này được bảo vệ bởi authMiddleware, chỉ admin mới có thể truy cập
+        // Nên chúng ta có thể giữ nguyên giá trị isAdmin từ request body
+        const userData = {
+            email,
+            password,
+            confirmPassword,
+            name,
+            phone,
+            address,
+            avatar,
+            isAdmin: !!isAdmin // Chuyển đổi thành boolean để đảm bảo giá trị chính xác
+        };
+        
+        // Gọi service để tạo người dùng
+        const response = await UserService.createUser(userData);
+        return res.status(200).json(response);
+    } catch (e) {
+        return res.status(500).json({
+            status: 'ERR',
+            message: e.message || 'Lỗi server'
+        });
+    }
+};
 module.exports = {
     createUser,
     loginUser,
@@ -184,5 +231,6 @@ module.exports = {
     getAllUser,
     getDetailsUser,
     refreshToken,
-    logoutUser
+    logoutUser,
+    createUserByAdmin,
 }

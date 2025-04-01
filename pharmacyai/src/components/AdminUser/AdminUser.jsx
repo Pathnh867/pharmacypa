@@ -102,9 +102,10 @@ const AdminUser = () => {
   // Mutations
   const createMutation = useMutationHooks(
     (data) => {
-        return UserService.createUser(data.userData, data.token);
+      return UserService.createUserByAdmin(data.userData, data.token);
     }
-);
+  );
+  
   
   const updateMutation = useMutationHooks(
     (data) => {
@@ -288,7 +289,7 @@ const AdminUser = () => {
         email: values.email,
         phone: values.phone,
         address: values.address,
-        isAdmin: values.isAdmin,
+        isAdmin: values.isAdmin === true, // Đảm bảo là boolean
         active: values.active
       };
       
@@ -318,6 +319,10 @@ const AdminUser = () => {
         createMutation.mutate({
           userData,
           token: user.access_token
+        }, {
+          onSettled: () => {
+            queryUsers.refetch();
+          }
         });
       }
     } catch (error) {
