@@ -40,8 +40,8 @@ import {
 import TypeProduct from '../../components/TypeProduct/TypeProduct';
 import CardComponent from '../../components/CardComponents/CardComponent';
 import * as ProductService from '../../services/ProductService';
+import { addOrderProduct } from '../../redux/slide/orderSlide';
 import { useDebounce } from '../../hooks/useDebounce';
-import { addOrderProduct } from '../../redux/slices/orderSlice';
 
 // Import ảnh slide
 import slide1 from '../../assets/img/slide1.png';
