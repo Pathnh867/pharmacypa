@@ -23,7 +23,8 @@ import {
   Badge,
   Descriptions,
   Popconfirm,
-  Spin
+  Spin,
+  Alert
 } from 'antd';
 import {
   EyeOutlined,
@@ -41,7 +42,11 @@ import {
   FilterOutlined,
   ReloadOutlined,
   DollarOutlined,
-  MailOutlined
+  MailOutlined,
+  UndoOutlined,
+  RollbackOutlined,
+  LockOutlined,
+  KeyOutlined
 } from '@ant-design/icons';
 import * as OrderService from '../../services/OrderService';
 import * as UserService from '../../services/UserService';
@@ -75,6 +80,10 @@ const { Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
+const { Password } = Input;
+
+// Mã xác nhận hoàn tác - trong môi trường thực tế, đây có thể là một biến môi trường hoặc cấu hình từ backend
+const ADMIN_REVERT_CODE = "admin@2024";
 
 const AdminOrder = () => {
   // State quản lý danh sách đơn hàng và phân trang
@@ -90,7 +99,14 @@ const AdminOrder = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [revertModalVisible, setRevertModalVisible] = useState(false);
+  const [statusOptions, setStatusOptions] = useState([]);
+  const [previousStatusOptions, setPreviousStatusOptions] = useState([]);
+  const [adminCode, setAdminCode] = useState('');
+  const [adminCodeError, setAdminCodeError] = useState('');
+  const [revertReason, setRevertReason] = useState('');
   const [form] = Form.useForm();
+  const [revertForm] = Form.useForm();
   
   // Lấy thông tin user từ redux store
   const user = useSelector((state) => state.user);
@@ -113,6 +129,8 @@ const AdminOrder = () => {
     shipping: 0,
     delivered: 0,
     cancelled: 0,
+    returned: 0,
+    refunded: 0,
     totalRevenue: 0,
     pendingRevenue: 0
   });
@@ -127,7 +145,7 @@ const AdminOrder = () => {
     if (orders.length > 0) {
       // Tính doanh thu từ đơn hàng đã giao
       const totalRevenue = orders
-        .filter(order => order.status === 'delivered')
+        .filter(order => order.status === 'delivered' || order.status === 'returned' || order.status === 'refunded')
         .reduce((total, order) => total + order.totalPrice, 0);
       
       // Tính doanh thu từ đơn hàng đang xử lý
@@ -143,6 +161,8 @@ const AdminOrder = () => {
         shipping: orders.filter(order => order.status === 'shipping').length,
         delivered: orders.filter(order => order.status === 'delivered').length,
         cancelled: orders.filter(order => order.status === 'cancelled').length,
+        returned: orders.filter(order => order.status === 'returned').length,
+        refunded: orders.filter(order => order.status === 'refunded').length,
         totalRevenue,
         pendingRevenue
       };
@@ -195,6 +215,77 @@ const AdminOrder = () => {
       setLoadingCustomer(false);
     }
   };
+
+  // Hàm lấy các trạng thái hợp lệ dựa trên trạng thái hiện tại
+  const getAvailableStatuses = (currentStatus) => {
+    // Danh sách đầy đủ các trạng thái
+    const allStatuses = [
+      { value: 'pending', label: 'Chờ xử lý' },
+      { value: 'processing', label: 'Đang xử lý' },
+      { value: 'shipping', label: 'Đang giao hàng' },
+      { value: 'delivered', label: 'Đã giao hàng' },
+      { value: 'cancelled', label: 'Đã hủy' },
+      { value: 'returned', label: 'Đã trả hàng' },
+      { value: 'refunded', label: 'Đã hoàn tiền' }
+    ];
+    
+    // Nếu đơn hàng đã giao, chỉ cho phép chuyển sang trạng thái "trả hàng" hoặc "hoàn tiền"
+    if (currentStatus === 'delivered') {
+      return allStatuses.filter(status => 
+        ['delivered', 'returned', 'refunded'].includes(status.value)
+      );
+    }
+    
+    // Nếu đơn hàng đã hủy, không cho phép thay đổi
+    if (currentStatus === 'cancelled') {
+      return allStatuses.filter(status => status.value === 'cancelled');
+    }
+    
+    // Nếu đã hoàn tiền hoặc trả hàng, không cho phép thay đổi
+    if (['returned', 'refunded'].includes(currentStatus)) {
+      return allStatuses.filter(status => 
+        ['returned', 'refunded'].includes(status.value)
+      );
+    }
+    
+    // Các trạng thái khác chỉ được chuyển tiếp, không được quay lại
+    const statusOrder = ['pending', 'processing', 'shipping', 'delivered'];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    
+    if (currentIndex !== -1) {
+      // Cho phép chuyển sang các trạng thái tiếp theo hoặc huỷ
+      return allStatuses.filter(status => 
+        statusOrder.indexOf(status.value) >= currentIndex || 
+        status.value === 'cancelled'
+      );
+    }
+    
+    // Mặc định trả về tất cả trạng thái
+    return allStatuses;
+  };
+
+  // Hàm để lấy các trạng thái trước đó có thể hoàn tác
+  const getPreviousAvailableStatuses = (currentStatus) => {
+    // Danh sách đầy đủ các trạng thái
+    const allStatuses = [
+      { value: 'pending', label: 'Chờ xử lý' },
+      { value: 'processing', label: 'Đang xử lý' },
+      { value: 'shipping', label: 'Đang giao hàng' },
+      { value: 'delivered', label: 'Đã giao hàng' }
+    ];
+    
+    const statusOrder = ['pending', 'processing', 'shipping', 'delivered'];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    
+    if (currentIndex > 0) {
+      // Chỉ hiển thị trạng thái trước đó
+      return allStatuses.filter(status => 
+        statusOrder.indexOf(status.value) === currentIndex - 1
+      );
+    }
+    
+    return [];
+  };
   
   // Hàm lấy màu sắc và icon cho trạng thái
   const getStatusInfo = (status) => {
@@ -229,6 +320,18 @@ const AdminOrder = () => {
           text: 'Đã hủy', 
           icon: <CloseCircleOutlined /> 
         };
+      case 'returned':
+        return {
+          color: '#fa8c16',
+          text: 'Đã trả hàng',
+          icon: <RollbackOutlined />
+        };
+      case 'refunded':
+        return {
+          color: '#eb2f96',
+          text: 'Đã hoàn tiền',
+          icon: <UndoOutlined />
+        };
       default:
         return { 
           color: 'default', 
@@ -259,6 +362,11 @@ const AdminOrder = () => {
   // Hiển thị modal cập nhật trạng thái
   const showStatusModal = (order) => {
     setSelectedOrder(order);
+    
+    // Lấy các trạng thái hợp lệ dựa trên trạng thái hiện tại
+    const availableStatuses = getAvailableStatuses(order.status);
+    setStatusOptions(availableStatuses);
+    
     form.setFieldsValue({
       status: order.status,
       note: ''
@@ -272,6 +380,33 @@ const AdminOrder = () => {
     }
     
     setStatusModalVisible(true);
+  };
+
+  // Hiển thị modal hoàn tác trạng thái
+  const showRevertModal = (order) => {
+    setSelectedOrder(order);
+    
+    // Lấy các trạng thái trước đó có thể hoàn tác
+    const previousStatuses = getPreviousAvailableStatuses(order.status);
+    setPreviousStatusOptions(previousStatuses);
+    
+    // Nếu không có trạng thái nào trước đó, hiển thị thông báo và không mở modal
+    if (previousStatuses.length === 0) {
+      message.info('Không thể hoàn tác trạng thái này');
+      return;
+    }
+    
+    setAdminCode('');
+    setAdminCodeError('');
+    setRevertReason('');
+    
+    revertForm.setFieldsValue({
+      status: previousStatuses[0]?.value,
+      note: '',
+      adminCode: ''
+    });
+    
+    setRevertModalVisible(true);
   };
   
   // Cập nhật trạng thái đơn hàng
@@ -322,6 +457,59 @@ const AdminOrder = () => {
       setLoading(false);
     }
   };
+
+  // Hoàn tác trạng thái đơn hàng
+  const handleRevertStatus = async () => {
+    try {
+      const values = await revertForm.validateFields();
+      
+      // Kiểm tra mã xác nhận admin
+      if (values.adminCode !== ADMIN_REVERT_CODE) {
+        setAdminCodeError('Mã xác nhận không đúng. Vui lòng liên hệ quản trị viên cấp cao.');
+        return;
+      }
+      
+      setLoading(true);
+      
+      // Chuẩn bị data gửi lên server
+      const data = {
+        status: values.status,
+        note: `[HOÀN TÁC] ${values.note} (Admin: ${user?.name || user?.email})`,
+        isRevert: true // Thêm cờ đánh dấu đây là hoàn tác
+      };
+      
+      const response = await OrderService.updateOrderStatus(
+        selectedOrder._id,
+        values.status,
+        data.note,
+        user?.access_token
+      );
+      
+      if (response?.status === 'OK') {
+        message.success('Hoàn tác trạng thái đơn hàng thành công');
+        setRevertModalVisible(false);
+        
+        // Refresh lại drawer nếu đang mở
+        if (drawerVisible) {
+          const orderDetails = await OrderService.getOrderStatus(selectedOrder._id, user?.access_token);
+          if (orderDetails?.status === 'OK') {
+            setSelectedOrder(orderDetails.data);
+          }
+        }
+        
+        // Refresh lại danh sách đơn hàng
+        loadOrders(pagination.current - 1, pagination.pageSize);
+      } else {
+        message.error(response?.message || 'Không thể hoàn tác trạng thái đơn hàng');
+      }
+    } catch (error) {
+      console.error('Error reverting order status:', error);
+      message.error('Đã xảy ra lỗi khi hoàn tác trạng thái đơn hàng');
+    } finally {
+      setLoading(false);
+      setAdminCodeError('');
+    }
+  };
   
   // Xử lý tìm kiếm và lọc
   const handleSearch = () => {
@@ -347,20 +535,32 @@ const AdminOrder = () => {
         <Timeline mode="left">
           {statusHistory.map((item, index) => {
             const { color, icon } = getStatusInfo(item.status);
+            const isRevert = item.note && item.note.includes('[HOÀN TÁC]');
+            
             return (
               <Timeline.Item 
                 key={index} 
-                color={color} 
-                dot={icon}
+                color={isRevert ? '#ff7a45' : color} 
+                dot={isRevert ? <UndoOutlined /> : icon}
               >
                 <div>
-                  <Text strong>{getStatusInfo(item.status).text}</Text>
+                  <Text strong>
+                    {isRevert ? `Hoàn tác: ${getStatusInfo(item.status).text}` : getStatusInfo(item.status).text}
+                  </Text>
                   <div>
                     <Text type="secondary">
                       {formatOrderDate(item.timestamp)}
                     </Text>
                   </div>
-                  {item.note && <div>{item.note}</div>}
+                  {item.note && (
+                    <div style={{ 
+                      padding: isRevert ? '5px' : '0', 
+                      background: isRevert ? 'rgba(255, 122, 69, 0.1)' : 'transparent',
+                      borderLeft: isRevert ? '3px solid #ff7a45' : 'none'
+                    }}>
+                      {item.note}
+                    </div>
+                  )}
                 </div>
               </Timeline.Item>
             );
@@ -512,6 +712,8 @@ const AdminOrder = () => {
         { text: 'Đang giao hàng', value: 'shipping' },
         { text: 'Đã giao hàng', value: 'delivered' },
         { text: 'Đã hủy', value: 'cancelled' },
+        { text: 'Đã trả hàng', value: 'returned' },
+        { text: 'Đã hoàn tiền', value: 'refunded' },
       ],
       onFilter: (value, record) => record.status === value,
     },
@@ -530,19 +732,45 @@ const AdminOrder = () => {
               Chi tiết
             </Button>
           </Tooltip>
-          <Tooltip title="Cập nhật trạng thái">
-            <Button 
-              type="default" 
-              size="small" 
-              icon={<EditOutlined />}
-              onClick={() => showStatusModal(record)}
-            >
-              Cập nhật
-            </Button>
-          </Tooltip>
+          {['cancelled', 'refunded', 'returned'].includes(record.status) ? (
+            <Tooltip title="Không thể sửa đổi">
+              <Button 
+                type="default" 
+                size="small" 
+                icon={<EditOutlined />}
+                disabled
+              >
+                Cập nhật
+              </Button>
+            </Tooltip>
+          ) : (
+            <Tooltip title="Cập nhật trạng thái">
+              <Button 
+                type="default" 
+                size="small" 
+                icon={<EditOutlined />}
+                onClick={() => showStatusModal(record)}
+              >
+                Cập nhật
+              </Button>
+            </Tooltip>
+          )}
+          {(['delivered', 'shipping'].includes(record.status)) && (
+            <Tooltip title="Hoàn tác trạng thái">
+              <Button 
+                type="dashed" 
+                size="small" 
+                icon={<UndoOutlined />}
+                onClick={() => showRevertModal(record)}
+                danger
+              >
+                Hoàn tác
+              </Button>
+            </Tooltip>
+          )}
         </Space>
       ),
-      width: 180,
+      width: 240,
     },
   ];
   
@@ -553,12 +781,14 @@ const AdminOrder = () => {
   })) : [];
   
   // Các option cho filter trạng thái
-  const statusOptions = [
+  const allStatusOptions = [
     { value: 'pending', label: 'Chờ xử lý' },
     { value: 'processing', label: 'Đang xử lý' },
     { value: 'shipping', label: 'Đang giao hàng' },
     { value: 'delivered', label: 'Đã giao hàng' },
-    { value: 'cancelled', label: 'Đã hủy' }
+    { value: 'cancelled', label: 'Đã hủy' },
+    { value: 'returned', label: 'Đã trả hàng' },
+    { value: 'refunded', label: 'Đã hoàn tiền' }
   ];
   
   // Các option cho filter phương thức thanh toán
@@ -573,7 +803,7 @@ const AdminOrder = () => {
       
       {/* Thống kê đơn hàng */}
       <Row gutter={16} style={{ marginBottom: '24px' }}>
-        <Col span={4}>
+        <Col span={3}>
           <Card>
             <Statistic
               title="Tổng đơn hàng"
@@ -583,7 +813,7 @@ const AdminOrder = () => {
             />
           </Card>
         </Col>
-        <Col span={4}>
+        <Col span={3}>
           <Card>
             <Statistic
               title="Chờ xử lý"
@@ -593,7 +823,7 @@ const AdminOrder = () => {
             />
           </Card>
         </Col>
-        <Col span={4}>
+        <Col span={3}>
           <Card>
             <Statistic
               title="Đang giao"
@@ -603,7 +833,7 @@ const AdminOrder = () => {
             />
           </Card>
         </Col>
-        <Col span={4}>
+        <Col span={3}>
           <Card>
             <Statistic
               title="Đã giao"
@@ -613,7 +843,7 @@ const AdminOrder = () => {
             />
           </Card>
         </Col>
-        <Col span={4}>
+        <Col span={3}>
           <Card>
             <Statistic
               title="Đã hủy"
@@ -623,7 +853,27 @@ const AdminOrder = () => {
             />
           </Card>
         </Col>
-        <Col span={4}>
+        <Col span={3}>
+          <Card>
+            <Statistic
+              title="Đã trả hàng"
+              value={stats.returned}
+              prefix={<RollbackOutlined />}
+              valueStyle={{ color: '#fa8c16' }}
+            />
+          </Card>
+        </Col>
+        <Col span={3}>
+          <Card>
+            <Statistic
+              title="Đã hoàn tiền"
+              value={stats.refunded}
+              prefix={<UndoOutlined />}
+              valueStyle={{ color: '#eb2f96' }}
+            />
+          </Card>
+        </Col>
+        <Col span={3}>
           <Card>
             <Statistic
               title="Doanh thu"
@@ -665,7 +915,7 @@ const AdminOrder = () => {
               onChange={setStatusFilter}
               allowClear
             >
-              {statusOptions.map(option => (
+              {allStatusOptions.map(option => (
                 <Option key={option.value} value={option.value}>{option.label}</Option>
               ))}
             </AdminSelect>
@@ -715,15 +965,32 @@ const AdminOrder = () => {
         open={drawerVisible}
         width={720}
         extra={
-          <AdminButton 
-            type="primary" 
-            onClick={() => {
-              setDrawerVisible(false);
-              showStatusModal(selectedOrder);
-            }}
-          >
-            Cập nhật trạng thái
-          </AdminButton>
+          selectedOrder && !['cancelled', 'refunded', 'returned'].includes(selectedOrder.status) ? (
+            <Space>
+              {(['delivered', 'shipping'].includes(selectedOrder.status)) && (
+                <AdminButton 
+                  type="dashed" 
+                  danger
+                  onClick={() => {
+                    setDrawerVisible(false);
+                    showRevertModal(selectedOrder);
+                  }}
+                  icon={<UndoOutlined />}
+                >
+                  Hoàn tác
+                </AdminButton>
+              )}
+              <AdminButton 
+                type="primary" 
+                onClick={() => {
+                  setDrawerVisible(false);
+                  showStatusModal(selectedOrder);
+                }}
+              >
+                Cập nhật trạng thái
+              </AdminButton>
+            </Space>
+          ) : null
         }
       >
         {selectedOrder && (
@@ -852,11 +1119,9 @@ const AdminOrder = () => {
             rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
           >
             <AdminSelect>
-              <Option value="pending">Chờ xử lý</Option>
-              <Option value="processing">Đang xử lý</Option>
-              <Option value="shipping">Đang giao hàng</Option>
-              <Option value="delivered">Đã giao hàng</Option>
-              <Option value="cancelled">Đã hủy</Option>
+              {statusOptions.map(option => (
+                <Option key={option.value} value={option.value}>{option.label}</Option>
+              ))}
             </AdminSelect>
           </Form.Item>
           
@@ -886,6 +1151,99 @@ const AdminOrder = () => {
             </Button>
             <AdminButton type="primary" onClick={handleUpdateStatus} loading={loading}>
               Cập nhật trạng thái
+            </AdminButton>
+          </div>
+        </Form>
+      </Modal>
+      
+      {/* Modal hoàn tác trạng thái */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', color: '#ff4d4f' }}>
+            <UndoOutlined style={{ marginRight: '8px' }} />
+            Hoàn tác trạng thái đơn hàng
+          </div>
+        }
+        open={revertModalVisible}
+        onCancel={() => setRevertModalVisible(false)}
+        footer={null}
+        width={500}
+      >
+        <Alert
+          message="Cảnh báo: Hành động hoàn tác"
+          description="Hoàn tác trạng thái là hành động đặc biệt, chỉ nên thực hiện khi đã xác nhận lỗi nhập liệu. Mọi hoạt động hoàn tác sẽ được ghi lại và kiểm tra."
+          type="warning"
+          showIcon
+          style={{ marginBottom: '16px' }}
+        />
+        
+        <Form
+          form={revertForm}
+          layout="vertical"
+        >
+          <Form.Item
+            name="status"
+            label="Hoàn tác về trạng thái"
+            rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
+          >
+            <AdminSelect>
+              {previousStatusOptions.map(option => (
+                <Option key={option.value} value={option.value}>{option.label}</Option>
+              ))}
+            </AdminSelect>
+          </Form.Item>
+          
+          <Form.Item
+            name="note"
+            label="Lý do hoàn tác"
+            rules={[{ required: true, message: 'Vui lòng nhập lý do hoàn tác' }]}
+          >
+            <TextArea 
+              rows={4} 
+              placeholder="Nhập lý do cụ thể cho việc hoàn tác trạng thái (bắt buộc)" 
+              value={revertReason}
+              onChange={(e) => setRevertReason(e.target.value)}
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="adminCode"
+            label={
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <LockOutlined style={{ marginRight: '8px' }} />
+                <span>Mã xác nhận quản trị viên</span>
+              </div>
+            }
+            rules={[{ required: true, message: 'Vui lòng nhập mã xác nhận' }]}
+            help="Liên hệ quản trị viên cấp cao để lấy mã xác nhận"
+            validateStatus={adminCodeError ? 'error' : ''}
+          >
+            <Password
+              prefix={<KeyOutlined />}
+              placeholder="Nhập mã xác nhận của quản trị viên cấp cao"
+              value={adminCode}
+              onChange={(e) => {
+                setAdminCode(e.target.value);
+                setAdminCodeError('');
+              }}
+            />
+          </Form.Item>
+          
+          {adminCodeError && (
+            <Alert
+              message={adminCodeError}
+              type="error"
+              showIcon
+              style={{ marginBottom: '16px' }}
+            />
+          )}
+          
+          <div style={{ textAlign: 'right', marginTop: '20px' }}>
+            <Button onClick={() => setRevertModalVisible(false)} style={{ marginRight: '10px' }}>
+              Hủy
+            </Button>
+            <AdminButton type="primary" danger onClick={handleRevertStatus} loading={loading}>
+              Xác nhận hoàn tác
             </AdminButton>
           </div>
         </Form>
