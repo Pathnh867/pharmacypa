@@ -316,6 +316,8 @@ export const CategoryBadge = styled.div`
   }
 `;
 
+// Thêm vào file style.js
+
 export const ProductCard = styled(Card)`
   border-radius: 12px;
   overflow: hidden;
@@ -359,6 +361,22 @@ export const ProductCard = styled(Card)`
     box-shadow: 0 2px 6px rgba(255, 77, 79, 0.3);
   }
   
+  .product-out-of-stock {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    font-weight: bold;
+    z-index: 2;
+  }
+  
   .product-title {
     font-weight: 500;
     margin-bottom: 8px;
@@ -368,6 +386,11 @@ export const ProductCard = styled(Card)`
     -webkit-box-orient: vertical;
     overflow: hidden;
     height: 48px;
+    cursor: pointer;
+    
+    &:hover {
+      color: #4cb551;
+    }
   }
   
   .product-price {
@@ -411,6 +434,19 @@ export const ProductCard = styled(Card)`
       background: #4cb551;
       border-color: #4cb551;
     }
+    
+    &.disabled {
+      color: #d9d9d9;
+      background: #f5f5f5;
+      border-color: #d9d9d9;
+      cursor: not-allowed;
+      
+      &:hover {
+        color: #d9d9d9;
+        background: #f5f5f5;
+        border-color: #d9d9d9;
+      }
+    }
   }
   
   .product-details-btn {
@@ -419,5 +455,11 @@ export const ProductCard = styled(Card)`
     &:hover {
       color: #333;
     }
+  }
+  
+  .product-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 `;

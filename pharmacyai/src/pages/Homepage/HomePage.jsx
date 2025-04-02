@@ -14,7 +14,8 @@ import {
   Rate,
   Button,
   Tag,
-  Tooltip
+  Tooltip,
+  message
 } from 'antd';
 import { 
   ClockCircleFilled, 
@@ -40,6 +41,7 @@ import TypeProduct from '../../components/TypeProduct/TypeProduct';
 import CardComponent from '../../components/CardComponents/CardComponent';
 import * as ProductService from '../../services/ProductService';
 import { useDebounce } from '../../hooks/useDebounce';
+import { addOrderProduct } from '../../redux/slices/orderSlice';
 
 // Import ảnh slide
 import slide1 from '../../assets/img/slide1.png';
@@ -75,7 +77,10 @@ const { TabPane } = Tabs;
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [messageApi, contextHolder] = message.useMessage();
   const searchProduct = useSelector((state) => state?.product?.search);
+  const user = useSelector((state) => state?.user);
   const searchDebounce = useDebounce(searchProduct, 500);
   const [limit, setLimit] = useState(12);
   const [typeProducts, setTypeProducts] = useState([]);
@@ -132,7 +137,39 @@ const HomePage = () => {
 
   // Xử lý khi click vào sản phẩm
   const handleProductClick = (productId) => {
-    navigate(`/product-details/${productId}`);
+    navigate(`/product-detail/${productId}`);
+  };
+  
+  // Xử lý thêm vào giỏ hàng
+  const handleAddToCart = (product) => {
+    if (!user?.id) {
+      messageApi.warning('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng');
+      return;
+    }
+    
+    // Nếu sản phẩm hết hàng
+    if (product.countInStock <= 0) {
+      messageApi.error('Sản phẩm hiện đã hết hàng');
+      return;
+    }
+
+    // Tính giá sau giảm giá nếu có
+    const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
+    
+    // Dispatch action thêm sản phẩm vào giỏ hàng
+    dispatch(addOrderProduct({ 
+      orderItem: {
+        name: product.name,
+        amount: 1, 
+        image: product.image,
+        price: discountedPrice,
+        product: product._id,
+        discount: product.discount,
+        countInStock: product.countInStock
+      }
+    }));
+    
+    messageApi.success('Đã thêm sản phẩm vào giỏ hàng');
   };
   
   // Dữ liệu Feature Cards
@@ -211,6 +248,7 @@ const HomePage = () => {
   // Custom Card Component
   const CustomProductCard = ({ product }) => {
     const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
+    const isOutOfStock = product.countInStock <= 0;
     
     return (
       <ProductCard
@@ -228,11 +266,18 @@ const HomePage = () => {
                 -{product.discount}%
               </div>
             )}
+            {isOutOfStock && (
+              <div className="product-out-of-stock">
+                Hết hàng
+              </div>
+            )}
           </div>
         }
       >
-        <div onClick={() => handleProductClick(product._id)}>
-          <div className="product-title">{product.name}</div>
+        <div className="product-content">
+          <div className="product-title" onClick={() => handleProductClick(product._id)}>
+            {product.name}
+          </div>
           <div>
             <span className="product-price">{formatPrice(discountedPrice)}</span>
             {product.discount > 0 && (
@@ -244,11 +289,22 @@ const HomePage = () => {
             <span className="product-sold"> | Đã bán: {product.selled || 0}</span>
           </div>
           <div className="product-actions">
-            <Tooltip title="Thêm vào giỏ hàng">
-              <Button icon={<ShoppingCartOutlined />} className="add-to-cart-btn" size="small" />
+            <Tooltip title={isOutOfStock ? "Sản phẩm đã hết hàng" : "Thêm vào giỏ hàng"}>
+              <Button 
+                icon={<ShoppingCartOutlined />} 
+                className={`add-to-cart-btn ${isOutOfStock ? 'disabled' : ''}`}
+                size="small" 
+                onClick={() => handleAddToCart(product)}
+                disabled={isOutOfStock}
+              />
             </Tooltip>
             <Tooltip title="Xem chi tiết">
-              <Button icon={<EyeOutlined />} className="product-details-btn" size="small" />
+              <Button 
+                icon={<EyeOutlined />} 
+                className="product-details-btn" 
+                size="small" 
+                onClick={() => handleProductClick(product._id)}
+              />
             </Tooltip>
           </div>
         </div>
@@ -258,6 +314,7 @@ const HomePage = () => {
 
   return (
     <PageContainer>
+      {contextHolder} {/* Để hiển thị thông báo */}
       <ContentContainer>
         {/* Hero Carousel Section */}
         <HeroSection>
@@ -289,13 +346,19 @@ const HomePage = () => {
           
           <Row gutter={[16, 16]} style={{ marginBottom: '30px' }}>
             <Col>
-              <CategoryBadge className={activeCategory === 'all' ? 'active' : ''}>
+              <CategoryBadge 
+                className={activeCategory === 'all' ? 'active' : ''}
+                onClick={() => setActiveCategory('all')}
+              >
                 Tất cả
               </CategoryBadge>
             </Col>
             {typeProducts.map((type) => (
               <Col key={type._id}>
-                <CategoryBadge className={activeCategory === type._id ? 'active' : ''}>
+                <CategoryBadge 
+                  className={activeCategory === type._id ? 'active' : ''}
+                  onClick={() => setActiveCategory(type._id)}
+                >
                   {typeof type === 'object' ? type.name : type}
                 </CategoryBadge>
               </Col>
