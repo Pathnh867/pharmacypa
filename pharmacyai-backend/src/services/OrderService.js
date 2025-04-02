@@ -224,6 +224,19 @@ const updateOrderStatus = (orderId, newStatus, note) => {
             if (newStatus === 'delivered') {
                 order.isDeliverd = true;
                 order.deliverdAt = Date.now();
+                
+                // Cập nhật số lượng đã bán cho từng sản phẩm
+                const Product = require('../models/ProductModel');
+                
+                // Lặp qua từng sản phẩm trong đơn hàng
+                for (const item of order.orderItems) {
+                    // Tìm và cập nhật sản phẩm
+                    await Product.findByIdAndUpdate(
+                        item.product,
+                        { $inc: { selled: item.amount } },
+                        { new: true }
+                    );
+                }
             }
             
             const updatedOrder = await order.save();
@@ -238,7 +251,6 @@ const updateOrderStatus = (orderId, newStatus, note) => {
         }
     });
 };
-
 // Hủy đơn hàng
 const cancelOrder = (orderId, reason) => {
     return new Promise(async (resolve, reject) => {

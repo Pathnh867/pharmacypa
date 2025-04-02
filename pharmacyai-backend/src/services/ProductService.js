@@ -24,7 +24,8 @@ const createProduct = (newProduct) => {
                 countInStock,
                 rating,
                 description,
-                discount
+                discount,
+                selled: 0 // Thêm trường selled với giá trị mặc định là 0
             });
             if (createdProduct) {
                 resolve({
