@@ -5,7 +5,8 @@ import { WrapperCountOrder, WrapperInfo, WrapperInfodiv, WrapperInfospan, Wrappe
   PageContainer, PageTitle, PageContent, SectionTitle, EmptyCartMessage, StepIndicator, 
   StepItem, StepLabel, StepDescription, ActionButton, ItemImage, ItemDetails, ItemName, 
   ItemPrice, QuantityControl, DeleteButton, CartSummary, SummaryTitle, SummaryRow, 
-  DeliveryInfo, TotalAmount, TotalDetail, UserAddressInfo, UpdateAddressButton } from './style';
+  DeliveryInfo, TotalAmount, TotalDetail, UserAddressInfo, UpdateAddressButton,
+  OriginalPrice, DiscountedPrice, PriceContainer } from './style';
 import { Badge, Alert, Checkbox, Form, message, Modal, Radio, Steps, Empty, Tooltip } from 'antd';
 import { DeleteOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined, 
   RightOutlined, InfoCircleOutlined, EnvironmentOutlined, UserOutlined, PhoneOutlined } from '@ant-design/icons'
@@ -263,6 +264,11 @@ const OrderPage = () => {
     }
   ];
 
+  // Tính giá sau khi giảm giá
+  const calculateDiscountedPrice = (price, discount) => {
+    return price - (price * discount / 100);
+  };
+
   return (
     <PageContainer>
       <PageContent>
@@ -305,7 +311,7 @@ const OrderPage = () => {
             />
           </EmptyCartMessage>
         ) : (
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px', gap: '20px' }}>
             <WrapperLeft>
               <WrapperStyleHeader>
                 <span style={{ display: 'inline-block', width: '390px' }}>
@@ -331,6 +337,9 @@ const OrderPage = () => {
               
               <WrapperListOrder>
                 {order?.orderItems?.map((orderItem) => {
+                  const discountedPrice = calculateDiscountedPrice(orderItem?.price, orderItem?.discount || 0);
+                  const hasDiscount = orderItem?.discount && orderItem?.discount > 0;
+                  
                   return (
                     <WrapperItemOrder key={orderItem?.product}>
                       <div style={{ width: '390px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -345,9 +354,12 @@ const OrderPage = () => {
                         </ItemDetails>
                       </div>
                       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <ItemPrice>
-                          <span>{convertPrice(orderItem?.price)}</span>
-                        </ItemPrice>
+                        <PriceContainer>
+                          {hasDiscount && (
+                            <OriginalPrice>{convertPrice(orderItem?.price)}</OriginalPrice>
+                          )}
+                          <DiscountedPrice>{convertPrice(discountedPrice)}</DiscountedPrice>
+                        </PriceContainer>
                         <QuantityControl>
                           <button 
                             disabled={orderItem?.amount <= 1}
@@ -361,7 +373,14 @@ const OrderPage = () => {
                           </button>
                         </QuantityControl>
                         <ItemPrice>
-                          {convertPrice(orderItem?.price * orderItem?.amount)}
+                          {hasDiscount ? (
+                            <>
+                              <OriginalPrice>{convertPrice(orderItem?.price * orderItem?.amount)}</OriginalPrice>
+                              <DiscountedPrice>{convertPrice(discountedPrice * orderItem?.amount)}</DiscountedPrice>
+                            </>
+                          ) : (
+                            <DiscountedPrice>{convertPrice(orderItem?.price * orderItem?.amount)}</DiscountedPrice>
+                          )}
                         </ItemPrice>
                         <DeleteButton onClick={() => handleDeleteOder(orderItem?.product)}>
                           <DeleteOutlined />

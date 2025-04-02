@@ -196,10 +196,29 @@ export const ItemName = styled.div`
   color: #333;
 `;
 
-export const ItemPrice = styled.div`
-  font-weight: 500;
+export const PriceContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 100px;
+`;
+
+export const OriginalPrice = styled.div`
+  color: #999;
+  font-size: 12px;
+  text-decoration: line-through;
+`;
+
+export const DiscountedPrice = styled.div`
   color: #ff4d4f;
-  min-width: 90px;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+export const ItemPrice = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-width: 100px;
   text-align: right;
 `;
 
@@ -368,7 +387,7 @@ export const TotalDetail = styled.div`
 `;
 
 export const ActionButton = styled.button`
-  width: 100%;
+  width: calc(100% - 40px);
   padding: 14px;
   background: #4cb551;
   border: none;
