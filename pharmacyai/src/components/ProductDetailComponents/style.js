@@ -380,8 +380,6 @@ export const WrapperStyleNameProduct = styled.h1`
   margin-bottom: 8px;
 `;
 
-// Đã xóa WrapperStyleImageSmall và WrapperStyleColImage vì không còn dùng thumbnails
-
 export const WrapperStyleTextSell = styled.span`
   font-size: 15px;
   line-height: 24px;
@@ -496,5 +494,203 @@ export const WrapperTabs = styled(Tabs)`
   
   .ant-card-body {
     padding: 24px;
+  }
+`;
+
+// Container cho phần sản phẩm liên quan
+export const RelatedProductsContainer = styled.div`
+  padding: 16px 24px 24px;
+  
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 24px;
+    position: relative;
+    display: inline-block;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: #4cb551;
+      border-radius: 3px;
+    }
+  }
+`;
+
+// Grid hiển thị sản phẩm liên quan
+export const RelatedProductsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  
+  @media (max-width: 992px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (max-width: 576px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+// Card sản phẩm liên quan
+export const RelatedProductCard = styled.div`
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  height: 100%;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  }
+  
+  .card-image {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    background: #f9f9f9;
+    overflow: hidden;
+    position: relative;
+    
+    img {
+      max-height: 160px;
+      max-width: 100%;
+      object-fit: contain;
+      transition: transform 0.3s ease;
+    }
+    
+    .discount-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: #ff4d4f;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    &:hover img {
+      transform: scale(1.05);
+    }
+  }
+  
+  .card-content {
+    padding: 16px;
+    
+    .product-name {
+      font-size: 16px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 8px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      height: 48px;
+    }
+    
+    .product-price {
+      display: flex;
+      align-items: baseline;
+      margin-bottom: 8px;
+      
+      .discount-price {
+        font-size: 18px;
+        font-weight: 600;
+        color: #ff4d4f;
+      }
+      
+      .original-price {
+        font-size: 14px;
+        color: #999;
+        text-decoration: line-through;
+        margin-left: 8px;
+      }
+    }
+    
+    .product-rating {
+      font-size: 12px;
+    }
+  }
+`;
+
+// Component hiển thị khi không có sản phẩm liên quan
+export const NoRelatedProducts = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  
+  .icon {
+    font-size: 48px;
+    color: #d9d9d9;
+    margin-bottom: 16px;
+  }
+  
+  .text {
+    font-size: 16px;
+    color: #666;
+  }
+`;
+
+// Component hiển thị trong khi đang tải
+export const LoadingRelatedProducts = styled.div`
+  text-align: center;
+  padding: 40px 0;
+  
+  .spin-icon {
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+  
+  .text {
+    font-size: 16px;
+    color: #666;
+  }
+`;
+
+// Button xem thêm
+export const ViewMoreButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 24px auto 0;
+  padding: 8px 24px;
+  background: white;
+  color: #4cb551;
+  border: 1px solid #4cb551;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #f6fff7;
+    transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  .icon {
+    margin-left: 8px;
   }
 `;

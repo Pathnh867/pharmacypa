@@ -32,7 +32,8 @@ import {
   MessageOutlined,
   UserOutlined,
   LoadingOutlined,
-  WarningOutlined
+  WarningOutlined,
+  RightOutlined
 } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -60,7 +61,13 @@ import {
   WrapperActions, 
   WrapperTabs,
   ProductDetailContainer,
-  MainImageContainer
+  MainImageContainer,
+  RelatedProductsContainer,
+  RelatedProductsGrid,
+  RelatedProductCard,
+  NoRelatedProducts,
+  LoadingRelatedProducts,
+  ViewMoreButton
 } from './style';
 
 const { TabPane } = Tabs;
@@ -595,65 +602,68 @@ const ProductDetailComponent = ({ idProduct }) => {
         </WrapperTabs>
       </WrapperContainer>
       
-      {/* Sản phẩm tương tự */}
+      {/* Sản phẩm tương tự - Phần đã được cải tiến */}
       <WrapperContainer>
-        <div style={{ padding: '16px 24px' }}>
-          <h3 style={{ 
-            borderBottom: '3px solid #4cb551', 
-            paddingBottom: '8px', 
-            display: 'inline-block',
-            marginBottom: '16px'
-          }}>
-            Sản phẩm tương tự
-          </h3>
+        <RelatedProductsContainer>
+          <h3>Sản phẩm tương tự</h3>
           
           {loadingSimilar ? (
-            <div style={{ textAlign: 'center', padding: '20px' }}>
-              <Spin />
-              <div style={{ marginTop: '10px' }}>Đang tải sản phẩm tương tự...</div>
-            </div>
+            <LoadingRelatedProducts>
+              <div className="spin-icon">
+                <LoadingOutlined style={{ fontSize: 36, color: '#4cb551' }} spin />
+              </div>
+              <div className="text">Đang tải sản phẩm tương tự...</div>
+            </LoadingRelatedProducts>
           ) : similarProducts.length > 0 ? (
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              {similarProducts.map((product) => (
-                <div key={product._id} style={{ width: 'calc(25% - 12px)' }}>
-                  <Card
-                    hoverable
-                    cover={<img alt={product.name} src={product.image} style={{ height: '200px', objectFit: 'contain' }} />}
-                    style={{ height: '100%' }}
+            <>
+              <RelatedProductsGrid>
+                {similarProducts.map((product) => (
+                  <RelatedProductCard 
+                    key={product._id}
                     onClick={() => navigate(`/product-details/${product._id}`)}
                   >
-                    <Card.Meta 
-                      title={product.name} 
-                      description={
-                        <div>
-                          <div style={{ color: '#ff4d4f', fontWeight: '500', fontSize: '16px' }}>
-                            {formatPrice(calculateDiscountPrice(product.price, product.discount))}
-                            {product.discount > 0 && (
-                              <span style={{ 
-                                textDecoration: 'line-through', 
-                                color: '#999', 
-                                marginLeft: '8px',
-                                fontSize: '14px'
-                              }}>
-                                {formatPrice(product.price)}
-                              </span>
-                            )}
-                          </div>
-                          <Rate disabled defaultValue={product.rating} style={{ fontSize: '12px' }} />
-                        </div>
-                      } 
-                    />
-                  </Card>
-                </div>
-              ))}
-            </div>
+                    <div className="card-image">
+                      <img alt={product.name} src={product.image} />
+                      {product.discount > 0 && (
+                        <span className="discount-badge">-{product.discount}%</span>
+                      )}
+                    </div>
+                    <div className="card-content">
+                      <div className="product-name">{product.name}</div>
+                      <div className="product-price">
+                        <span className="discount-price">
+                          {formatPrice(calculateDiscountPrice(product.price, product.discount))}
+                        </span>
+                        {product.discount > 0 && (
+                          <span className="original-price">
+                            {formatPrice(product.price)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="product-rating">
+                        <Rate disabled defaultValue={product.rating} style={{ fontSize: 12 }} />
+                      </div>
+                    </div>
+                  </RelatedProductCard>
+                ))}
+              </RelatedProductsGrid>
+              
+              {similarProducts.length >= 4 && (
+                <ViewMoreButton onClick={() => navigate('/product-category', { state: { type: productDetails?.type?._id || productDetails?.type } })}>
+                  Xem thêm sản phẩm tương tự
+                  <RightOutlined className="icon" />
+                </ViewMoreButton>
+              )}
+            </>
           ) : (
-            <Empty 
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Không tìm thấy sản phẩm tương tự" 
-            />
+            <NoRelatedProducts>
+              <div className="icon">
+                <WarningOutlined style={{ color: '#d9d9d9' }} />
+              </div>
+              <div className="text">Không tìm thấy sản phẩm tương tự</div>
+            </NoRelatedProducts>
           )}
-        </div>
+        </RelatedProductsContainer>
       </WrapperContainer>
       
       {/* Modal đánh giá sản phẩm */}
