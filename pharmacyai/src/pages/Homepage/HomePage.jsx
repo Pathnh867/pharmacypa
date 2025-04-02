@@ -501,7 +501,7 @@ const HomePage = () => {
                       ))}
                     </ProductGrid>
                     
-                    {limit < products.data.length && (
+                    {products.total > limit && (
                       <ViewMoreButton onClick={handleViewMore}>
                         Xem thêm sản phẩm
                       </ViewMoreButton>

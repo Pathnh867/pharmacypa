@@ -620,7 +620,7 @@ const ProductDetailComponent = ({ idProduct }) => {
                 {similarProducts.map((product) => (
                   <RelatedProductCard 
                     key={product._id}
-                    onClick={() => navigate(`/product-details/${product._id}`)}
+                    onClick={() => navigate(`/product-detail/${product._id}`)}
                   >
                     <div className="card-image">
                       <img alt={product.name} src={product.image} />
