@@ -118,7 +118,7 @@ const OrderPage = () => {
   
   const DeliveryPriceMemo = useMemo(() => {
     if (priceMemo > 100000) {
-      return 10000
+      return 0  // Miễn phí vận chuyển khi đơn hàng trên 100.000đ
     } else if (priceMemo === 0) {
       return 0
     } else {
@@ -355,10 +355,14 @@ const OrderPage = () => {
                       </div>
                       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <PriceContainer>
-                          {hasDiscount && (
-                            <OriginalPrice>{convertPrice(orderItem?.price)}</OriginalPrice>
+                          {hasDiscount ? (
+                            <>
+                              <OriginalPrice>{convertPrice(orderItem?.price)}</OriginalPrice>
+                              <DiscountedPrice>{convertPrice(discountedPrice)}</DiscountedPrice>
+                            </>
+                          ) : (
+                            <DiscountedPrice>{convertPrice(orderItem?.price)}</DiscountedPrice>
                           )}
-                          <DiscountedPrice>{convertPrice(discountedPrice)}</DiscountedPrice>
                         </PriceContainer>
                         <QuantityControl>
                           <button 
@@ -441,8 +445,24 @@ const OrderPage = () => {
                 )}
                 
                 <SummaryRow>
-                  <span>Phí giao hàng</span>
-                  <span>{convertPrice(DeliveryPriceMemo)}</span>
+                  <span>
+                    {priceMemo > 100000 ? (
+                      <Tooltip title="Miễn phí vận chuyển cho đơn hàng trên 100.000đ">
+                        <span style={{ display: 'flex', alignItems: 'center' }}>
+                          Phí giao hàng <InfoCircleOutlined style={{ marginLeft: '5px', color: '#4cb551' }} />
+                        </span>
+                      </Tooltip>
+                    ) : (
+                      "Phí giao hàng"
+                    )}
+                  </span>
+                  <span>
+                    {priceMemo > 100000 ? (
+                      <span style={{ color: '#4cb551' }}>Miễn phí</span>
+                    ) : (
+                      convertPrice(DeliveryPriceMemo)
+                    )}
+                  </span>
                 </SummaryRow>
                 
                 <TotalAmount>
