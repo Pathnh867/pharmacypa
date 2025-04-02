@@ -15,7 +15,8 @@ import {
   Modal,
   Empty,
   Alert,
-  Image as AntImage // Đổi tên để tránh xung đột với HTML img tag
+  Image as AntImage,
+  Spin
 } from 'antd';
 import { Comment } from '@ant-design/compatible';
 import { 
@@ -99,6 +100,8 @@ const ProductDetailComponent = ({ idProduct }) => {
   const [reviewForm] = Form.useForm();
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('1');
+  const [similarProducts, setSimilarProducts] = useState([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
   
   const user = useSelector((state) => state.user);
   const navigate = useNavigate();
@@ -172,10 +175,14 @@ const ProductDetailComponent = ({ idProduct }) => {
     }
   };
   
-  // Mua ngay
+  // Mua ngay - Đã sửa để kiểm tra đăng nhập
   const handleBuyNow = () => {
-    handleAddOrderProduct();
-    navigate('/order');
+    if (!user?.access_token) {
+      navigate('/sign-in', { state: location?.pathname });
+    } else {
+      handleAddOrderProduct();
+      navigate('/order');
+    }
   };
 
   const {isPending, data: productDetails} = useQuery({
@@ -184,6 +191,41 @@ const ProductDetailComponent = ({ idProduct }) => {
     enabled: !!idProduct,
     refetchOnWindowFocus: false
   });
+  
+  // Hàm lấy các sản phẩm tương tự
+  useEffect(() => {
+    const fetchSimilarProducts = async () => {
+      if (productDetails?.type) {
+        setLoadingSimilar(true);
+        try {
+          // Lấy typeId từ đối tượng type hoặc chuỗi
+          const typeId = typeof productDetails.type === 'object' 
+            ? productDetails.type._id 
+            : productDetails.type;
+            
+          const res = await ProductService.getAllProduct('', 100);
+          if (res?.status === 'OK') {
+            // Lọc sản phẩm cùng loại, nhưng không phải sản phẩm hiện tại
+            let filtered = res.data.filter(product => 
+              (product.type === typeId || 
+              (typeof product.type === 'object' && product.type?._id === typeId)) && 
+              product._id !== productDetails._id
+            );
+            
+            // Giới hạn số lượng hiển thị
+            filtered = filtered.slice(0, 4);
+            setSimilarProducts(filtered);
+          }
+        } catch (error) {
+          console.error('Lỗi khi tải sản phẩm tương tự:', error);
+        } finally {
+          setLoadingSimilar(false);
+        }
+      }
+    };
+    
+    fetchSimilarProducts();
+  }, [productDetails]);
   
   // Format giá tiền
   const formatPrice = (price) => {
@@ -565,10 +607,52 @@ const ProductDetailComponent = ({ idProduct }) => {
             Sản phẩm tương tự
           </h3>
           
-          <Empty 
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="Đang tải sản phẩm tương tự..." 
-          />
+          {loadingSimilar ? (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <Spin />
+              <div style={{ marginTop: '10px' }}>Đang tải sản phẩm tương tự...</div>
+            </div>
+          ) : similarProducts.length > 0 ? (
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              {similarProducts.map((product) => (
+                <div key={product._id} style={{ width: 'calc(25% - 12px)' }}>
+                  <Card
+                    hoverable
+                    cover={<img alt={product.name} src={product.image} style={{ height: '200px', objectFit: 'contain' }} />}
+                    style={{ height: '100%' }}
+                    onClick={() => navigate(`/product-details/${product._id}`)}
+                  >
+                    <Card.Meta 
+                      title={product.name} 
+                      description={
+                        <div>
+                          <div style={{ color: '#ff4d4f', fontWeight: '500', fontSize: '16px' }}>
+                            {formatPrice(calculateDiscountPrice(product.price, product.discount))}
+                            {product.discount > 0 && (
+                              <span style={{ 
+                                textDecoration: 'line-through', 
+                                color: '#999', 
+                                marginLeft: '8px',
+                                fontSize: '14px'
+                              }}>
+                                {formatPrice(product.price)}
+                              </span>
+                            )}
+                          </div>
+                          <Rate disabled defaultValue={product.rating} style={{ fontSize: '12px' }} />
+                        </div>
+                      } 
+                    />
+                  </Card>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty 
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="Không tìm thấy sản phẩm tương tự" 
+            />
+          )}
         </div>
       </WrapperContainer>
       
