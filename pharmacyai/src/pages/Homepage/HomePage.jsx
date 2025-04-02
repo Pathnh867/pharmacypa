@@ -10,7 +10,11 @@ import {
   Tabs, 
   Divider, 
   Empty, 
-  Spin 
+  Spin,
+  Rate,
+  Button,
+  Tag,
+  Tooltip
 } from 'antd';
 import { 
   ClockCircleFilled, 
@@ -21,7 +25,14 @@ import {
   TagFilled,
   AppstoreOutlined,
   GiftFilled,
-  ThunderboltFilled
+  ThunderboltFilled,
+  ShoppingCartOutlined,
+  EyeOutlined,
+  HeartOutlined,
+  CheckCircleFilled,
+  SafetyCertificateFilled,
+  RocketFilled,
+  MedicineBoxFilled
 } from '@ant-design/icons';
 
 // Import các component và service cần thiết
@@ -54,7 +65,9 @@ import {
   AboutSection, 
   EmptyWrapper, 
   SpinContainer,
-  CarouselImage
+  CarouselImage,
+  CategoryBadge,
+  ProductCard
 } from './style';
 
 const { Title, Text, Paragraph } = Typography;
@@ -116,6 +129,11 @@ const HomePage = () => {
   const handleViewMore = () => {
     setLimit(prev => prev + 12);
   };
+
+  // Xử lý khi click vào sản phẩm
+  const handleProductClick = (productId) => {
+    navigate(`/product-details/${productId}`);
+  };
   
   // Dữ liệu Feature Cards
   const features = [
@@ -176,6 +194,68 @@ const HomePage = () => {
       .slice(0, 8);
   };
 
+  // Format giá tiền
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price);
+  };
+
+  // Tính giá sau khi giảm
+  const calculateDiscountedPrice = (price, discount) => {
+    if (!discount) return price;
+    return price - (price * discount / 100);
+  };
+
+  // Custom Card Component
+  const CustomProductCard = ({ product }) => {
+    const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
+    
+    return (
+      <ProductCard
+        hoverable
+        cover={
+          <div style={{ position: 'relative' }}>
+            <img 
+              alt={product.name} 
+              src={product.image} 
+              className="product-image"
+              onClick={() => handleProductClick(product._id)}
+            />
+            {product.discount > 0 && (
+              <div className="product-discount-badge">
+                -{product.discount}%
+              </div>
+            )}
+          </div>
+        }
+      >
+        <div onClick={() => handleProductClick(product._id)}>
+          <div className="product-title">{product.name}</div>
+          <div>
+            <span className="product-price">{formatPrice(discountedPrice)}</span>
+            {product.discount > 0 && (
+              <span className="product-original-price">{formatPrice(product.price)}</span>
+            )}
+          </div>
+          <div className="product-rating">
+            <Rate disabled defaultValue={product.rating} allowHalf style={{ fontSize: 14 }} />
+            <span className="product-sold"> | Đã bán: {product.selled || 0}</span>
+          </div>
+          <div className="product-actions">
+            <Tooltip title="Thêm vào giỏ hàng">
+              <Button icon={<ShoppingCartOutlined />} className="add-to-cart-btn" size="small" />
+            </Tooltip>
+            <Tooltip title="Xem chi tiết">
+              <Button icon={<EyeOutlined />} className="product-details-btn" size="small" />
+            </Tooltip>
+          </div>
+        </div>
+      </ProductCard>
+    );
+  };
+
   return (
     <PageContainer>
       <ContentContainer>
@@ -191,7 +271,7 @@ const HomePage = () => {
         </HeroSection>
 
         {/* Features Section */}
-        <Row gutter={[24, 24]} style={{ marginBottom: '40px' }}>
+        <Row gutter={[24, 24]} style={{ marginBottom: '50px' }}>
           {features.map((feature, index) => (
             <Col xs={24} sm={8} key={index}>
               <FeatureCard>
@@ -207,13 +287,17 @@ const HomePage = () => {
         <CategoryContainer>
           <SectionTitle>Danh Mục Sản Phẩm</SectionTitle>
           
-          <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+          <Row gutter={[16, 16]} style={{ marginBottom: '30px' }}>
             <Col>
-              <TypeProduct name="all" />
+              <CategoryBadge className={activeCategory === 'all' ? 'active' : ''}>
+                Tất cả
+              </CategoryBadge>
             </Col>
             {typeProducts.map((type) => (
               <Col key={type._id}>
-                <TypeProduct name={type} />
+                <CategoryBadge className={activeCategory === type._id ? 'active' : ''}>
+                  {typeof type === 'object' ? type.name : type}
+                </CategoryBadge>
               </Col>
             ))}
           </Row>
@@ -238,19 +322,7 @@ const HomePage = () => {
                 ) : getFeaturedProducts().length > 0 ? (
                   <ProductGrid>
                     {getFeaturedProducts().map(product => (
-                      <CardComponent
-                        key={product._id}
-                        countInStock={product.countInStock}
-                        description={product.description}
-                        image={product.image}
-                        name={product.name}
-                        price={product.price}
-                        rating={product.rating}
-                        type={product.type}
-                        selled={product.selled}
-                        discount={product.discount}
-                        id={product._id}
-                      />
+                      <CustomProductCard key={product._id} product={product} />
                     ))}
                   </ProductGrid>
                 ) : (
@@ -275,19 +347,7 @@ const HomePage = () => {
                 ) : getBestSellingProducts().length > 0 ? (
                   <ProductGrid>
                     {getBestSellingProducts().map(product => (
-                      <CardComponent
-                        key={product._id}
-                        countInStock={product.countInStock}
-                        description={product.description}
-                        image={product.image}
-                        name={product.name}
-                        price={product.price}
-                        rating={product.rating}
-                        type={product.type}
-                        selled={product.selled}
-                        discount={product.discount}
-                        id={product._id}
-                      />
+                      <CustomProductCard key={product._id} product={product} />
                     ))}
                   </ProductGrid>
                 ) : (
@@ -312,19 +372,7 @@ const HomePage = () => {
                 ) : getNewestProducts().length > 0 ? (
                   <ProductGrid>
                     {getNewestProducts().map(product => (
-                      <CardComponent
-                        key={product._id}
-                        countInStock={product.countInStock}
-                        description={product.description}
-                        image={product.image}
-                        name={product.name}
-                        price={product.price}
-                        rating={product.rating}
-                        type={product.type}
-                        selled={product.selled}
-                        discount={product.discount}
-                        id={product._id}
-                      />
+                      <CustomProductCard key={product._id} product={product} />
                     ))}
                   </ProductGrid>
                 ) : (
@@ -349,19 +397,7 @@ const HomePage = () => {
                 ) : getDiscountProducts().length > 0 ? (
                   <ProductGrid>
                     {getDiscountProducts().map(product => (
-                      <CardComponent
-                        key={product._id}
-                        countInStock={product.countInStock}
-                        description={product.description}
-                        image={product.image}
-                        name={product.name}
-                        price={product.price}
-                        rating={product.rating}
-                        type={product.type}
-                        selled={product.selled}
-                        discount={product.discount}
-                        id={product._id}
-                      />
+                      <CustomProductCard key={product._id} product={product} />
                     ))}
                   </ProductGrid>
                 ) : (
@@ -387,19 +423,7 @@ const HomePage = () => {
                   <>
                     <ProductGrid>
                       {products.data.slice(0, limit).map(product => (
-                        <CardComponent
-                          key={product._id}
-                          countInStock={product.countInStock}
-                          description={product.description}
-                          image={product.image}
-                          name={product.name}
-                          price={product.price}
-                          rating={product.rating}
-                          type={product.type}
-                          selled={product.selled}
-                          discount={product.discount}
-                          id={product._id}
-                        />
+                        <CustomProductCard key={product._id} product={product} />
                       ))}
                     </ProductGrid>
                     
@@ -422,18 +446,78 @@ const HomePage = () => {
         {/* About Us Section */}
         <AboutSection>
           <SectionTitle>Nhà thuốc tiện lợi</SectionTitle>
-          <Row gutter={[24, 24]}>
+          <Row gutter={[32, 24]} align="middle">
             <Col xs={24} md={16}>
-              <Paragraph style={{ fontSize: '16px', lineHeight: '1.8' }}>
-                Nhà thuốc tiện lợi là hệ thống nhà thuốc uy tín với lịch sử hoạt động trên 10 năm trong lĩnh vực dược phẩm. 
+              <Row gutter={[20, 20]}>
+                <Col span={24}>
+                  <div style={{ display: 'flex', marginBottom: '15px' }}>
+                    <SafetyCertificateFilled style={{ color: '#4cb551', fontSize: '24px', marginRight: '15px' }} />
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: '5px', fontSize: '18px' }}>
+                        Sản phẩm chính hãng
+                      </div>
+                      <div style={{ color: '#666' }}>
+                        Cam kết 100% sản phẩm chính hãng, nguồn gốc rõ ràng
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+                <Col span={24}>
+                  <div style={{ display: 'flex', marginBottom: '15px' }}>
+                    <MedicineBoxFilled style={{ color: '#4cb551', fontSize: '24px', marginRight: '15px' }} />
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: '5px', fontSize: '18px' }}>
+                        Đội ngũ dược sĩ chuyên nghiệp
+                      </div>
+                      <div style={{ color: '#666' }}>
+                        Tư vấn tận tình, chuyên môn cao, nhiều năm kinh nghiệm
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+                <Col span={24}>
+                  <div style={{ display: 'flex', marginBottom: '15px' }}>
+                    <RocketFilled style={{ color: '#4cb551', fontSize: '24px', marginRight: '15px' }} />
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: '5px', fontSize: '18px' }}>
+                        Giao hàng nhanh chóng
+                      </div>
+                      <div style={{ color: '#666' }}>
+                        Giao hàng trong vòng 2 giờ trong nội thành, đóng gói cẩn thận
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+
+              <Paragraph style={{ fontSize: '16px', lineHeight: '1.8', marginTop: '20px' }}>
+                Nhà thuốc tiện lợi tự hào là hệ thống nhà thuốc uy tín với lịch sử hoạt động trên 10 năm trong lĩnh vực dược phẩm. 
                 Chúng tôi cung cấp các sản phẩm thuốc, thực phẩm chức năng, dược mỹ phẩm và thiết bị y tế 
-                chất lượng cao, đảm bảo nguồn gốc rõ ràng và giá cả hợp lý.
+                chất lượng cao, đảm bảo nguồn gốc rõ ràng với giá cả hợp lý nhất thị trường.
               </Paragraph>
-              <Paragraph style={{ fontSize: '16px', lineHeight: '1.8' }}>
-                Đội ngũ dược sĩ chuyên nghiệp của chúng tôi sẵn sàng tư vấn và hỗ trợ khách hàng 
-                lựa chọn sản phẩm phù hợp với nhu cầu sức khỏe. Với cam kết "Tận tâm phục vụ - Uy tín hàng đầu", 
-                chúng tôi luôn nỗ lực mang đến dịch vụ và sản phẩm tốt nhất cho khách hàng.
-              </Paragraph>
+              
+              <Row gutter={[16, 16]} style={{ marginTop: '20px' }}>
+                <Col span={12}>
+                  <Tag color="#4cb551" style={{ padding: '5px 10px', borderRadius: '4px' }}>
+                    <CheckCircleFilled /> Sản phẩm đa dạng
+                  </Tag>
+                </Col>
+                <Col span={12}>
+                  <Tag color="#4cb551" style={{ padding: '5px 10px', borderRadius: '4px' }}>
+                    <CheckCircleFilled /> Giá cả cạnh tranh
+                  </Tag>
+                </Col>
+                <Col span={12}>
+                  <Tag color="#4cb551" style={{ padding: '5px 10px', borderRadius: '4px' }}>
+                    <CheckCircleFilled /> Tư vấn sức khỏe miễn phí
+                  </Tag>
+                </Col>
+                <Col span={12}>
+                  <Tag color="#4cb551" style={{ padding: '5px 10px', borderRadius: '4px' }}>
+                    <CheckCircleFilled /> Đổi trả dễ dàng
+                  </Tag>
+                </Col>
+              </Row>
             </Col>
             <Col xs={24} md={8}>
               <img 
@@ -441,7 +525,8 @@ const HomePage = () => {
                 alt="About Us" 
                 style={{ 
                   width: '100%', 
-                  height: 'auto'
+                  height: 'auto',
+                  borderRadius: '12px'
                 }} 
               />
             </Col>
