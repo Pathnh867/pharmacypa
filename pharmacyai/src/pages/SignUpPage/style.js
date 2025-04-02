@@ -11,7 +11,8 @@ export const AuthBackground = styled.div`
 `;
 
 export const WrapperContainerAuth = styled.div`
-  width: 450px;
+  width: 900px;
+  display: flex;
   background: white;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -23,17 +24,101 @@ export const WrapperContainerAuth = styled.div`
     transform: translateY(-5px);
   }
   
-  @media (max-width: 500px) {
+  @media (max-width: 992px) {
     width: 100%;
-    max-width: 400px;
+    max-width: 800px;
+    flex-direction: column-reverse;
   }
 `;
 
 export const AuthContent = styled.div`
   padding: 40px;
+  flex: 1;
   
-  @media (max-width: 500px) {
+  @media (max-width: 768px) {
     padding: 30px 20px;
+  }
+`;
+
+export const AuthImageSection = styled.div`
+  flex: 1;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+  
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(76, 181, 81, 0.05) 0%, rgba(58, 164, 63, 0.1) 100%);
+    z-index: 1;
+  }
+  
+  @media (max-width: 992px) {
+    padding: 30px 20px;
+    min-height: 250px;
+  }
+  
+  @media (max-width: 768px) {
+    min-height: 200px;
+  }
+`;
+
+export const ImageContainer = styled.div`
+  width: 220px;
+  height: 220px;
+  margin-bottom: 30px;
+  z-index: 2;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  
+  @media (max-width: 992px) {
+    width: 180px;
+    height: 180px;
+    margin-bottom: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    width: 160px;
+    height: 160px;
+    margin-bottom: 15px;
+  }
+`;
+
+export const ImageTitle = styled.h2`
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 10px;
+  text-align: center;
+  z-index: 2;
+  
+  @media (max-width: 768px) {
+    font-size: 20px;
+  }
+`;
+
+export const ImageSubtitle = styled.p`
+  font-size: 16px;
+  color: #666;
+  text-align: center;
+  max-width: 80%;
+  z-index: 2;
+  
+  @media (max-width: 768px) {
+    font-size: 14px;
   }
 `;
 

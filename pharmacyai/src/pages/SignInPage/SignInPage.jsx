@@ -14,7 +14,11 @@ import {
   SignUpText, 
   LogoWrapper, 
   ErrorText,
-  AuthBackground
+  AuthBackground,
+  AuthImageSection,
+  ImageContainer,
+  ImageTitle,
+  ImageSubtitle
 } from './style'
 import ButtonComponent from '../../components/ButtonComponents/ButtonComponent'
 import {EyeFilled, EyeInvisibleFilled, MedicineBoxOutlined, UserOutlined, LockOutlined } from '@ant-design/icons'
@@ -25,6 +29,7 @@ import Loading from '../../components/LoadingComponent/Loading'
 import { jwtDecode } from "jwt-decode";
 import {useDispatch} from 'react-redux'
 import { updateUser } from '../../redux/slide/userSlide'
+import pharmacyLogo from '../../assets/img/pharmacy-logo.jpg' // Cần thêm hình ảnh logo vào thư mục này
 
 const SignInPage = () => {
   const [isShowPassword, setIsShowPassword] = useState(false);
@@ -176,6 +181,14 @@ const SignInPage = () => {
             </SignUpText>
           </AuthForm>
         </AuthContent>
+        
+        <AuthImageSection>
+          <ImageContainer>
+            <img src={pharmacyLogo} alt="Pharmacy Logo" />
+          </ImageContainer>
+          <ImageTitle>Nhà Thuốc Tiện Lợi</ImageTitle>
+          <ImageSubtitle>Chúng tôi mang đến sự tiện lợi và chất lượng tốt nhất cho sức khỏe của bạn</ImageSubtitle>
+        </AuthImageSection>
       </WrapperContainerAuth>
     </AuthBackground>
   )

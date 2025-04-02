@@ -12,7 +12,11 @@ import {
   SignUpText, 
   LogoWrapper, 
   ErrorText,
-  AuthBackground
+  AuthBackground,
+  AuthImageSection,
+  ImageContainer,
+  ImageTitle,
+  ImageSubtitle
 } from './style'
 import InputForm from '../../components/InputForm/InputForm'
 import ButtonComponent from '../../components/ButtonComponents/ButtonComponent'
@@ -30,6 +34,7 @@ import * as UserService from '../../services/UserService'
 import { useMutationHooks } from '../../hooks/useMutationHook'
 import Loading from '../../components/LoadingComponent/Loading'
 import * as message from '../../components/Message/Message'
+import pharmacyLogo from '../../assets/img/pharmacy-logo.jpg' // Cần thêm hình ảnh logo vào thư mục này
 
 const SignUpPage = () => {
   const [isShowPassword, setIsShowPassword] = useState(false)
@@ -199,6 +204,14 @@ const SignUpPage = () => {
             </SignUpText>
           </AuthForm>
         </AuthContent>
+        
+        <AuthImageSection>
+          <ImageContainer>
+            <img src={pharmacyLogo} alt="Pharmacy Logo" />
+          </ImageContainer>
+          <ImageTitle>Nhà Thuốc Tiện Lợi</ImageTitle>
+          <ImageSubtitle>Đăng ký ngay để nhận nhiều ưu đãi hấp dẫn và chăm sóc sức khỏe tốt nhất</ImageSubtitle>
+        </AuthImageSection>
       </WrapperContainerAuth>
     </AuthBackground>
   )
