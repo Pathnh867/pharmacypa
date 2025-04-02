@@ -3,10 +3,16 @@ import { axiosJWT } from "./UserService"
 
 export const getAllProduct = async (search, limit) => {
     let res = {}
+    
+    // Đảm bảo limit luôn có giá trị và không quá lớn
+    const validLimit = limit && Number(limit) > 0 ? Number(limit) : 8;
+    
+    console.log(`Fetching products with limit: ${validLimit}`);
+    
     if (search?.length > 0) {
-        res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?filter=name&filter=${search}&limit=${limit}`)
+        res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?filter=name&filter=${search}&limit=${validLimit}`)
     } else {
-        res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?limit=${limit}`)
+        res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?limit=${validLimit}`)
     }
     return res.data
 }
@@ -14,7 +20,11 @@ export const getAllProduct = async (search, limit) => {
 export const getProductType = async (type, page, limit) => {
     if (!type) return null;
     
-    console.log(`Getting products for type: ${type}, page: ${page}, limit: ${limit}`);
+    // Đảm bảo limit luôn có giá trị hợp lý
+    const validLimit = limit && Number(limit) > 0 ? Number(limit) : 8;
+    const validPage = page || 0;
+    
+    console.log(`Getting products for type: ${type}, page: ${validPage}, limit: ${validLimit}`);
     
     try {
         // Xác định cách xử lý dựa trên loại của type
@@ -23,12 +33,12 @@ export const getProductType = async (type, page, limit) => {
         
         if (isMongoId) {
             console.log('Using MongoDB ID query');
-            const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?filter=type&filter=${type}&limit=${limit}&page=${page}`);
+            const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-all?filter=type&filter=${type}&limit=${validLimit}&page=${validPage}`);
             return res.data;
         } else {
             console.log('Using type name query:', typeName);
             const encodedTypeName = encodeURIComponent(typeName);
-            const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-by-type-name?typeName=${encodedTypeName}&page=${page}&limit=${limit}`);
+            const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-by-type-name?typeName=${encodedTypeName}&page=${validPage}&limit=${validLimit}`);
             return res.data;
         }
     } catch (error) {
@@ -90,10 +100,14 @@ export const createType = async (data) => {
     return res.data
 }
 export const getProductByName = async (typeName, page, limit) => {
-    console.log(`Searching products by type name: ${typeName}, page ${page}, limit ${limit}`);
+    // Đảm bảo limit luôn có giá trị hợp lý
+    const validLimit = limit && Number(limit) > 0 ? Number(limit) : 8;
+    const validPage = page || 0;
+    
+    console.log(`Searching products by type name: ${typeName}, page ${validPage}, limit ${validLimit}`);
     try {
         // Dùng query khác để lọc theo tên loại
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-by-type-name?typeName=${encodeURIComponent(typeName)}&page=${page || 0}&limit=${limit || 10}`);
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get-by-type-name?typeName=${encodeURIComponent(typeName)}&page=${validPage}&limit=${validLimit}`);
         return res.data;
     } catch (error) {
         console.error('Error fetching products by type name:', error);

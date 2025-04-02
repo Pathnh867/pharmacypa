@@ -23,7 +23,6 @@ import {
   EnvironmentFilled, 
   StarFilled,
   FireFilled,
-  TagFilled,
   AppstoreOutlined,
   GiftFilled,
   ThunderboltFilled,
@@ -82,15 +81,16 @@ const HomePage = () => {
   const searchProduct = useSelector((state) => state?.product?.search);
   const user = useSelector((state) => state?.user);
   const searchDebounce = useDebounce(searchProduct, 500);
-  const [limit, setLimit] = useState(12);
+  const [limit, setLimit] = useState(8); // Giảm limit xuống 8 sản phẩm ban đầu
   const [typeProducts, setTypeProducts] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeTabKey, setActiveTabKey] = useState('featured');
   
   // Lấy tất cả sản phẩm từ API
   const fetchProductAll = async (context) => {
     const search = context?.queryKey && context?.queryKey[2];
     const limit = context?.queryKey && context?.queryKey[1];
+    console.log(`Fetching products with limit: ${limit}`);
     const res = await ProductService.getAllProduct(search, limit);
     return res;
   };
@@ -111,6 +111,7 @@ const HomePage = () => {
   const { isPending, data: products, isSuccess } = useQuery({
     queryKey: ['products', limit, searchDebounce],
     queryFn: fetchProductAll,
+    staleTime: 60 * 1000, // Giữ dữ liệu trong 1 phút để tránh gọi nhiều lần
   });
 
   // Tải loại sản phẩm khi component mount
@@ -132,7 +133,7 @@ const HomePage = () => {
 
   // Xử lý nút "Xem thêm"
   const handleViewMore = () => {
-    setLimit(prev => prev + 12);
+    setLimit(prev => prev + 8);
   };
 
   // Xử lý khi click vào sản phẩm
@@ -170,6 +171,15 @@ const HomePage = () => {
     }));
     
     messageApi.success('Đã thêm sản phẩm vào giỏ hàng');
+  };
+
+  // Xử lý thay đổi tab
+  const handleTabChange = (key) => {
+    setActiveTabKey(key);
+    // Reset limit khi chuyển tab để tránh việc tự động load quá nhiều sản phẩm
+    if (key === 'all') {
+      setLimit(8);
+    }
   };
   
   // Dữ liệu Feature Cards
@@ -368,7 +378,8 @@ const HomePage = () => {
           <TabsWrapper>
             <Tabs 
               defaultActiveKey="featured" 
-              onChange={(key) => setActiveCategory(key)}
+              activeKey={activeTabKey}
+              onChange={handleTabChange}
             >
               <TabPane 
                 tab={
