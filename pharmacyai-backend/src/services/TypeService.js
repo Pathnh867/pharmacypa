@@ -19,7 +19,7 @@ const getAllType = () => {
 const createType = (newType) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const { name } = newType;
+            const { name, requiresPrescription = false, description = '' } = newType;
             const checkType = await Type.findOne({ name })
             if (checkType) {
                 resolve({
@@ -30,7 +30,12 @@ const createType = (newType) => {
                 return;
             }
             
-            const createdType = await Type.create({ name });
+            const createdType = await Type.create({ 
+                name, 
+                requiresPrescription, 
+                description 
+            });
+            
             resolve({
                 status: 'OK',
                 message: 'SUCCESS',
@@ -41,6 +46,32 @@ const createType = (newType) => {
         }
     });
 };
+
+const updateType = (id, data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const checkType = await Type.findById(id);
+            if (!checkType) {
+                resolve({
+                    status: 'ERR',
+                    message: 'Loại sản phẩm không tồn tại!'
+                });
+                return;
+            }
+            
+            const updatedType = await Type.findByIdAndUpdate(id, data, { new: true });
+            
+            resolve({
+                status: 'OK',
+                message: 'Cập nhật loại sản phẩm thành công',
+                data: updatedType
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
 const findTypeByName = async (name) => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -56,8 +87,26 @@ const findTypeByName = async (name) => {
         }
     });
 };
+
+const getTypesByPrescriptionStatus = (requiresPrescription = false) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const types = await Type.find({ requiresPrescription });
+            resolve({
+                status: 'OK',
+                message: 'Success',
+                data: types
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
 module.exports = {
     getAllType,
     createType,
-    findTypeByName
+    findTypeByName,
+    updateType,
+    getTypesByPrescriptionStatus
 };

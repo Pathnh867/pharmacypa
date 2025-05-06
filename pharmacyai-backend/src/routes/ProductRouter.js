@@ -11,5 +11,6 @@ router.delete('/delete/:id',authMiddleware, ProductController.deleteProduct)
 router.get('/get-all', ProductController.getAllProduct)
 router.get('/get-all-type', ProductController.getAllType)
 router.get('/get-by-type-name', ProductController.getProductsByTypeName);
+router.get('/prescription', ProductController.getProductsByPrescriptionStatus);
 
 module.exports = router

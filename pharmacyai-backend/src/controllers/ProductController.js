@@ -3,12 +3,23 @@ const TypeService = require('../services/TypeService');
 
 const createProduct = async (req, res) => {
     try {
-        const { name, image, type, price, countInStock, rating, description, discount} = req.body
+        const { 
+            name, 
+            image, 
+            type, 
+            price, 
+            countInStock, 
+            rating, 
+            description, 
+            discount,
+            requiresPrescription,
+            prescriptionDetails
+        } = req.body
         
-        if (!name || !image || !type || !price || !countInStock|| !rating||!discount) {
+        if (!name || !image || !type || !price || !countInStock || !rating || !discount) {
             return res.status(400).json({
                 status: 'ERR',
-                message:'The input is required'
+                message:'Các trường bắt buộc không được để trống'
             })
         
         }
@@ -20,6 +31,7 @@ const createProduct = async (req, res) => {
         })
     }
 }
+
 const updateProduct = async (req, res) => {
     try {
         const productId = req.params.id
@@ -27,10 +39,10 @@ const updateProduct = async (req, res) => {
         if (! productId) {
              return res.status(400).json({
                 status: 'ERR',
-                message:'The userId is required'
+                message:'ID sản phẩm là bắt buộc'
             })
         }
-        const response = await ProductService.updateProduct( productId, data)
+        const response = await ProductService.updateProduct(productId, data)
         return res.status(200).json(response)
     } catch (e) {
         return res.status(404).json({
@@ -38,13 +50,14 @@ const updateProduct = async (req, res) => {
         })
     }
 }
+
 const getdetailsProduct = async (req, res) => {
     try {
         const productId = req.params.id
         if (!productId) {
              return res.status(400).json({
                 status: 'ERR',
-                message:'The productId is required'
+                message:'ID sản phẩm là bắt buộc'
             })
         }
         const response = await ProductService.getdetailsProduct(productId)
@@ -55,13 +68,14 @@ const getdetailsProduct = async (req, res) => {
         })
     }
 }
+
 const deleteProduct = async (req, res) => {
     try {
         const productId = req.params.id
         if (!productId) {
              return res.status(400).json({
                 status: 'ERR',
-                message:'The productId is required'
+                message:'ID sản phẩm là bắt buộc'
             })
         }
         const response = await ProductService.deleteProduct(productId)
@@ -72,6 +86,7 @@ const deleteProduct = async (req, res) => {
         })
     }
 }
+
 const getAllProduct = async (req, res) => {
     try {
         let { limit, page, sort, filter } = req.query;
@@ -98,6 +113,7 @@ const getAllProduct = async (req, res) => {
         });
     }
 }
+
 const getAllType = async (req, res) => {
     try {
         const response = await ProductService.getAllType()
@@ -108,7 +124,32 @@ const getAllType = async (req, res) => {
         })
     }
 }
-// ProductController.js - thêm route mới
+
+// Phương thức mới để lấy sản phẩm theo trạng thái kê đơn
+const getProductsByPrescriptionStatus = async (req, res) => {
+    try {
+        const { status = 'false', page = 0, limit = 10 } = req.query;
+        const requiresPrescription = status === 'true' || status === '1';
+        
+        console.log('Searching by prescription status:', requiresPrescription);
+        
+        const response = await ProductService.getProductsByPrescriptionStatus(
+            requiresPrescription, 
+            Number(page), 
+            Number(limit)
+        );
+        
+        return res.status(200).json(response);
+    } catch (e) {
+        console.error('Error in getProductsByPrescriptionStatus:', e);
+        return res.status(500).json({
+            status: 'ERR',
+            message: e.message || 'Lỗi máy chủ'
+        });
+    }
+};
+
+// Phương thức hiện tại đã có trong file của bạn
 const getProductsByTypeName = async (req, res) => {
     try {
         const { typeName, page = 0, limit = 10 } = req.query;
@@ -166,13 +207,3 @@ const getProductsByTypeName = async (req, res) => {
         });
     }
 };
-
-module.exports = {
-    createProduct,
-    updateProduct,
-    getdetailsProduct,
-    deleteProduct,
-    getAllProduct,
-    getAllType,
-    getProductsByTypeName,
-}

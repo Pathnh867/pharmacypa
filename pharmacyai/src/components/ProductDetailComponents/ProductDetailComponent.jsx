@@ -16,7 +16,11 @@ import {
   Empty,
   Alert,
   Image as AntImage,
-  Spin
+  Spin,
+  Tag,
+  Tooltip,
+  Upload,
+  message
 } from 'antd';
 import { Comment } from '@ant-design/compatible';
 import { 
@@ -33,7 +37,12 @@ import {
   UserOutlined,
   LoadingOutlined,
   WarningOutlined,
-  RightOutlined
+  RightOutlined,
+  FileProtectOutlined, 
+  SafetyCertificateOutlined, 
+  UploadOutlined, 
+  InfoCircleOutlined,
+  ShoppingCartOutlined
 } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -109,6 +118,10 @@ const ProductDetailComponent = ({ idProduct }) => {
   const [activeTab, setActiveTab] = useState('1');
   const [similarProducts, setSimilarProducts] = useState([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [prescriptionFile, setPrescriptionFile] = useState(null);
+  const [prescriptionForm] = Form.useForm();
+
   
   const user = useSelector((state) => state.user);
   const navigate = useNavigate();
@@ -300,6 +313,11 @@ const ProductDetailComponent = ({ idProduct }) => {
     // Chuyển tab đến phần đánh giá
     setActiveTab('3');
   };
+  // Hàm hiển thị modal tải lên đơn thuốc
+    const showPrescriptionModal = () => {
+      setIsModalVisible(true);
+  };
+  
 
   return (
     <Loading isPending={isPending}>

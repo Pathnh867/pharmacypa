@@ -4,18 +4,49 @@ const Type = require('../models/TypeModel');
 
 const createProduct = (newProduct) => {
     return new Promise(async (resolve, reject) => {
-        const { name, image, type, price, countInStock, rating, description, discount} = newProduct
+        const { 
+            name, 
+            image, 
+            type, 
+            price, 
+            countInStock, 
+            rating, 
+            description, 
+            discount,
+            requiresPrescription = false,
+            prescriptionDetails = {}
+        } = newProduct;
+        
         try {
             const checkProduct = await Product.findOne({
                 name: name
-            })
+            });
+            
             if (checkProduct !== null) {
                 resolve({
                     status: 'OK',
                     message: 'Sản phẩm đã có'
-                })
-                
+                });
+                return;
             }
+            
+            // Lấy thông tin loại để kiểm tra xem có yêu cầu kê đơn không
+            let typeRequiresPrescription = false;
+            
+            if (type) {
+                try {
+                    const typeInfo = await Type.findById(type);
+                    if (typeInfo && typeInfo.requiresPrescription) {
+                        typeRequiresPrescription = true;
+                    }
+                } catch (err) {
+                    console.error("Lỗi khi kiểm tra thông tin loại:", err);
+                }
+            }
+            
+            // Nếu loại yêu cầu kê đơn mà thuốc không được đánh dấu, tự động đánh dấu
+            const finalRequiresPrescription = typeRequiresPrescription || requiresPrescription;
+            
             const createdProduct = await Product.create({
                 name,
                 image,
@@ -25,8 +56,11 @@ const createProduct = (newProduct) => {
                 rating,
                 description,
                 discount,
-                selled: 0 // Thêm trường selled với giá trị mặc định là 0
+                selled: 0,
+                requiresPrescription: finalRequiresPrescription,
+                prescriptionDetails
             });
+            
             if (createdProduct) {
                 resolve({
                     status: 'OK',
@@ -39,18 +73,33 @@ const createProduct = (newProduct) => {
         }
     });
 };
+
 const updateProduct = (id, data) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const checkProduct = await Product.findById(id)
+            const checkProduct = await Product.findById(id);
             if (checkProduct === null) {
                 resolve({
                     status: 'OK',
-                    message: 'The user is not defined!'
-                })
+                    message: 'The product is not defined!'
+                });
                 return;
             }
-            const updateProduct = await Product.findByIdAndUpdate(id, data, { new: true })
+            
+            // Nếu đang cập nhật loại thuốc, kiểm tra xem loại mới có yêu cầu kê đơn không
+            if (data.type && data.type !== checkProduct.type.toString()) {
+                try {
+                    const typeInfo = await Type.findById(data.type);
+                    if (typeInfo && typeInfo.requiresPrescription) {
+                        // Tự động đặt thuốc là yêu cầu kê đơn nếu loại yêu cầu
+                        data.requiresPrescription = true;
+                    }
+                } catch (err) {
+                    console.error("Lỗi khi kiểm tra thông tin loại khi cập nhật:", err);
+                }
+            }
+            
+            const updateProduct = await Product.findByIdAndUpdate(id, data, { new: true });
 
             resolve({
                 status: 'OK',
@@ -62,6 +111,33 @@ const updateProduct = (id, data) => {
         }
     });
 };
+
+const getProductsByPrescriptionStatus = (requiresPrescription = false, page = 0, limit = 10) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const query = { requiresPrescription };
+            
+            const totalProduct = await Product.countDocuments(query);
+            const products = await Product.find(query)
+                .limit(limit)
+                .skip(page * limit)
+                .populate('type');
+                
+            resolve({
+                status: 'OK',
+                message: 'Success',
+                data: products,
+                total: totalProduct,
+                pageCurrent: Number(page + 1),
+                totalPage: Math.ceil(totalProduct/limit)
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
+// Giữ nguyên các phương thức khác từ ProductService gốc...
 const deleteProduct = (id) => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -85,12 +161,34 @@ const deleteProduct = (id) => {
         }
     });
 };
+
 const getAllProduct = (limit, page, sort, filter) => {
     return new Promise(async (resolve, reject) => {
         try {
             const totalProduct = await Product.countDocuments();
             
-            // Trường hợp có filter
+            // Xử lý filter theo yêu cầu kê đơn
+            if (filter && filter[0] === 'requiresPrescription') {
+                const requiresPrescription = filter[1] === 'true' || filter[1] === '1';
+                const products = await Product.find({ requiresPrescription })
+                    .limit(limit)
+                    .skip(page * limit)
+                    .populate('type');
+                    
+                const totalFiltered = await Product.countDocuments({ requiresPrescription });
+                
+                resolve({
+                    status: 'OK',
+                    message: 'Success',
+                    data: products,
+                    total: totalFiltered,
+                    pageCurrent: Number(page + 1),
+                    totalPage: Math.ceil(totalFiltered/limit)
+                });
+                return;
+            }
+            
+            // Tiếp tục với các filter khác như cũ...
             if (filter) {
                 const label = filter[0];
                 
@@ -133,7 +231,7 @@ const getAllProduct = (limit, page, sort, filter) => {
                         const products = await Product.find(query)
                             .limit(limit)
                             .skip(page * limit)
-                            .populate('type'); // Thêm thông tin đầy đủ về type
+                            .populate('type');
                             
                         const totalFiltered = await Product.countDocuments(query);
                         
@@ -195,11 +293,12 @@ const getAllProduct = (limit, page, sort, filter) => {
             // Trường hợp mặc định
             let allProduct;
             if (!limit) {
-                allProduct = await Product.find();
+                allProduct = await Product.find().populate('type');
             } else {
                 allProduct = await Product.find()
                     .limit(limit)
-                    .skip(page * limit);
+                    .skip(page * limit)
+                    .populate('type');
             }
 
             resolve({
@@ -215,12 +314,11 @@ const getAllProduct = (limit, page, sort, filter) => {
         }
     });
 };
+
 const getdetailsProduct = (id) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const product = await Product.findById({
-                _id:id
-            })
+            const product = await Product.findById(id).populate('type');
             if (product === null) {
                 resolve({
                     status: 'OK',
@@ -229,8 +327,6 @@ const getdetailsProduct = (id) => {
                 return;
             }
             
-            
-
             resolve({
                 status: 'OK',
                 message: 'SUCCESS',
@@ -241,6 +337,7 @@ const getdetailsProduct = (id) => {
         }
     });
 };
+
 const getAllType = () => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -257,6 +354,7 @@ const getAllType = () => {
         }
     });
 };
+
 const getProductsByTypeId = (typeId, page, limit) => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -281,6 +379,7 @@ const getProductsByTypeId = (typeId, page, limit) => {
         }
     });
 };
+
 module.exports = {
     createProduct,
     updateProduct,
@@ -289,7 +388,5 @@ module.exports = {
     getAllProduct,
     getAllType,
     getProductsByTypeId,
+    getProductsByPrescriptionStatus
 };
-//  Chuong 1 5 cau
-//Chuong 2 3 moi chuong 6 cau
-// Chuong 4 5 moi chuong 4 cau

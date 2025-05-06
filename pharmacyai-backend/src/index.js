@@ -10,12 +10,21 @@ dotenv.config()
 const app = express()
 const port = process.env.PORT || 3001
 
-app.use(
+const allowedOrigins = [
+    "http://localhost:3000",
+    "https://pharmacypa.vercel.app"
+  ];
+  
+  app.use(
     cors({
-      origin: "https://pharmacypa.vercel.app", // Chỉ cho phép frontend gọi API
-      credentials: true, // Quan trọng: Cho phép gửi cookie kèm request
-      methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Các phương thức API được phép
-      allowedHeaders: "Content-Type,Authorization, token", // Cho phép headers cần thiết
+      origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true)
+        } else {
+          callback(new Error("Not allowed by CORS"))
+        }
+      },
+      credentials: true,
     })
   );
 
