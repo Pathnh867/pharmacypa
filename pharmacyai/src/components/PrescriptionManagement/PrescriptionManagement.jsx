@@ -42,8 +42,6 @@ import {
 import { useSelector } from 'react-redux';
 import moment from 'moment';
 import axios from 'axios';
-
-// Thay đổi import path - import từ file AdminPage/style thay vì AdminOrder/style
 import {
   AdminSectionTitle,
   AdminCard,
@@ -54,6 +52,7 @@ import {
   AdminSearchContainer,
   colors
 } from '../../pages/AdminPage/style';
+import * as PrescriptionService from '../../services/PrescriptionService';
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
@@ -90,68 +89,20 @@ const PrescriptionManagement = () => {
   const fetchPrescriptions = async () => {
     setLoading(true);
     try {
-      // Trong thực tế, bạn sẽ gọi API để lấy danh sách đơn thuốc
-      // Ví dụ: const response = await PrescriptionService.getAllPrescriptions(user?.access_token, activeTab);
+      // Gọi API thực tế thay vì sử dụng dữ liệu mẫu
+      const response = await PrescriptionService.getAllPrescriptions(
+        activeTab, // 'pending', 'approved', hoặc 'rejected'
+        0, // page
+        10, // limit
+        user?.access_token
+      );
       
-      // Dữ liệu mẫu
-      const mockPrescriptions = [
-        {
-          _id: 'presc123',
-          order: 'order123',
-          orderNumber: '12345678',
-          user: {
-            _id: 'user123',
-            name: 'Nguyễn Văn A',
-            email: 'nguyenvana@example.com'
-          },
-          products: [{
-            _id: 'prod123',
-            name: 'Amoxicillin 500mg',
-            price: 120000,
-            image: 'https://cdn.nhathuoclongchau.com.vn/unsafe/373x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/00028445_amoxicilin_500mg_chai_100v_vdt_5751_61ee_large_5b6c5f2a42.jpg',
-            quantity: 2
-          }],
-          imageUrl: 'https://cdn.nhathuoclongchau.com.vn/unsafe/373x0/filters:quality(90)/https://cms-prod.s3-sgn09.fptcloud.com/IMG_1513_4a4d7b8564.JPG',
-          status: activeTab === 'pending' ? 'pending' : activeTab === 'approved' ? 'approved' : 'rejected',
-          createdAt: new Date(),
-          verifiedBy: activeTab === 'pending' ? null : {
-            _id: 'admin123',
-            name: 'Admin'
-          },
-          verifiedAt: activeTab === 'pending' ? null : new Date(),
-          notes: activeTab === 'rejected' ? 'Đơn thuốc hết hạn sử dụng' : '',
-          expiryDate: moment().add(30, 'days').toDate()
-        },
-        {
-          _id: 'presc124',
-          order: 'order124',
-          orderNumber: '12345679',
-          user: {
-            _id: 'user124',
-            name: 'Trần Thị B',
-            email: 'tranthib@example.com'
-          },
-          products: [{
-            _id: 'prod124',
-            name: 'Paracetamol 500mg',
-            price: 80000,
-            image: 'https://cdn.nhathuoclongchau.com.vn/unsafe/373x373/https://cms-prod.s3-sgn09.fptcloud.com/IMG_2380_fa986aa67b.JPG',
-            quantity: 1
-          }],
-          imageUrl: 'https://cdn.nhathuoclongchau.com.vn/unsafe/600x600/https://cms-prod.s3-sgn09.fptcloud.com/00033783_giay_don_thuoc_50to_4a1b0cabc5.jpg',
-          status: activeTab === 'pending' ? 'pending' : activeTab === 'approved' ? 'approved' : 'rejected',
-          createdAt: new Date(),
-          verifiedBy: activeTab === 'pending' ? null : {
-            _id: 'admin123',
-            name: 'Admin'
-          },
-          verifiedAt: activeTab === 'pending' ? null : new Date(),
-          notes: activeTab === 'rejected' ? 'Thông tin bệnh nhân không khớp' : '',
-          expiryDate: moment().add(30, 'days').toDate()
-        }
-      ];
-      
-      setPrescriptions(mockPrescriptions);
+      if (response?.status === 'OK') {
+        setPrescriptions(response.data || []);
+      } else {
+        setPrescriptions([]);
+        message.error(response?.message || 'Không thể tải danh sách đơn thuốc');
+      }
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
       message.error('Không thể tải danh sách đơn thuốc');

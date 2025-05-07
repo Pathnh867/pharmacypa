@@ -77,6 +77,7 @@ import {
   LoadingRelatedProducts,
   ViewMoreButton
 } from './style';
+import * as PrescriptionService from '../../services/PrescriptionService';
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
@@ -329,17 +330,34 @@ const ProductDetailComponent = ({ idProduct }) => {
     try {
       await prescriptionForm.validateFields();
       
-      // Trong thực tế, ở đây bạn sẽ gửi file đơn thuốc và thông tin lên server
-      // Ví dụ: sử dụng FormData để gửi file
+      // Tạo FormData để gửi file
+      const formData = new FormData();
+      formData.append('prescription', prescriptionFile);
       
-      message.success('Đơn thuốc đã được gửi thành công');
-      setIsModalVisible(false);
+      // Thêm các dữ liệu khác nếu cần
+      if (prescriptionForm.getFieldValue('note')) {
+        formData.append('note', prescriptionForm.getFieldValue('note'));
+      }
       
-      // Thêm sản phẩm vào giỏ hàng sau khi đơn thuốc được chấp nhận
-      handleAddOrderProduct();
+      // Gọi API upload đơn thuốc thực tế
+      const response = await PrescriptionService.uploadPrescription(
+        productDetails._id, 
+        formData, 
+        user?.access_token
+      );
       
+      if (response?.status === 'OK') {
+        message.success('Đơn thuốc đã được gửi thành công');
+        setIsModalVisible(false);
+        
+        // Thêm sản phẩm vào giỏ hàng sau khi đơn thuốc được chấp nhận
+        handleAddOrderProduct();
+      } else {
+        message.error(response?.message || 'Có lỗi xảy ra khi gửi đơn thuốc');
+      }
     } catch (error) {
       console.error('Error submitting prescription:', error);
+      message.error('Có lỗi xảy ra khi gửi đơn thuốc');
     }
   };
   const renderPrescriptionInfo = () => {
