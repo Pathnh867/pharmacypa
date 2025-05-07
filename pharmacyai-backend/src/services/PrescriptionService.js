@@ -93,7 +93,7 @@ const getPrescriptionStatus = async (orderId) => {
   });
 };
 
-// Hàm lấy danh sách đơn thuốc
+// Hàm lấy danh sách đơn thuốc (cho admin)
 const getAllPrescriptions = async (status, page, limit) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -128,7 +128,7 @@ const getAllPrescriptions = async (status, page, limit) => {
   });
 };
 
-// Hàm xác minh đơn thuốc
+// Hàm xác minh đơn thuốc (cho admin)
 const verifyPrescription = async (prescriptionId, status, notes, adminId) => {
   return new Promise(async (resolve, reject) => {
     try {

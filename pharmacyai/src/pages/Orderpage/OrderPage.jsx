@@ -22,6 +22,7 @@ import * as UserService from '../../services/UserService'
 import * as AddressService from '../../services/AddressService'
 import Loading from '../../components/LoadingComponent/Loading';
 import { updateUser } from '../../redux/slide/userSlide';
+import * as PrescriptionService from '../../services/PrescriptionService';
 import PrescriptionBadge from '../../components/PrescriptionBadge/PrescriptionBadge';
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -103,26 +104,71 @@ const OrderPage = () => {
       await prescriptionForm.validateFields();
       setPrescriptionLoading(true);
       
-      // Giả lập gửi đơn thuốc
-      setTimeout(() => {
-        message.success(`Đơn thuốc cho ${activePrescriptionItem?.name} đã được gửi thành công!`);
-        setPrescriptionLoading(false);
+      // Chuẩn bị form data để gửi lên server
+      const formData = new FormData();
+      if (prescriptionFile) {
+        formData.append('prescription', prescriptionFile);
+      }
+      
+      const note = prescriptionForm.getFieldValue('note');
+      if (note) {
+        formData.append('note', note);
+      }
+      
+      // Giả sử đây là mã đơn hàng hiện tại hoặc mã đơn hàng tạm thời
+      const orderId = 'temp_' + Date.now();
+      formData.append('orderId', orderId);
+      
+      try {
+        // Gọi API để tải lên đơn thuốc
+        const response = await PrescriptionService.uploadPrescription(
+          orderId, 
+          formData, 
+          user?.access_token
+        );
         
-        // Cập nhật trạng thái thuốc đã có đơn
-        const updatedItems = prescriptionItems.map(item => {
-          if (item.product === activePrescriptionItem?.product) {
-            return {...item, hasPrescription: true};
+        if (response?.status === 'OK') {
+          message.success(`Đơn thuốc cho ${activePrescriptionItem?.name} đã được gửi thành công!`);
+          
+          // Cập nhật trạng thái thuốc đã có đơn
+          const updatedItems = prescriptionItems.map(item => {
+            if (item.product === activePrescriptionItem?.product) {
+              return {...item, hasPrescription: true};
+            }
+            return item;
+          });
+          
+          setPrescriptionItems(updatedItems);
+          
+          // Cập nhật trạng thái trong giỏ hàng
+          const updatedOrderItems = [...order.orderItems];
+          const itemIndex = updatedOrderItems.findIndex(item => 
+            item.product === activePrescriptionItem?.product
+          );
+          
+          if (itemIndex !== -1) {
+            updatedOrderItems[itemIndex] = {
+              ...updatedOrderItems[itemIndex],
+              hasPrescription: true
+            };
+            
+            // Cập nhật state với các sản phẩm đã cập nhật
+            // (Trong một ứng dụng thực tế, bạn có thể muốn dispatch một action redux ở đây)
           }
-          return item;
-        });
-        
-        setPrescriptionItems(updatedItems);
+        } else {
+          message.error(response?.message || 'Không thể tải lên đơn thuốc');
+        }
+      } catch (error) {
+        console.error('Error uploading prescription:', error);  
+        message.error('Đã xảy ra lỗi khi tải lên đơn thuốc');
+      } finally {
         setPrescriptionModal(false);
         setPrescriptionFile(null);
         prescriptionForm.resetFields();
-      }, 1500);
+        setPrescriptionLoading(false);
+      }
     } catch (error) {
-      console.error('Error submitting prescription:', error);
+      console.error('Validation failed:', error);
     }
   };
   const validateBeforeCheckout = () => {
@@ -150,6 +196,7 @@ const OrderPage = () => {
     
     return true;
   };
+  
   // Fetch địa chỉ
   const fetchAddresses = async () => {
     if (!user?.access_token) return;
@@ -769,75 +816,75 @@ const OrderPage = () => {
         </Form>
       </Modal>
       <Modal
-      title={`Tải lên đơn thuốc cho ${activePrescriptionItem?.name || 'sản phẩm'}`}
-      open={prescriptionModal}
-      onCancel={() => setPrescriptionModal(false)}
-      footer={null}
-      destroyOnClose
-    >
-      <Form
-        form={prescriptionForm}
-        layout="vertical"
-        onFinish={handleSubmitPrescription}
+        title={`Tải lên đơn thuốc cho ${activePrescriptionItem?.name || 'sản phẩm'}`}
+        open={prescriptionModal}
+        onCancel={() => setPrescriptionModal(false)}
+        footer={null}
+        destroyOnClose
       >
-        <Alert
-          message="Thuốc kê đơn yêu cầu đơn thuốc của bác sĩ"
-          description="Vui lòng tải lên hình ảnh hoặc file PDF đơn thuốc của bác sĩ. Chúng tôi sẽ xác minh đơn thuốc trước khi xác nhận đơn hàng của bạn."
-          type="info"
-          showIcon
-          style={{ marginBottom: '16px' }}
-        />
-        
-        <Form.Item
-          name="prescription"
-          label="Đơn thuốc"
-          rules={[{ required: true, message: 'Vui lòng tải lên đơn thuốc' }]}
+        <Form
+          form={prescriptionForm}
+          layout="vertical"
+          onFinish={handleSubmitPrescription}
         >
-          <Upload.Dragger
-            name="prescription"
-            accept=".jpg,.jpeg,.png,.pdf"
-            multiple={false}
-            maxCount={1}
-            onChange={handlePrescriptionUpload}
-            beforeUpload={() => false}
-          >
-            <p className="ant-upload-drag-icon">
-              <FileProtectOutlined style={{ color: '#c41d7f', fontSize: '32px' }} />
-            </p>
-            <p className="ant-upload-text">Nhấp hoặc kéo thả file đơn thuốc vào đây</p>
-            <p className="ant-upload-hint">
-              Hỗ trợ định dạng: JPG, PNG, PDF. Tối đa 5MB.
-            </p>
-          </Upload.Dragger>
-        </Form.Item>
-        
-        <Form.Item
-          name="note"
-          label="Ghi chú (tùy chọn)"
-        >
-          <TextArea
-            rows={3}
-            placeholder="Nhập ghi chú về đơn thuốc hoặc yêu cầu khác (nếu có)"
+          <Alert
+            message="Thuốc kê đơn yêu cầu đơn thuốc của bác sĩ"
+            description="Vui lòng tải lên hình ảnh hoặc file PDF đơn thuốc của bác sĩ. Chúng tôi sẽ xác minh đơn thuốc trước khi xác nhận đơn hàng của bạn."
+            type="info"
+            showIcon
+            style={{ marginBottom: '16px' }}
           />
-        </Form.Item>
-        
-        <Form.Item>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Button onClick={() => setPrescriptionModal(false)}>
-              Hủy
-            </Button>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              loading={prescriptionLoading}
-              style={{ background: '#c41d7f', borderColor: '#c41d7f' }}
+          
+          <Form.Item
+            name="prescription"
+            label="Đơn thuốc"
+            rules={[{ required: true, message: 'Vui lòng tải lên đơn thuốc' }]}
+          >
+            <Upload.Dragger
+              name="prescription"
+              accept=".jpg,.jpeg,.png,.pdf"
+              multiple={false}
+              maxCount={1}
+              onChange={handlePrescriptionUpload}
+              beforeUpload={() => false}
             >
-              Gửi đơn thuốc
-            </Button>
-          </div>
-        </Form.Item>
-      </Form>
-    </Modal>
+              <p className="ant-upload-drag-icon">
+                <FileProtectOutlined style={{ color: '#c41d7f', fontSize: '32px' }} />
+              </p>
+              <p className="ant-upload-text">Nhấp hoặc kéo thả file đơn thuốc vào đây</p>
+              <p className="ant-upload-hint">
+                Hỗ trợ định dạng: JPG, PNG, PDF. Tối đa 5MB.
+              </p>
+            </Upload.Dragger>
+          </Form.Item>
+          
+          <Form.Item
+            name="note"
+            label="Ghi chú (tùy chọn)"
+          >
+            <TextArea
+              rows={3}
+              placeholder="Nhập ghi chú về đơn thuốc hoặc yêu cầu khác (nếu có)"
+            />
+          </Form.Item>
+          
+          <Form.Item>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Button onClick={() => setPrescriptionModal(false)}>
+                Hủy
+              </Button>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                loading={prescriptionLoading}
+                style={{ background: '#c41d7f', borderColor: '#c41d7f' }}
+              >
+                Gửi đơn thuốc
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </Modal>
     </PageContainer>
   )
 }

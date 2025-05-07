@@ -26,7 +26,10 @@ import {
   ReloadOutlined,
   PrinterOutlined
 } from '@ant-design/icons';
-import { Column, Pie } from '@ant-design/plots';
+import { 
+  BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, 
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
+} from 'recharts';
 import { useSelector } from 'react-redux';
 import * as RevenueService from '../../services/RevenueService';
 import moment from 'moment';
@@ -55,6 +58,9 @@ const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 const { Option } = Select;
+
+// Màu sắc cho biểu đồ
+const COLORS = ['#4cb551', '#1890ff', '#722ed1', '#52c41a', '#ff4d4f', '#faad14', '#13c2c2', '#eb2f96'];
 
 const RevenueManagement = () => {
   // State variables
@@ -259,88 +265,60 @@ const RevenueManagement = () => {
     }
   };
   
-  // Configuration for revenue chart
-  const revenueChartConfig = {
-    data: salesData,
-    xField: 'displayLabel',
-    yField: 'revenue',
-    color: '#4cb551',
-    label: {
-      position: 'middle',
-      style: {
-        fill: '#FFFFFF',
-        opacity: 0.6,
-      },
-    },
-    meta: {
-      revenue: {
-        alias: 'Doanh thu (VNĐ)',
-        formatter: (v) => `${v.toLocaleString('vi-VN')}đ`,
-      },
-      displayLabel: {
-        alias: 'Thời gian',
-      },
-    },
-    tooltip: {
-      formatter: (datum) => {
-        return {
-          name: 'Doanh thu',
-          value: `${datum.revenue.toLocaleString('vi-VN')}đ (${datum.orders} đơn hàng)`,
-        };
-      },
-    },
+  // Custom Tooltip for Revenue Chart
+  const RevenueTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{ 
+          backgroundColor: '#fff', 
+          padding: '10px', 
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <p style={{ margin: 0, fontWeight: 'bold' }}>{label}</p>
+          <p style={{ margin: 0 }}>
+            <span style={{ color: '#4cb551' }}>Doanh thu: </span>
+            {payload[0].value.toLocaleString('vi-VN')}đ
+          </p>
+          {payload[0].payload.orders && (
+            <p style={{ margin: 0 }}>
+              <span style={{ color: '#1890ff' }}>Đơn hàng: </span>
+              {payload[0].payload.orders}
+            </p>
+          )}
+        </div>
+      );
+    }
+    return null;
   };
   
-  // Configuration for product sales chart
-  const productChartConfig = {
-    data: productSalesData,
-    xField: 'name',
-    yField: 'revenue',
-    color: '#1890ff',
-    label: {
-      position: 'middle',
-      style: {
-        fill: '#FFFFFF',
-        opacity: 0.6,
-      },
-    },
-    meta: {
-      revenue: {
-        alias: 'Doanh thu (VNĐ)',
-        formatter: (v) => `${v.toLocaleString('vi-VN')}đ`,
-      },
-      name: {
-        alias: 'Sản phẩm',
-      },
-    },
-    tooltip: {
-      formatter: (datum) => {
-        return {
-          name: datum.name,
-          value: `${datum.revenue.toLocaleString('vi-VN')}đ (${datum.quantity} sản phẩm)`,
-        };
-      },
-    },
-  };
-  
-  // Configuration for category sales chart
-  const categoryChartConfig = {
-    data: categorySalesData,
-    angleField: 'revenue',
-    colorField: 'category',
-    radius: 0.8,
-    label: {
-      type: 'outer',
-      formatter: (datum) => `${datum.category}: ${((datum.revenue / revenueSummary.totalRevenue) * 100).toFixed(1)}%`,
-    },
-    tooltip: {
-      formatter: (datum) => {
-        return {
-          name: datum.category,
-          value: `${datum.revenue.toLocaleString('vi-VN')}đ (${datum.quantity} sản phẩm)`,
-        };
-      },
-    },
+  // Custom Tooltip for Pie Chart
+  const PieTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{ 
+          backgroundColor: '#fff', 
+          padding: '10px', 
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <p style={{ margin: 0, fontWeight: 'bold' }}>{payload[0].name}</p>
+          <p style={{ margin: 0 }}>
+            <span>Doanh thu: </span>
+            {payload[0].value.toLocaleString('vi-VN')}đ
+          </p>
+          {payload[0].payload.quantity && (
+            <p style={{ margin: 0 }}>
+              <span>Số lượng: </span>
+              {payload[0].payload.quantity}
+            </p>
+          )}
+        </div>
+      );
+    }
+    return null;
   };
   
   // Columns for product sales table
@@ -518,7 +496,29 @@ const RevenueManagement = () => {
             }
           >
             <ChartContainer>
-              <Column {...revenueChartConfig} />
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart 
+                  data={salesData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="displayLabel" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    height={70}
+                  />
+                  <YAxis />
+                  <Tooltip content={<RevenueTooltip />} />
+                  <Legend />
+                  <Bar 
+                    dataKey="revenue" 
+                    name="Doanh thu" 
+                    fill="#4cb551" 
+                    barSize={30}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </AdminCard>
         </TabPane>
@@ -543,7 +543,30 @@ const RevenueManagement = () => {
             <Row gutter={16}>
               <Col xs={24} md={12}>
                 <ChartContainer>
-                  <Column {...productChartConfig} />
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart
+                      data={productSalesData}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        width={100}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <Tooltip content={<RevenueTooltip />} />
+                      <Legend />
+                      <Bar 
+                        dataKey="revenue" 
+                        name="Doanh thu" 
+                        fill="#1890ff" 
+                        barSize={20}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </ChartContainer>
               </Col>
               <Col xs={24} md={12}>
@@ -578,7 +601,26 @@ const RevenueManagement = () => {
             <Row gutter={16}>
               <Col xs={24} md={12}>
                 <ChartContainer>
-                  <Pie {...categoryChartConfig} />
+                  <ResponsiveContainer width="100%" height={350}>
+                    <PieChart>
+                      <Pie
+                        data={categorySalesData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="revenue"
+                      >
+                        {categorySalesData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<PieTooltip />} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </ChartContainer>
               </Col>
               <Col xs={24} md={12}>

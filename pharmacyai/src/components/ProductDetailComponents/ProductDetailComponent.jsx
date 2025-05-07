@@ -342,7 +342,57 @@ const ProductDetailComponent = ({ idProduct }) => {
       console.error('Error submitting prescription:', error);
     }
   };
-
+  const renderPrescriptionInfo = () => {
+    if (!productDetails?.requiresPrescription) return null;
+    
+    return (
+      <div style={{ 
+        marginTop: '16px', 
+        padding: '16px', 
+        background: '#fff1f0', 
+        border: '1px solid #ffccc7',
+        borderRadius: '4px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+          <FileProtectOutlined style={{ fontSize: '24px', color: '#cf1322', marginRight: '12px', marginTop: '2px' }} />
+          <div>
+            <h3 style={{ margin: '0 0 8px 0', color: '#cf1322' }}>Thuốc kê đơn</h3>
+            <p style={{ margin: '0 0 8px 0' }}>
+              Sản phẩm này yêu cầu đơn thuốc của bác sĩ để mua. Bạn sẽ cần tải lên đơn thuốc hợp lệ sau khi đặt hàng.
+            </p>
+            
+            {productDetails.prescriptionDetails && (
+              <div>
+                {productDetails.prescriptionDetails.activeIngredients && (
+                  <div style={{ marginTop: '8px' }}>
+                    <strong>Thành phần hoạt chất:</strong> {productDetails.prescriptionDetails.activeIngredients}
+                  </div>
+                )}
+                
+                {productDetails.prescriptionDetails.dosage && (
+                  <div style={{ marginTop: '8px' }}>
+                    <strong>Liều dùng:</strong> {productDetails.prescriptionDetails.dosage}
+                  </div>
+                )}
+                
+                {productDetails.prescriptionDetails.interactions && (
+                  <div style={{ marginTop: '8px' }}>
+                    <strong>Tương tác thuốc:</strong> {productDetails.prescriptionDetails.interactions}
+                  </div>
+                )}
+                
+                {productDetails.prescriptionDetails.sideEffects && (
+                  <div style={{ marginTop: '8px' }}>
+                    <strong>Tác dụng phụ:</strong> {productDetails.prescriptionDetails.sideEffects}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
   return (
     <Loading isPending={isPending}>
       <WrapperContainer>

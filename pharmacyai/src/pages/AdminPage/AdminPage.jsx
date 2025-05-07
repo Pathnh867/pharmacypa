@@ -6,7 +6,7 @@ import { UserOutlined, ProductOutlined, DashboardOutlined,
   LogoutOutlined, BellOutlined, SettingOutlined, OrderedListOutlined,
   AppstoreOutlined, MenuFoldOutlined, MenuUnfoldOutlined, BarChartOutlined,
   ShoppingOutlined, TeamOutlined, NotificationOutlined, HomeOutlined,
-  DollarOutlined } from '@ant-design/icons'
+  DollarOutlined, FileProtectOutlined } from '@ant-design/icons'
 import { getItem } from '../../utils';
 import AdminUser from '../../components/AdminUser/AdminUser';
 import AdminProduct from '../../components/AdminProduct/AdminProduct';

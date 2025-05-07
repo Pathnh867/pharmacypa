@@ -1,4 +1,5 @@
-// src/components/PrescriptionManagement/PrescriptionManagement.jsx
+// pharmacyai/src/components/PrescriptionManagement/PrescriptionManagement.jsx
+
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -16,7 +17,11 @@ import {
   Badge,
   Card,
   Typography,
-  Divider
+  Divider,
+  Alert,
+  Row,
+  Col,
+  Descriptions
 } from 'antd';
 import { 
   EyeOutlined, 
@@ -27,13 +32,18 @@ import {
   FilterOutlined, 
   ReloadOutlined, 
   WarningOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  UserOutlined,
+  PhoneOutlined,
+  MailOutlined,
+  EnvironmentOutlined,
+  ShoppingOutlined
 } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import moment from 'moment';
-import * as OrderService from '../../services/OrderService';
-import * as PrescriptionService from '../../services/PrescriptionService';
+import axios from 'axios';
 
+// Thay đổi import path - import từ file AdminPage/style thay vì AdminOrder/style
 import {
   AdminSectionTitle,
   AdminCard,
@@ -43,7 +53,7 @@ import {
   AdminSelect,
   AdminSearchContainer,
   colors
-} from '../AdminOrder/style';
+} from '../../pages/AdminPage/style';
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
@@ -62,6 +72,11 @@ const PrescriptionManagement = () => {
   const [form] = Form.useForm();
   const [rejectForm] = Form.useForm();
   const [activeTab, setActiveTab] = useState('pending');
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0
+  });
   
   // Lấy thông tin user từ redux store
   const user = useSelector((state) => state.user);
@@ -71,7 +86,7 @@ const PrescriptionManagement = () => {
     fetchPrescriptions();
   }, [activeTab]);
   
-  // Hàm tải danh sách đơn thuốc
+  // Hàm tải danh sách đơn thuốc - hiện tại chỉ sử dụng dữ liệu mẫu
   const fetchPrescriptions = async () => {
     setLoading(true);
     try {

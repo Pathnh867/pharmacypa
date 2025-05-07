@@ -25,7 +25,7 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined
 } from '@ant-design/icons';
-import { Line, Pie } from '@ant-design/plots';
+import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
 import * as OrderService from '../../services/OrderService';
@@ -59,6 +59,9 @@ import {
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
+
+// Màu sắc cho biểu đồ
+const COLORS = ['#faad14', '#1890ff', '#722ed1', '#52c41a', '#ff4d4f'];
 
 const Dashboard = () => {
   const [timeRange, setTimeRange] = useState('month');
@@ -257,7 +260,8 @@ const Dashboard = () => {
     return Object.keys(groupedByDate).map(date => ({
       date,
       sales: groupedByDate[date].sales,
-      orders: groupedByDate[date].orders
+      orders: groupedByDate[date].orders,
+      formattedDate: moment(date).format('DD/MM')
     })).sort((a, b) => moment(a.date).diff(moment(b.date)));
   };
   
@@ -285,11 +289,11 @@ const Dashboard = () => {
     
     // Convert to array for chart with labels
     return [
-      { type: 'Chờ xử lý', value: counts.pending, color: '#faad14' },
-      { type: 'Đang xử lý', value: counts.processing, color: '#1890ff' },
-      { type: 'Đang giao hàng', value: counts.shipping, color: '#722ed1' },
-      { type: 'Đã giao hàng', value: counts.delivered, color: '#52c41a' },
-      { type: 'Đã hủy', value: counts.cancelled, color: '#ff4d4f' },
+      { name: 'Chờ xử lý', value: counts.pending },
+      { name: 'Đang xử lý', value: counts.processing },
+      { name: 'Đang giao hàng', value: counts.shipping },
+      { name: 'Đã giao hàng', value: counts.delivered },
+      { name: 'Đã hủy', value: counts.cancelled },
     ].filter(item => item.value > 0);
   };
   
@@ -344,66 +348,44 @@ const Dashboard = () => {
       }));
   };
   
-  // Chart configurations
-  const salesTrendConfig = {
-    data: prepareSalesTrendData(),
-    xField: 'date',
-    yField: 'sales',
-    seriesField: 'type',
-    smooth: true,
-    animation: {
-      appear: {
-        animation: 'path-in',
-        duration: 1000,
-      },
-    },
-    color: '#4cb551',
-    tooltip: {
-      formatter: (datum) => {
-        return { name: 'Doanh thu', value: convertPrice(datum.sales) };
-      },
-    },
-    xAxis: {
-      label: {
-        formatter: (text) => {
-          return moment(text).format('DD/MM');
-        },
-      },
-    },
+  // Custom Tooltip for LineChart
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{ 
+          background: 'white', 
+          padding: '10px', 
+          border: '1px solid #ccc',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <p style={{ margin: 0 }}><strong>{label}</strong></p>
+          <p style={{ margin: 0, color: '#4cb551' }}>
+            Doanh thu: {convertPrice(payload[0].value)}
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
   
-  const orderStatusConfig = {
-    data: prepareOrderStatusData(),
-    angleField: 'value',
-    colorField: 'type',
-    radius: 0.8,
-    innerRadius: 0.64,
-    label: {
-      type: 'inner',
-      offset: '-50%',
-      content: '{value}',
-      style: {
-        textAlign: 'center',
-        fontSize: 14,
-      },
-    },
-    interactions: [{ type: 'element-selected' }, { type: 'element-active' }],
-    statistic: {
-      title: false,
-      content: {
-        style: {
-          whiteSpace: 'pre-wrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          fontSize: '18px',
-        },
-        formatter: () => 'Đơn hàng',
-      },
-    },
-    legend: {
-      position: 'bottom',
-    },
-    colors: ['#faad14', '#1890ff', '#722ed1', '#52c41a', '#ff4d4f']
+  // Custom Tooltip for PieChart
+  const CustomPieTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{ 
+          background: 'white', 
+          padding: '10px', 
+          border: '1px solid #ccc',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <p style={{ margin: 0 }}><strong>{payload[0].name}</strong></p>
+          <p style={{ margin: 0 }}>
+            Số lượng: {payload[0].value}
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
   
   // Recent orders columns
@@ -630,13 +612,55 @@ const Dashboard = () => {
             </OrderStatusStats>
             <Divider style={{ margin: '12px 0' }} />
             <ChartContainer>
-              <Pie {...orderStatusConfig} />
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={prepareOrderStatusData()}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {prepareOrderStatusData().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomPieTooltip />} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </Card>
         </Col>
         <Col xs={24} md={16}>
           <Card title="Xu hướng doanh thu" loading={isLoading}>
-            <Line {...salesTrendConfig} />
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart
+                data={prepareSalesTrendData()}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="formattedDate" 
+                  padding={{ left: 20, right: 20 }}
+                />
+                <YAxis />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="sales"
+                  stroke="#4cb551"
+                  name="Doanh thu"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </Card>
         </Col>
       </Row>

@@ -1,3 +1,5 @@
+// pharmacyai/src/services/PrescriptionService.js
+
 import axios from "axios";
 import { axiosJWT } from "./UserService";
 
@@ -36,7 +38,7 @@ export const uploadPrescription = async (orderId, formData, access_token) => {
       throw new Error('Không có token xác thực');
     }
     
-    const url = `${process.env.REACT_APP_API_URL}/order/prescription/${orderId}/upload`;
+    const url = `${process.env.REACT_APP_API_URL}/prescription/${orderId}/upload`;
     
     const res = await axiosJWT.post(url, formData, {
       headers: {
@@ -52,14 +54,40 @@ export const uploadPrescription = async (orderId, formData, access_token) => {
   }
 };
 
-// Xác minh đơn thuốc (chỉ admin)
-export const verifyPrescription = async (prescriptionId, status, notes, access_token) => {
+// Lấy tất cả đơn thuốc (cho admin)
+export const getAllPrescriptions = async (status, page = 0, limit = 10, access_token) => {
   try {
     if (!access_token) {
       throw new Error('Không có token xác thực');
     }
     
-    const url = `${process.env.REACT_APP_API_URL}/order/prescription/${prescriptionId}/verify`;
+    let url = `${process.env.REACT_APP_API_URL}/prescription/admin/list?page=${page}&limit=${limit}`;
+    
+    if (status) {
+      url += `&status=${status}`;
+    }
+    
+    const res = await axiosJWT.get(url, {
+      headers: {
+        'token': `Bearer ${access_token}`
+      }
+    });
+    
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching all prescriptions:', error);
+    throw error;
+  }
+};
+
+// Xác minh đơn thuốc (chỉ admin)
+export const verifyPrescription = async (prescriptionId, status, notes, adminId, access_token) => {
+  try {
+    if (!access_token) {
+      throw new Error('Không có token xác thực');
+    }
+    
+    const url = `${process.env.REACT_APP_API_URL}/prescription/${prescriptionId}/verify`;
     
     const res = await axiosJWT.post(url, { status, notes }, {
       headers: {
@@ -81,7 +109,7 @@ export const checkPrescriptionStatus = async (orderId, access_token) => {
       throw new Error('Không có token xác thực');
     }
     
-    const url = `${process.env.REACT_APP_API_URL}/order/prescription/${orderId}/status`;
+    const url = `${process.env.REACT_APP_API_URL}/prescription/${orderId}/status`;
     
     const res = await axiosJWT.get(url, {
       headers: {
@@ -101,5 +129,6 @@ export default {
   getTypesByPrescriptionStatus,
   uploadPrescription,
   verifyPrescription,
-  checkPrescriptionStatus
+  checkPrescriptionStatus,
+  getAllPrescriptions
 };

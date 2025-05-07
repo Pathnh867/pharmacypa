@@ -22,8 +22,8 @@ import * as PaymentService from '../../services/PaymentService'
 import * as AddressService from '../../services/AddressService'
 import Loading from '../../components/LoadingComponent/Loading';
 import { updateUser } from '../../redux/slide/userSlide';
-import PrescriptionBadge from '../../components/PrescriptionBadge/PrescriptionBadge';
-
+import PrescriptionBadge from '../../components/PrescriptionBadge/PrescriptionBadge'; 
+import * as PrescriptionService from '../../services/PrescriptionService';
 // Import icons
 import momoIcon from '../../assets/img/momo_logo.png';
 
@@ -117,7 +117,35 @@ const PaymentPage = () => {
       })
     }
   }, [isOpenModalUpdateInfo, user])
-
+  //Hàm kiểm tra trạng thái đơn thuốc
+  const checkPrescriptionStatus = async (orderId) => {
+    try {
+      const response = await PrescriptionService.checkPrescriptionStatus(orderId, user?.access_token);
+      
+      if (response?.status === 'OK' && response?.data) {
+        // Kiểm tra xem đơn thuốc đã được phê duyệt chưa
+        if (response.data.status === 'approved') {
+          return { verified: true };
+        } else if (response.data.status === 'rejected') {
+          return { 
+            verified: false, 
+            message: `Đơn thuốc đã bị từ chối: ${response.data.rejectReason || 'Không đáp ứng yêu cầu'}` 
+          };
+        } else {
+          return { 
+            verified: false, 
+            message: 'Đơn thuốc đang chờ xác minh. Vui lòng đợi đơn thuốc được xác minh trước khi thanh toán.' 
+          };
+        }
+      }
+      
+      return { verified: false, message: 'Chưa có đơn thuốc cho sản phẩm này' };
+    } catch (error) {
+      console.error('Error checking prescription status:', error);
+      return { verified: false, message: 'Đã xảy ra lỗi khi kiểm tra trạng thái đơn thuốc' };
+    }
+  };
+  
   // Tính giá
   const priceMemo = useMemo(() => {
     const result = order?.ordersItemSelected?.reduce((total, cur) => {
@@ -390,19 +418,50 @@ const PaymentPage = () => {
   };
 
   // Đặt hàng
-  const handleAddOrder = () => {
+  const handleAddOrder = async () => {
     if (isSubmitting) return;
-
+  
     // Kiểm tra địa chỉ
     if (!selectedAddress) {
       message.error('Vui lòng chọn địa chỉ giao hàng');
       return;
     }
-
+  
     // Kiểm tra thông tin người dùng
     if (!user?.access_token || !order?.ordersItemSelected?.length) {
       message.error('Có lỗi xảy ra, vui lòng đăng nhập lại');
       return;
+    }
+    
+    // Kiểm tra nếu có sản phẩm kê đơn
+    const prescriptionProducts = order.ordersItemSelected.filter(item => item.requiresPrescription);
+    
+    if (prescriptionProducts.length > 0) {
+      // Nếu có orderId thì kiểm tra trạng thái đơn thuốc
+      if (order.orderId) {
+        const status = await checkPrescriptionStatus(order.orderId);
+        
+        if (!status.verified) {
+          Modal.error({
+            title: 'Không thể đặt hàng',
+            content: status.message
+          });
+          return;
+        }
+      } else {
+        // Nếu chưa có orderId, kiểm tra xem từng sản phẩm đã có đơn thuốc chưa
+        const missingPrescriptions = prescriptionProducts.filter(item => !item.hasPrescription);
+        
+        if (missingPrescriptions.length > 0) {
+          const productNames = missingPrescriptions.map(item => item.name).join(', ');
+          
+          Modal.error({
+            title: 'Thiếu đơn thuốc',
+            content: `Các sản phẩm sau cần đơn thuốc: ${productNames}. Vui lòng tải lên đơn thuốc trước khi tiếp tục.`
+          });
+          return;
+        }
+      }
     }
     
     // Nếu phương thức thanh toán là MoMo, xử lý thanh toán MoMo
@@ -410,101 +469,101 @@ const PaymentPage = () => {
       handleMomoPayment();
       return;
     }
-
+  
     setIsSubmitting(true);
-
+  
     // Tạo mã đơn hàng ngẫu nhiên cho COD
     const orderCode = `ORDER_${Date.now()}`;
-
-    mutationAddOrder.mutate(
-      {
-        token: user?.access_token, 
-        orderItems: order?.ordersItemSelected,
-        fullName: selectedAddress.fullName, 
-        address: selectedAddress.address, 
-        phone: selectedAddress.phone, 
-        city: selectedAddress.city,
-        paymentMethod: payment,
-        itemsPrice: priceMemo, 
-        shippingPrice: DeliveryPriceMemo, 
-        totalPrice: TotalPriceMemo,
-        user: user?.id,
-        email: user?.email
-      },
-      {
-        onSuccess: (data) => {
-          if (data?.status === 'OK') {
-            // Chuẩn bị dữ liệu chi tiết sản phẩm cho tracking
-            const items = order?.ordersItemSelected?.map(item => ({
-              item_id: item.product,
-              item_name: item.name,
-              price: Number(item.price),
-              quantity: Number(item.amount),
-            }));
-            
-            // Gửi sự kiện purchase vào dataLayer cho GTM
-            window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({
-              ecommerce: null
-            });
-            
-            window.dataLayer.push({
-              event: 'purchase',
-              ecommerce: {
-                transaction_id: data?.data?._id || orderCode,
-                value: Number(TotalPriceMemo),
-                tax: 0,
-                shipping: Number(DeliveryPriceMemo),
-                currency: 'VND',
-                items: items
+  
+    // Chuẩn bị dữ liệu đơn hàng
+    const orderData = {
+      token: user?.access_token, 
+      orderItems: order?.ordersItemSelected,
+      fullName: selectedAddress.fullName, 
+      address: selectedAddress.address, 
+      phone: selectedAddress.phone, 
+      city: selectedAddress.city,
+      paymentMethod: payment,
+      itemsPrice: priceMemo, 
+      shippingPrice: DeliveryPriceMemo, 
+      totalPrice: TotalPriceMemo,
+      user: user?.id,
+      email: user?.email
+    };
+  
+    // Gọi API để tạo đơn hàng
+    mutationAddOrder.mutate(orderData, {
+      onSuccess: (data) => {
+        if (data?.status === 'OK') {
+          // Chuẩn bị dữ liệu chi tiết sản phẩm cho tracking
+          const items = order?.ordersItemSelected?.map(item => ({
+            item_id: item.product,
+            item_name: item.name,
+            price: Number(item.price),
+            quantity: Number(item.amount),
+          }));
+          
+          // Gửi sự kiện purchase vào dataLayer cho GTM
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({
+            ecommerce: null
+          });
+          
+          window.dataLayer.push({
+            event: 'purchase',
+            ecommerce: {
+              transaction_id: data?.data?._id || orderCode,
+              value: Number(TotalPriceMemo),
+              tax: 0,
+              shipping: Number(DeliveryPriceMemo),
+              currency: 'VND',
+              items: items
+            }
+          });
+          
+          // Xóa sản phẩm khỏi giỏ hàng
+          dispatch(removeAllOrderProduct({ 
+            listChecked: order?.ordersItemSelected.map(item => item.product) 
+          }));
+          
+          // Chuyển hướng đến trang kết quả thanh toán với status success
+          navigate('/payment-result', { 
+            state: { 
+              status: 'success', 
+              orderId: data?.data?._id || orderCode,
+              orderInfo: {
+                items: order?.ordersItemSelected,
+                totalPrice: TotalPriceMemo,
+                paymentMethod: 'later_money'
               }
-            });
-            
-            // Xóa sản phẩm khỏi giỏ hàng
-            dispatch(removeAllOrderProduct({ 
-              listChecked: order?.ordersItemSelected.map(item => item.product) 
-            }));
-            
-            // Chuyển hướng đến trang kết quả thanh toán với status success
-            navigate('/payment-result', { 
-              state: { 
-                status: 'success', 
-                orderId: data?.data?._id || orderCode,
-                orderInfo: {
-                  items: order?.ordersItemSelected,
-                  totalPrice: TotalPriceMemo,
-                  paymentMethod: 'later_money'
-                }
-              } 
-            });
-          } else {
-            // Chuyển hướng đến trang kết quả với status error nếu API trả về lỗi
-            navigate('/payment-result', { 
-              state: { 
-                status: 'error', 
-                resultCode: 'ERR_CREATE_ORDER',
-                message: data?.message || 'Đặt hàng thất bại' 
-              } 
-            });
-          }
-          setIsSubmitting(false);
-        },
-        onError: (error) => {
-          console.error('Error placing order:', error);
-          // Chuyển hướng đến trang kết quả với status error nếu có lỗi
+            } 
+          });
+        } else {
+          // Chuyển hướng đến trang kết quả với status error nếu API trả về lỗi
           navigate('/payment-result', { 
             state: { 
               status: 'error', 
-              resultCode: 'ERR_SYSTEM',
-              message: 'Đã xảy ra lỗi khi đặt hàng' 
+              resultCode: 'ERR_CREATE_ORDER',
+              message: data?.message || 'Đặt hàng thất bại' 
             } 
           });
-          setIsSubmitting(false);
         }
+        setIsSubmitting(false);
+      },
+      onError: (error) => {
+        console.error('Error placing order:', error);
+        // Chuyển hướng đến trang kết quả với status error nếu có lỗi
+        navigate('/payment-result', { 
+          state: { 
+            status: 'error', 
+            resultCode: 'ERR_SYSTEM',
+            message: 'Đã xảy ra lỗi khi đặt hàng' 
+          } 
+        });
+        setIsSubmitting(false);
       }
-    );
-  }
-
+    });
+  };
   const { isPending, data } = mutationUpdate
   const { isPending: isPendingAddOrder } = mutationAddOrder
   const { isPending: isPendingMomoPayment } = mutationMomoPayment
