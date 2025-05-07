@@ -1,279 +1,257 @@
+// Thêm vào NavBarComponent
+
 import React, { useState, useEffect } from 'react';
-import { 
-  NavBarContainer, CategoryTitle, SectionContainer, FilterList, 
-  FilterItem, TextValue, PriceRangeContainer, PriceValue, 
-  StyledSlider, StyledCheckbox, StyledRadioGroup, StyledRadio,
-  ApplyButton, ResetButton, Divider, Badge, RatingContainer
-} from './style';
-import { Rate, Collapse, Tooltip } from 'antd';
-import { 
-  FilterOutlined, 
-  StarFilled, 
-  PercentageOutlined, 
-  ThunderboltOutlined, 
-  TagOutlined,
-  SortAscendingOutlined,
-  GiftOutlined
-} from '@ant-design/icons';
-import * as ProductService from '../../services/ProductService';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { convertPrice } from '../../utils';
+import { Checkbox, Divider, Radio, Slider, Button, Typography } from 'antd';
+import { FileProtectOutlined, SafetyCertificateOutlined, FilterOutlined, UndoOutlined } from '@ant-design/icons';
+import styled from 'styled-components';
 
-const { Panel } = Collapse;
+const { Title, Text } = Typography;
 
-const NavBarComponent = ({ onFilterChange }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [types, setTypes] = useState([]);
-  const [priceRange, setPriceRange] = useState([0, 1000000]);
-  const [selectedRating, setSelectedRating] = useState(0);
-  const [availableFilters, setAvailableFilters] = useState({
-    inStock: false,
-    hasDiscount: false
-  });
-  const [sortOption, setSortOption] = useState('');
+// Định nghĩa styled components
+const FilterSection = styled.div`
+  margin-bottom: 24px;
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+`;
+
+const FilterHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const FilterTitle = styled(Title)`
+  margin: 0 !important;
+  font-size: 16px !important;
+  color: #333;
+`;
+
+const FilterDivider = styled(Divider)`
+  margin: 12px 0;
+`;
+
+const PrescriptionFilterGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const PrescriptionFilterItem = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
   
-  // Fetch tất cả loại sản phẩm
+  &:hover {
+    background: #f5f5f5;
+  }
+  
+  &.selected {
+    background: #e6f7ff;
+  }
+  
+  .icon {
+    margin-right: 10px;
+    font-size: 16px;
+  }
+  
+  .name {
+    flex: 1;
+  }
+  
+  .prescription-icon {
+    color: #c41d7f;
+  }
+  
+  .non-prescription-icon {
+    color: #389e0d;
+  }
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+`;
+
+// Component NavBar
+const NavBarComponent = ({ onFilterChange }) => {
+  // State cho các bộ lọc
+  const [selectedPrescriptionType, setSelectedPrescriptionType] = useState(null);
+  const [priceRange, setPriceRange] = useState([0, 1000000]);
+  const [rating, setRating] = useState(0);
+  const [inStock, setInStock] = useState(false);
+  const [hasDiscount, setHasDiscount] = useState(false);
+  const [sortOption, setSortOption] = useState('default');
+  
+  // Xử lý khi bộ lọc thay đổi
   useEffect(() => {
-    const fetchTypes = async () => {
-      try {
-        const res = await ProductService.getAllTypeProduct();
-        if (res?.status === 'OK') {
-          setTypes(res.data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching product types:', error);
-      }
+    // Tạo đối tượng bộ lọc
+    const filters = {
+      priceRange,
+      rating,
+      inStock,
+      hasDiscount,
+      sortOption,
+      requiresPrescription: selectedPrescriptionType
     };
     
-    fetchTypes();
-  }, []);
+    // Gọi callback để thông báo thay đổi
+    if (onFilterChange) {
+      onFilterChange(filters);
+    }
+  }, [selectedPrescriptionType, priceRange, rating, inStock, hasDiscount, sortOption]);
   
-  // Xử lý click vào loại sản phẩm
-  const handleTypeClick = (type) => {
-    // Chuyển hướng đến trang loại sản phẩm
-    const typeName = typeof type === 'object' && type.name ? 
-      type.name : String(type);
-    
-    const path = typeName.normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/ /g, '_');
-    
-    navigate(`/product/${path}`, { state: type });
-  };
-  
-  // Xử lý thay đổi khoảng giá
-  const handlePriceChange = (value) => {
-    setPriceRange(value);
-  };
-  
-  // Xử lý thay đổi xếp hạng
-  const handleRatingChange = (rating) => {
-    setSelectedRating(rating);
-  };
-  
-  // Xử lý thay đổi các bộ lọc khả dụng
-  const handleAvailableFilterChange = (e) => {
-    const { name, checked } = e.target;
-    setAvailableFilters(prev => ({
-      ...prev,
-      [name]: checked
-    }));
-  };
-  
-  // Xử lý thay đổi tùy chọn sắp xếp
-  const handleSortChange = (e) => {
-    setSortOption(e.target.value);
-  };
-  
-  // Áp dụng bộ lọc
-  const applyFilters = () => {
-    if (typeof onFilterChange === 'function') {
-      onFilterChange({
-        priceRange,
-        rating: selectedRating,
-        inStock: availableFilters.inStock,
-        hasDiscount: availableFilters.hasDiscount,
-        sortOption
-      });
+  // Xử lý khi chọn loại thuốc
+  const handlePrescriptionTypeSelect = (type) => {
+    if (selectedPrescriptionType === type) {
+      // Bỏ chọn nếu click vào loại đã chọn
+      setSelectedPrescriptionType(null);
+    } else {
+      setSelectedPrescriptionType(type);
     }
   };
   
-  // Reset các bộ lọc
-  const resetFilters = () => {
+  // Reset tất cả bộ lọc
+  const handleResetFilters = () => {
+    setSelectedPrescriptionType(null);
     setPriceRange([0, 1000000]);
-    setSelectedRating(0);
-    setAvailableFilters({
-      inStock: false,
-      hasDiscount: false
-    });
-    setSortOption('');
-    
-    if (typeof onFilterChange === 'function') {
-      onFilterChange(null);
-    }
+    setRating(0);
+    setInStock(false);
+    setHasDiscount(false);
+    setSortOption('default');
   };
   
-  // Render các mục danh mục
-  const renderCategories = () => {
-    if (!types || types.length === 0) {
-      return <TextValue>Đang tải danh mục...</TextValue>;
-    }
-    
-    return (
-      <FilterList>
-        <FilterItem onClick={() => handleTypeClick('all')}>
-          <TextValue>Tất cả sản phẩm</TextValue>
-        </FilterItem>
-        {types.map((type, index) => (
-          <FilterItem key={type._id || index} onClick={() => handleTypeClick(type)}>
-            <TextValue>{type.name}</TextValue>
-          </FilterItem>
-        ))}
-      </FilterList>
-    );
-  };
-  
-  // Render các mục xếp hạng
-  const renderRatings = () => {
-    return (
-      <FilterList>
-        {[5, 4, 3, 2, 1].map(rating => (
-          <RatingContainer key={rating} onClick={() => handleRatingChange(rating)}>
-            <Rate 
-              disabled 
-              defaultValue={rating} 
-              className="star-rating"
-              style={{ fontSize: '16px' }}
-            />
-            <TextValue style={{ marginLeft: '8px' }}>
-              {rating} {rating === 1 ? 'sao' : 'sao'} trở lên
-            </TextValue>
-            {selectedRating === rating && (
-              <Tooltip title="Đang lọc">
-                <Badge>✓</Badge>
-              </Tooltip>
-            )}
-          </RatingContainer>
-        ))}
-      </FilterList>
-    );
+  // Format giá tiền
+  const formatCurrency = (value) => {
+    return `${value.toLocaleString('vi-VN')}đ`;
   };
   
   return (
-    <NavBarContainer>
-      <Collapse 
-        defaultActiveKey={['1', '2', '3', '4']} 
-        expandIconPosition="end"
-        ghost
-        bordered={false}
-      >
-        <Panel 
-          header={
-            <CategoryTitle style={{ margin: 0 }}>
-              <TagOutlined style={{ marginRight: '8px', color: '#4cb551' }} />
-              Danh mục sản phẩm
-            </CategoryTitle>
-          } 
-          key="1"
-        >
-          {renderCategories()}
-        </Panel>
+    <div>
+      <FilterSection>
+        <FilterHeader>
+          <FilterTitle level={5}>Bộ lọc sản phẩm</FilterTitle>
+          <Button 
+            type="text"
+            icon={<UndoOutlined />} 
+            onClick={handleResetFilters}
+          >
+            Đặt lại
+          </Button>
+        </FilterHeader>
         
-        <Panel 
-          header={
-            <CategoryTitle style={{ margin: 0 }}>
-              <FilterOutlined style={{ marginRight: '8px', color: '#4cb551' }} />
-              Lọc theo giá
-            </CategoryTitle>
-          } 
-          key="2"
-        >
-          <PriceRangeContainer>
-            <StyledSlider
+        {/* Lọc theo loại thuốc */}
+        <div>
+          <Text strong>Loại thuốc</Text>
+          <FilterDivider />
+          <PrescriptionFilterGroup>
+            <PrescriptionFilterItem 
+              className={selectedPrescriptionType === true ? 'selected' : ''}
+              onClick={() => handlePrescriptionTypeSelect(true)}
+            >
+              <FileProtectOutlined className="icon prescription-icon" />
+              <span className="name">Thuốc kê đơn</span>
+              {selectedPrescriptionType === true && (
+                <Checkbox checked />
+              )}
+            </PrescriptionFilterItem>
+            
+            <PrescriptionFilterItem 
+              className={selectedPrescriptionType === false ? 'selected' : ''}
+              onClick={() => handlePrescriptionTypeSelect(false)}
+            >
+              <SafetyCertificateOutlined className="icon non-prescription-icon" />
+              <span className="name">Thuốc không kê đơn</span>
+              {selectedPrescriptionType === false && (
+                <Checkbox checked />
+              )}
+            </PrescriptionFilterItem>
+          </PrescriptionFilterGroup>
+        </div>
+        
+        {/* Lọc theo khoảng giá */}
+        <div style={{ marginTop: '24px' }}>
+          <Text strong>Khoảng giá</Text>
+          <FilterDivider />
+          <div style={{ padding: '0 10px' }}>
+            <Slider
               range
               min={0}
               max={1000000}
               step={50000}
               value={priceRange}
-              onChange={handlePriceChange}
+              onChange={setPriceRange}
+              tipFormatter={formatCurrency}
             />
-            <PriceValue>
-              <span>{convertPrice(priceRange[0])}</span>
-              <span>{convertPrice(priceRange[1])}</span>
-            </PriceValue>
-          </PriceRangeContainer>
-        </Panel>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
+              <Text>{formatCurrency(priceRange[0])}</Text>
+              <Text>{formatCurrency(priceRange[1])}</Text>
+            </div>
+          </div>
+        </div>
         
-        <Panel 
-          header={
-            <CategoryTitle style={{ margin: 0 }}>
-              <StarFilled style={{ marginRight: '8px', color: '#4cb551' }} />
-              Đánh giá
-            </CategoryTitle>
-          } 
-          key="3"
-        >
-          {renderRatings()}
-        </Panel>
+        {/* Lọc theo đánh giá */}
+        <div style={{ marginTop: '24px' }}>
+          <Text strong>Đánh giá</Text>
+          <FilterDivider />
+          <Radio.Group onChange={(e) => setRating(e.target.value)} value={rating}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <Radio value={0}>Tất cả</Radio>
+              <Radio value={4}>Từ 4 sao trở lên</Radio>
+              <Radio value={3}>Từ 3 sao trở lên</Radio>
+              <Radio value={2}>Từ 2 sao trở lên</Radio>
+            </div>
+          </Radio.Group>
+        </div>
         
-        <Panel 
-          header={
-            <CategoryTitle style={{ margin: 0 }}>
-              <SortAscendingOutlined style={{ marginRight: '8px', color: '#4cb551' }} />
-              Sắp xếp
-            </CategoryTitle>
-          } 
-          key="4"
-        >
-          <StyledRadioGroup onChange={handleSortChange} value={sortOption}>
-            <StyledRadio value="priceAsc">Giá thấp đến cao</StyledRadio>
-            <StyledRadio value="priceDesc">Giá cao đến thấp</StyledRadio>
-            <StyledRadio value="newest">Mới nhất</StyledRadio>
-            <StyledRadio value="popular">Phổ biến nhất</StyledRadio>
-          </StyledRadioGroup>
-        </Panel>
-        
-        <Panel 
-          header={
-            <CategoryTitle style={{ margin: 0 }}>
-              <GiftOutlined style={{ marginRight: '8px', color: '#4cb551' }} />
-              Khuyến mãi
-            </CategoryTitle>
-          } 
-          key="5"
-        >
-          <div>
-            <StyledCheckbox 
-              name="inStock" 
-              checked={availableFilters.inStock}
-              onChange={handleAvailableFilterChange}
-            >
+        {/* Các tùy chọn khác */}
+        <div style={{ marginTop: '24px' }}>
+          <Text strong>Tùy chọn khác</Text>
+          <FilterDivider />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <Checkbox checked={inStock} onChange={(e) => setInStock(e.target.checked)}>
               Còn hàng
-            </StyledCheckbox>
-          </div>
-          <div style={{ marginTop: '8px' }}>
-            <StyledCheckbox 
-              name="hasDiscount" 
-              checked={availableFilters.hasDiscount}
-              onChange={handleAvailableFilterChange}
-            >
+            </Checkbox>
+            <Checkbox checked={hasDiscount} onChange={(e) => setHasDiscount(e.target.checked)}>
               Đang giảm giá
-            </StyledCheckbox>
+            </Checkbox>
           </div>
-        </Panel>
-      </Collapse>
-      
-      <Divider />
-      
-      <ApplyButton onClick={applyFilters}>
-        Áp dụng bộ lọc
-      </ApplyButton>
-      
-      <ResetButton onClick={resetFilters}>
-        Đặt lại
-      </ResetButton>
-    </NavBarContainer>
+        </div>
+        
+        {/* Sắp xếp theo */}
+        <div style={{ marginTop: '24px' }}>
+          <Text strong>Sắp xếp theo</Text>
+          <FilterDivider />
+          <Radio.Group onChange={(e) => setSortOption(e.target.value)} value={sortOption}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <Radio value="default">Mặc định</Radio>
+              <Radio value="priceAsc">Giá: Thấp đến cao</Radio>
+              <Radio value="priceDesc">Giá: Cao đến thấp</Radio>
+              <Radio value="newest">Mới nhất</Radio>
+              <Radio value="popular">Phổ biến nhất</Radio>
+            </div>
+          </Radio.Group>
+        </div>
+        
+        {/* Nút áp dụng bộ lọc */}
+        <ActionButtons>
+          <Button 
+            type="primary" 
+            icon={<FilterOutlined />} 
+            size="large"
+            style={{ width: '100%', background: '#4cb551', borderColor: '#4cb551' }}
+          >
+            Áp dụng bộ lọc
+          </Button>
+        </ActionButtons>
+      </FilterSection>
+    </div>
   );
 };
 

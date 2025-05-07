@@ -27,7 +27,7 @@ const StyledTag = styled(Tag)`
 const PrescriptionBadge = ({ requiresPrescription, style, size = 'default' }) => {
   if (requiresPrescription) {
     return (
-      <Tooltip title="Thuốc kê đơn - Cần đơn của bác sĩ">
+      <Tooltip title="Thuốc kê đơn - Cần đơn thuốc của bác sĩ">
         <StyledTag 
           className="prescription"
           icon={<FileProtectOutlined />}

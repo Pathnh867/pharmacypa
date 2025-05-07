@@ -11,6 +11,7 @@ import PaymentPage from "../pages/PaymentPage/PaymentPage";
 import PaymentResultPage from "../pages/PaymentResultPage/PaymentResultPage";
 import ProfilePage from "../pages/Profile/ProfilePage";
 import OrderHistory from "../pages/OrderHistory/OrderHistory";
+import PrescriptionProductsPage from "../pages/PrescriptionProductsPage/PrescriptionProductsPage";
 // import PaymentPage from "../pages/Payment/PaymentPage";
 
 export const routes = [
@@ -27,6 +28,16 @@ export const routes = [
     {
         path: '/products',
         page: ProductPage,
+        isShowHeader: true
+    },
+    {
+        path: '/products/prescription',
+        page: PrescriptionProductsPage,
+        isShowHeader: true
+    },
+    {
+        path: '/products/non-prescription',
+        page: PrescriptionProductsPage,
         isShowHeader: true
     },
     {

@@ -7,10 +7,10 @@ import { WrapperCountOrder, WrapperInfo, WrapperInfodiv, WrapperInfospan, Wrappe
   ItemPrice, QuantityControl, DeleteButton, CartSummary, SummaryTitle, SummaryRow, 
   DeliveryInfo, TotalAmount, TotalDetail, UserAddressInfo, UpdateAddressButton,
   OriginalPrice, DiscountedPrice, PriceContainer } from './style';
-import { Badge, Alert, Checkbox, Form, message, Modal, Radio, Steps, Empty, Tooltip, Card, Button, Typography } from 'antd';
+import { Badge, Alert, Checkbox, Form, message, Modal, Radio, Steps, Empty, Tooltip, Card, Button, Typography, Upload, Input } from 'antd';
 import { DeleteOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined, 
   RightOutlined, InfoCircleOutlined, EnvironmentOutlined, UserOutlined, PhoneOutlined,
-  HomeOutlined, EditOutlined, PlusCircleOutlined } from '@ant-design/icons'
+  HomeOutlined, EditOutlined, PlusCircleOutlined, FileProtectOutlined } from '@ant-design/icons'
 import { WrapperInputNumber } from '../../components/ProductDetailComponents/style';
 import { increaseAmount, decreaseAmount, removeOrderProduct, removeAllOrderProduct, selectedOrder } from '../../redux/slide/orderSlide';
 import { convertPrice } from '../../utils';
@@ -22,9 +22,9 @@ import * as UserService from '../../services/UserService'
 import * as AddressService from '../../services/AddressService'
 import Loading from '../../components/LoadingComponent/Loading';
 import { updateUser } from '../../redux/slide/userSlide';
-
+import PrescriptionBadge from '../../components/PrescriptionBadge/PrescriptionBadge';
 const { Text } = Typography;
-
+const { TextArea } = Input;
 const OrderPage = () => {
   const order = useSelector((state) => state.order)
   const navigate = useNavigate()
@@ -36,6 +36,12 @@ const OrderPage = () => {
   const [isEditing, setIsEditing] = useState(false)
   const [currentAddress, setCurrentAddress] = useState(null)
   const [isLoadingAddress, setIsLoadingAddress] = useState(false)
+  const [prescriptionItems, setPrescriptionItems] = useState([]);
+  const [activePrescriptionItem, setActivePrescriptionItem] = useState(null);
+  const [prescriptionModal, setPrescriptionModal] = useState(false);
+  const [prescriptionFile, setPrescriptionFile] = useState(null);
+  const [prescriptionLoading, setPrescriptionLoading] = useState(false);
+  const [prescriptionForm] = Form.useForm();
 
   const [form] = Form.useForm();
   const [addressForm] = Form.useForm();
@@ -77,7 +83,73 @@ const OrderPage = () => {
   useEffect(() => {
     dispatch(selectedOrder({ listChecked }))
   }, [listChecked, dispatch])
-
+  useEffect(() => {
+    // Lọc ra các sản phẩm cần đơn thuốc từ danh sách giỏ hàng
+    if (order?.orderItems?.length > 0) {
+      const prescItems = order.orderItems.filter(item => item.requiresPrescription);
+      setPrescriptionItems(prescItems);
+    }
+  }, [order?.orderItems]);
+  const handlePrescriptionUpload = info => {
+    if (info.file.status === 'done') {
+      message.success(`${info.file.name} tải lên thành công`);
+      setPrescriptionFile(info.file.originFileObj);
+    } else if (info.file.status === 'error') {
+      message.error(`${info.file.name} tải lên thất bại.`);
+    }
+  };
+  const handleSubmitPrescription = async () => {
+    try {
+      await prescriptionForm.validateFields();
+      setPrescriptionLoading(true);
+      
+      // Giả lập gửi đơn thuốc
+      setTimeout(() => {
+        message.success(`Đơn thuốc cho ${activePrescriptionItem?.name} đã được gửi thành công!`);
+        setPrescriptionLoading(false);
+        
+        // Cập nhật trạng thái thuốc đã có đơn
+        const updatedItems = prescriptionItems.map(item => {
+          if (item.product === activePrescriptionItem?.product) {
+            return {...item, hasPrescription: true};
+          }
+          return item;
+        });
+        
+        setPrescriptionItems(updatedItems);
+        setPrescriptionModal(false);
+        setPrescriptionFile(null);
+        prescriptionForm.resetFields();
+      }, 1500);
+    } catch (error) {
+      console.error('Error submitting prescription:', error);
+    }
+  };
+  const validateBeforeCheckout = () => {
+    // Kiểm tra nếu có sản phẩm kê đơn chưa có đơn thuốc
+    const prescriptionRequired = prescriptionItems.filter(item => 
+      listChecked.includes(item.product) && !item.hasPrescription
+    );
+    
+    if (prescriptionRequired.length > 0) {
+      const itemNames = prescriptionRequired.map(item => item.name).join(', ');
+      
+      Modal.confirm({
+        title: 'Sản phẩm cần đơn thuốc',
+        content: `Các sản phẩm sau cần đơn thuốc: ${itemNames}. Bạn cần tải lên đơn thuốc trước khi tiếp tục.`,
+        okText: 'Tải lên đơn thuốc',
+        cancelText: 'Hủy',
+        onOk: () => {
+          setActivePrescriptionItem(prescriptionRequired[0]);
+          setPrescriptionModal(true);
+        }
+      });
+      
+      return false;
+    }
+    
+    return true;
+  };
   // Fetch địa chỉ
   const fetchAddresses = async () => {
     if (!user?.access_token) return;
@@ -162,9 +234,13 @@ const OrderPage = () => {
       return;
     }
     
+    // Kiểm tra thuốc kê đơn
+    if (!validateBeforeCheckout()) {
+      return;
+    }
+    
     navigate('/payment', { state: { order, user, listChecked } });
   };
-
   // Xử lý chọn địa chỉ
   const handleAddressSelect = (e) => {
     const addressId = e.target.value;
@@ -380,6 +456,29 @@ const OrderPage = () => {
                         <ItemImage src={orderItem?.image} alt={orderItem?.name} />
                         <ItemDetails>
                           <ItemName>{orderItem?.name}</ItemName>
+                          {orderItem?.requiresPrescription && (
+                            <div style={{ marginTop: '5px', display: 'flex', alignItems: 'center' }}>
+                              <PrescriptionBadge requiresPrescription={true} size="small" />
+                              {orderItem.hasPrescription ? (
+                                <span style={{ color: '#389e0d', fontSize: '12px', marginLeft: '5px' }}>
+                                  Đã có đơn thuốc
+                                </span>
+                              ) : (
+                                <Button 
+                                  type="link" 
+                                  size="small" 
+                                  style={{ padding: '0', height: 'auto', fontSize: '12px', color: '#c41d7f' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActivePrescriptionItem(orderItem);
+                                    setPrescriptionModal(true);
+                                  }}
+                                >
+                                  Tải lên đơn thuốc
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </ItemDetails>
                       </div>
                       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -669,6 +768,76 @@ const OrderPage = () => {
           </Form.Item>
         </Form>
       </Modal>
+      <Modal
+      title={`Tải lên đơn thuốc cho ${activePrescriptionItem?.name || 'sản phẩm'}`}
+      open={prescriptionModal}
+      onCancel={() => setPrescriptionModal(false)}
+      footer={null}
+      destroyOnClose
+    >
+      <Form
+        form={prescriptionForm}
+        layout="vertical"
+        onFinish={handleSubmitPrescription}
+      >
+        <Alert
+          message="Thuốc kê đơn yêu cầu đơn thuốc của bác sĩ"
+          description="Vui lòng tải lên hình ảnh hoặc file PDF đơn thuốc của bác sĩ. Chúng tôi sẽ xác minh đơn thuốc trước khi xác nhận đơn hàng của bạn."
+          type="info"
+          showIcon
+          style={{ marginBottom: '16px' }}
+        />
+        
+        <Form.Item
+          name="prescription"
+          label="Đơn thuốc"
+          rules={[{ required: true, message: 'Vui lòng tải lên đơn thuốc' }]}
+        >
+          <Upload.Dragger
+            name="prescription"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={false}
+            maxCount={1}
+            onChange={handlePrescriptionUpload}
+            beforeUpload={() => false}
+          >
+            <p className="ant-upload-drag-icon">
+              <FileProtectOutlined style={{ color: '#c41d7f', fontSize: '32px' }} />
+            </p>
+            <p className="ant-upload-text">Nhấp hoặc kéo thả file đơn thuốc vào đây</p>
+            <p className="ant-upload-hint">
+              Hỗ trợ định dạng: JPG, PNG, PDF. Tối đa 5MB.
+            </p>
+          </Upload.Dragger>
+        </Form.Item>
+        
+        <Form.Item
+          name="note"
+          label="Ghi chú (tùy chọn)"
+        >
+          <TextArea
+            rows={3}
+            placeholder="Nhập ghi chú về đơn thuốc hoặc yêu cầu khác (nếu có)"
+          />
+        </Form.Item>
+        
+        <Form.Item>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Button onClick={() => setPrescriptionModal(false)}>
+              Hủy
+            </Button>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              loading={prescriptionLoading}
+              style={{ background: '#c41d7f', borderColor: '#c41d7f' }}
+            >
+              Gửi đơn thuốc
+            </Button>
+          </div>
+        </Form.Item>
+      </Form>
+    </Modal>
     </PageContainer>
   )
 }

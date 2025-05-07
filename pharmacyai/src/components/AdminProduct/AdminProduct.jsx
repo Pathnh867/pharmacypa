@@ -1,7 +1,7 @@
 // pharmacyai/src/components/AdminProduct/AdminProduct.jsx
 
 import React, { useEffect, useState } from 'react'
-import { Button, Form, Modal, Select, Input, Tag, Tooltip, Space, Upload, message, Divider } from 'antd'
+import { Button, Form, Modal, Select, Input, Tag, Tooltip, Space, Upload, message, Divider, Checkbox } from 'antd'
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined, 
   FilterOutlined, ReloadOutlined, UploadOutlined, EyeOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
@@ -11,6 +11,7 @@ import { useMutationHooks } from '../../hooks/useMutationHook'
 import Loading from '../LoadingComponent/Loading'
 import { getBase64, renderOptions } from '../../utils'
 import { convertPrice } from '../../utils'
+import PrescriptionBadge from '../PrescriptionBadge/PrescriptionBadge';
 
 // Import style mới
 import {
@@ -44,7 +45,14 @@ const AdminProduct = () => {
     countInStock:'',
     rating: '',
     description: '',
-    discount: ''
+    discount: '',
+    requiresPrescription: false,
+    prescriptionDetails: {
+      activeIngredients: '',
+      dosage: '',
+      interactions: '',
+      sideEffects: ''
+    }
   });
 
   const [stateProductDetails, setStateProductDetails] = useState({
@@ -55,8 +63,16 @@ const AdminProduct = () => {
     countInStock:'',
     rating: '',
     description: '',
-    discount: ''
+    discount: '',
+    requiresPrescription: false,
+    prescriptionDetails: {
+      activeIngredients: '',
+      dosage: '',
+      interactions: '',
+      sideEffects: ''
+    }
   });
+  
 
   const [form] = Form.useForm();
   const [detailsForm] = Form.useForm();
@@ -181,6 +197,8 @@ const AdminProduct = () => {
       rating: stateProduct.rating,
       description: stateProduct.description,
       discount: stateProduct.discount,
+      requiresPrescription: stateProduct.requiresPrescription,
+      prescriptionDetails: stateProduct.requiresPrescription ? stateProduct.prescriptionDetails : undefined
     };
     
     mutation.mutate(params, {
@@ -194,7 +212,8 @@ const AdminProduct = () => {
     mutationUpdate.mutate({ 
       id: rowSelected, 
       token: user?.access_token, 
-      ...stateProductDetails 
+      ...stateProductDetails,
+      prescriptionDetails: stateProductDetails.requiresPrescription ? stateProductDetails.prescriptionDetails : undefined
     }, {
       onSettled: () => {
         queryProduct.refetch();
@@ -411,6 +430,20 @@ const AdminProduct = () => {
         </div>
       ),
       sorter: (a, b) => a.price - b.price,
+    },
+    {
+      title: 'Loại thuốc',
+      dataIndex: 'requiresPrescription',
+      key: 'requiresPrescription',
+      width: '15%',
+      render: (requiresPrescription) => (
+        <PrescriptionBadge requiresPrescription={requiresPrescription} />
+      ),
+      filters: [
+        { text: 'Thuốc kê đơn', value: true },
+        { text: 'Thuốc không kê đơn', value: false }
+      ],
+      onFilter: (value, record) => record.requiresPrescription === value,
     },
     {
       title: 'Danh mục',
@@ -771,7 +804,100 @@ const AdminProduct = () => {
                 </Form.Item>
               </div>
             </div>
-            
+            <div style={{ marginTop: '16px' }}>
+                  <Divider orientation="left">Thông tin kê đơn</Divider>
+                  
+                  <Form.Item
+                    name="requiresPrescription"
+                    valuePropName="checked"
+                  >
+                    <Checkbox 
+                      checked={stateProduct.requiresPrescription}
+                      onChange={(e) => setStateProduct({
+                        ...stateProduct,
+                        requiresPrescription: e.target.checked
+                      })}
+                    >
+                      Yêu cầu đơn thuốc của bác sĩ
+                    </Checkbox>
+                  </Form.Item>
+                  
+                  {stateProduct.requiresPrescription && (
+                    <>
+                      <Form.Item
+                        label="Thành phần hoạt chất"
+                        name={["prescriptionDetails", "activeIngredients"]}
+                      >
+                        <Input.TextArea
+                          placeholder="Nhập thành phần hoạt chất"
+                          rows={2}
+                          value={stateProduct.prescriptionDetails?.activeIngredients}
+                          onChange={(e) => setStateProduct({
+                            ...stateProduct,
+                            prescriptionDetails: {
+                              ...stateProduct.prescriptionDetails,
+                              activeIngredients: e.target.value
+                            }
+                          })}
+                        />
+                      </Form.Item>
+                      
+                      <Form.Item
+                        label="Liều dùng"
+                        name={["prescriptionDetails", "dosage"]}
+                      >
+                        <Input.TextArea
+                          placeholder="Nhập hướng dẫn liều dùng"
+                          rows={2}
+                          value={stateProduct.prescriptionDetails?.dosage}
+                          onChange={(e) => setStateProduct({
+                            ...stateProduct,
+                            prescriptionDetails: {
+                              ...stateProduct.prescriptionDetails,
+                              dosage: e.target.value
+                            }
+                          })}
+                        />
+                      </Form.Item>
+                      
+                      <Form.Item
+                        label="Tương tác thuốc"
+                        name={["prescriptionDetails", "interactions"]}
+                      >
+                        <Input.TextArea
+                          placeholder="Nhập thông tin tương tác thuốc"
+                          rows={2}
+                          value={stateProduct.prescriptionDetails?.interactions}
+                          onChange={(e) => setStateProduct({
+                            ...stateProduct,
+                            prescriptionDetails: {
+                              ...stateProduct.prescriptionDetails,
+                              interactions: e.target.value
+                            }
+                          })}
+                        />
+                      </Form.Item>
+                      
+                      <Form.Item
+                        label="Tác dụng phụ"
+                        name={["prescriptionDetails", "sideEffects"]}
+                      >
+                        <Input.TextArea
+                          placeholder="Nhập thông tin tác dụng phụ"
+                          rows={2}
+                          value={stateProduct.prescriptionDetails?.sideEffects}
+                          onChange={(e) => setStateProduct({
+                            ...stateProduct,
+                            prescriptionDetails: {
+                              ...stateProduct.prescriptionDetails,
+                              sideEffects: e.target.value
+                            }
+                          })}
+                        />
+                      </Form.Item>
+                    </>
+                  )}
+                </div>          
             <Divider />
             
             <div style={{ textAlign: 'right' }}>
@@ -964,6 +1090,100 @@ const AdminProduct = () => {
                 </Form.Item>
               </div>
             </div>
+            <div style={{ marginTop: '16px' }}>
+                <Divider orientation="left">Thông tin kê đơn</Divider>
+                
+                <Form.Item
+                  name="requiresPrescription"
+                  valuePropName="checked"
+                >
+                  <Checkbox 
+                    checked={stateProductDetails.requiresPrescription}
+                    onChange={(e) => setStateProductDetails({
+                      ...stateProductDetails,
+                      requiresPrescription: e.target.checked
+                    })}
+                  >
+                    Yêu cầu đơn thuốc của bác sĩ
+                  </Checkbox>
+                </Form.Item>
+                
+                {stateProductDetails.requiresPrescription && (
+                  <>
+                    <Form.Item
+                      label="Thành phần hoạt chất"
+                      name={["prescriptionDetails", "activeIngredients"]}
+                    >
+                      <Input.TextArea
+                        placeholder="Nhập thành phần hoạt chất"
+                        rows={2}
+                        value={stateProductDetails.prescriptionDetails?.activeIngredients}
+                        onChange={(e) => setStateProductDetails({
+                          ...stateProductDetails,
+                          prescriptionDetails: {
+                            ...stateProductDetails.prescriptionDetails,
+                            activeIngredients: e.target.value
+                          }
+                        })}
+                      />
+                    </Form.Item>
+                    
+                    <Form.Item
+                      label="Liều dùng"
+                      name={["prescriptionDetails", "dosage"]}
+                    >
+                      <Input.TextArea
+                        placeholder="Nhập hướng dẫn liều dùng"
+                        rows={2}
+                        value={stateProductDetails.prescriptionDetails?.dosage}
+                        onChange={(e) => setStateProductDetails({
+                          ...stateProductDetails,
+                          prescriptionDetails: {
+                            ...stateProductDetails.prescriptionDetails,
+                            dosage: e.target.value
+                          }
+                        })}
+                      />
+                    </Form.Item>
+                    
+                    <Form.Item
+                      label="Tương tác thuốc"
+                      name={["prescriptionDetails", "interactions"]}
+                    >
+                      <Input.TextArea
+                        placeholder="Nhập thông tin tương tác thuốc"
+                        rows={2}
+                        value={stateProductDetails.prescriptionDetails?.interactions}
+                        onChange={(e) => setStateProductDetails({
+                          ...stateProductDetails,
+                          prescriptionDetails: {
+                            ...stateProductDetails.prescriptionDetails,
+                            interactions: e.target.value
+                          }
+                        })}
+                      />
+                    </Form.Item>
+                    
+                    <Form.Item
+                      label="Tác dụng phụ"
+                      name={["prescriptionDetails", "sideEffects"]}
+                    >
+                      <Input.TextArea
+                        placeholder="Nhập thông tin tác dụng phụ"
+                        rows={2}
+                        value={stateProductDetails.prescriptionDetails?.sideEffects}
+                        onChange={(e) => setStateProductDetails({
+                          ...stateProductDetails,
+                          prescriptionDetails: {
+                            ...stateProductDetails.prescriptionDetails,
+                            sideEffects: e.target.value
+                          }
+                        })}
+                      />
+                    </Form.Item>
+                  </>
+                )}
+              </div>
             
             <Divider />
             

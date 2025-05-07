@@ -38,11 +38,9 @@ import {
   LoadingOutlined,
   WarningOutlined,
   RightOutlined,
-  FileProtectOutlined, 
-  SafetyCertificateOutlined, 
+  FileProtectOutlined,  
   UploadOutlined, 
   InfoCircleOutlined,
-  ShoppingCartOutlined
 } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -51,6 +49,7 @@ import * as ProductService from '../../services/ProductService';
 import { addOrderProduct } from '../../redux/slide/orderSlide';
 import Loading from '../../components/LoadingComponent/Loading';
 import ButtonComponent from '../ButtonComponents/ButtonComponent';
+import PrescriptionBadge from '../PrescriptionBadge/PrescriptionBadge';
 import { 
   WrapperStyleHeader, 
   WrapperStyleHeaderSmall, 
@@ -120,7 +119,8 @@ const ProductDetailComponent = ({ idProduct }) => {
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [prescriptionFile, setPrescriptionFile] = useState(null);
-  const [prescriptionForm] = Form.useForm();
+  const [prescriptionForm] = Form.useForm();  
+  
 
   
   const user = useSelector((state) => state.user);
@@ -317,7 +317,31 @@ const ProductDetailComponent = ({ idProduct }) => {
     const showPrescriptionModal = () => {
       setIsModalVisible(true);
   };
-  
+  const handlePrescriptionUpload = (info) => {
+    if (info.file.status === 'done') {
+      message.success(`${info.file.name} tải lên thành công`);
+      setPrescriptionFile(info.file.originFileObj);
+    } else if (info.file.status === 'error') {
+      message.error(`${info.file.name} tải lên thất bại.`);
+    }
+  };
+  const handleSubmitPrescription = async () => {
+    try {
+      await prescriptionForm.validateFields();
+      
+      // Trong thực tế, ở đây bạn sẽ gửi file đơn thuốc và thông tin lên server
+      // Ví dụ: sử dụng FormData để gửi file
+      
+      message.success('Đơn thuốc đã được gửi thành công');
+      setIsModalVisible(false);
+      
+      // Thêm sản phẩm vào giỏ hàng sau khi đơn thuốc được chấp nhận
+      handleAddOrderProduct();
+      
+    } catch (error) {
+      console.error('Error submitting prescription:', error);
+    }
+  };
 
   return (
     <Loading isPending={isPending}>
@@ -339,11 +363,20 @@ const ProductDetailComponent = ({ idProduct }) => {
           <Col span={14} style={{paddingLeft: '24px'}}>
             <WrapperProductInfo>
               <WrapperStyleNameProduct>{productDetails?.name}</WrapperStyleNameProduct>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
+                  <PrescriptionBadge requiresPrescription={productDetails?.requiresPrescription} />
+                  {productDetails?.requiresPrescription && (
+                    <span style={{ color: '#c41d7f', fontSize: '14px' }}>
+                      Sản phẩm này yêu cầu đơn thuốc của bác sĩ
+                    </span>
+                  )}
+                </div>
               
               <div style={{display: 'flex', alignItems: 'center', gap: '10px', margin: '10px 0'}}>
                 <Rate allowHalf disabled value={productDetails?.rating} />
                 <WrapperStyleTextSell> | Đã bán {productDetails?.selled || 200}+</WrapperStyleTextSell>
               </div>
+
               
               <div style={{display: 'flex', alignItems: 'center', margin: '16px 0'}}>
                 <CheckCircleOutlined style={{ fontSize: '16px', color: '#4cb551', marginRight: '8px' }} />
@@ -414,36 +447,72 @@ const ProductDetailComponent = ({ idProduct }) => {
               </div>
               
               <WrapperActions>
-                <ButtonComponent
-                  size={40}
-                  styleButton={{
-                    background: '#4cb551',
-                    height: '48px',
-                    width: '220px',
-                    border: 'none',
-                    borderRadius: '8px'
-                  }}
-                  onClick={handleBuyNow}
-                  textButton={'Mua ngay'}
-                  styleTextButton={{color:'#fff', fontSize:'16px', fontWeight:'600'}}
-                  disabled={!productDetails?.countInStock}
-                />
-                <ButtonComponent
-                  size={40}
-                  styleButton={{
-                    background: '#fff',
-                    height: '48px',
-                    width: '220px',
-                    border: '1px solid #4cb551',
-                    borderRadius: '8px'
-                  }}
-                  icon={<ShoppingCartOutlined style={{fontSize: '20px'}} />}
-                  onClick={handleAddOrderProduct}
-                  textButton={'Thêm vào giỏ hàng'}
-                  styleTextButton={{color:'#4cb551', fontSize:'16px', fontWeight: '500'}}
-                  disabled={!productDetails?.countInStock}
-                />
-              </WrapperActions>
+          {productDetails?.requiresPrescription ? (
+            <>
+              <ButtonComponent
+                size={40}
+                styleButton={{
+                  background: '#c41d7f',
+                  height: '48px',
+                  width: '220px',
+                  border: 'none',
+                  borderRadius: '8px'
+                }}
+                onClick={showPrescriptionModal}
+                textButton={'Tải lên đơn thuốc'}
+                styleTextButton={{color:'#fff', fontSize:'16px', fontWeight:'600'}}
+                icon={<FileProtectOutlined style={{fontSize: '20px'}} />}
+                disabled={!productDetails?.countInStock}
+              />
+              <ButtonComponent
+                size={40}
+                styleButton={{
+                  background: '#fff',
+                  height: '48px',
+                  width: '220px',
+                  border: '1px solid #4cb551',
+                  borderRadius: '8px'
+                }}
+                icon={<InfoCircleOutlined style={{fontSize: '20px'}} />}
+                onClick={() => setActiveTab('4')}
+                textButton={'Xem thông tin kê đơn'}
+                styleTextButton={{color:'#4cb551', fontSize:'16px', fontWeight: '500'}}
+              />
+            </>
+          ) : (
+            <>
+              <ButtonComponent
+                size={40}
+                styleButton={{
+                  background: '#4cb551',
+                  height: '48px',
+                  width: '220px',
+                  border: 'none',
+                  borderRadius: '8px'
+                }}
+                onClick={handleBuyNow}
+                textButton={'Mua ngay'}
+                styleTextButton={{color:'#fff', fontSize:'16px', fontWeight:'600'}}
+                disabled={!productDetails?.countInStock}
+              />
+              <ButtonComponent
+                size={40}
+                styleButton={{
+                  background: '#fff',
+                  height: '48px',
+                  width: '220px',
+                  border: '1px solid #4cb551',
+                  borderRadius: '8px'
+                }}
+                icon={<ShoppingCartOutlined style={{fontSize: '20px'}} />}
+                onClick={handleAddOrderProduct}
+                textButton={'Thêm vào giỏ hàng'}
+                styleTextButton={{color:'#4cb551', fontSize:'16px', fontWeight: '500'}}
+                disabled={!productDetails?.countInStock}
+              />
+            </>
+          )}
+                      </WrapperActions>
               
               <Divider style={{ margin: '24px 0' }} />
               
@@ -617,6 +686,48 @@ const ProductDetailComponent = ({ idProduct }) => {
               )}
             </Card>
           </TabPane>
+          {productDetails?.requiresPrescription && (
+            <TabPane 
+              tab={
+                <span>
+                  <FileProtectOutlined style={{ marginRight: 8 }} />
+                  Thông tin kê đơn
+                </span>
+              } 
+              key="4"
+            >
+              <Card bordered={false}>
+                <Alert
+                  message="Thông tin quan trọng về thuốc kê đơn"
+                  description="Thuốc này yêu cầu đơn thuốc của bác sĩ. Khi mua, bạn sẽ cần cung cấp đơn thuốc hợp lệ."
+                  type="warning"
+                  showIcon
+                  style={{ marginBottom: '20px' }}
+                />
+                
+                {productDetails?.prescriptionDetails ? (
+                  <>
+                    <h3>Thành phần hoạt chất:</h3>
+                    <p>{productDetails.prescriptionDetails.activeIngredients || 'Chưa có thông tin'}</p>
+                    
+                    <h3>Liều dùng:</h3>
+                    <p>{productDetails.prescriptionDetails.dosage || 'Theo chỉ định của bác sĩ'}</p>
+                    
+                    <h3>Tương tác thuốc:</h3>
+                    <p>{productDetails.prescriptionDetails.interactions || 'Vui lòng tham khảo ý kiến bác sĩ về các tương tác thuốc có thể xảy ra'}</p>
+                    
+                    <h3>Tác dụng phụ:</h3>
+                    <p>{productDetails.prescriptionDetails.sideEffects || 'Vui lòng tham khảo tờ hướng dẫn sử dụng hoặc ý kiến bác sĩ'}</p>
+                  </>
+                ) : (
+                  <Empty 
+                    description="Chưa có thông tin chi tiết về thuốc này" 
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
+                )}
+              </Card>
+            </TabPane>
+          )}
         </WrapperTabs>
       </WrapperContainer>
       
@@ -714,6 +825,70 @@ const ProductDetailComponent = ({ idProduct }) => {
             <Button type="primary" htmlType="submit" style={{ background: '#4cb551', borderColor: '#4cb551' }}>
               Gửi đánh giá
             </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+      <Modal
+        title="Tải lên đơn thuốc"
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={null}
+      >
+        <Form
+          form={prescriptionForm}
+          layout="vertical"
+          onFinish={handleSubmitPrescription}
+        >
+          <Alert
+            message="Thuốc kê đơn yêu cầu đơn thuốc của bác sĩ"
+            description="Vui lòng tải lên hình ảnh hoặc file PDF đơn thuốc của bác sĩ. Chúng tôi sẽ xác minh đơn thuốc trước khi xác nhận đơn hàng của bạn."
+            type="info"
+            showIcon
+            style={{ marginBottom: '16px' }}
+          />
+          
+          <Form.Item
+            name="prescription"
+            label="Đơn thuốc"
+            rules={[{ required: true, message: 'Vui lòng tải lên đơn thuốc' }]}
+          >
+            <Upload.Dragger
+              name="prescription"
+              accept=".jpg,.jpeg,.png,.pdf"
+              multiple={false}
+              maxCount={1}
+              onChange={handlePrescriptionUpload}
+              beforeUpload={() => false}
+            >
+              <p className="ant-upload-drag-icon">
+                <FileProtectOutlined style={{ color: '#c41d7f', fontSize: '32px' }} />
+              </p>
+              <p className="ant-upload-text">Nhấp hoặc kéo thả file đơn thuốc vào đây</p>
+              <p className="ant-upload-hint">
+                Hỗ trợ định dạng: JPG, PNG, PDF. Tối đa 5MB.
+              </p>
+            </Upload.Dragger>
+          </Form.Item>
+          
+          <Form.Item
+            name="note"
+            label="Ghi chú (tùy chọn)"
+          >
+            <TextArea
+              rows={3}
+              placeholder="Nhập ghi chú về đơn thuốc hoặc yêu cầu khác (nếu có)"
+            />
+          </Form.Item>
+          
+          <Form.Item>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Button onClick={() => setIsModalVisible(false)}>
+                Hủy
+              </Button>
+              <Button type="primary" htmlType="submit" style={{ background: '#c41d7f', borderColor: '#c41d7f' }}>
+                Gửi đơn thuốc và thêm vào giỏ hàng
+              </Button>
+            </div>
           </Form.Item>
         </Form>
       </Modal>

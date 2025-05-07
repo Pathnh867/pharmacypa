@@ -207,3 +207,13 @@ const getProductsByTypeName = async (req, res) => {
         });
     }
 };
+module.exports = {
+    createProduct,
+    updateProduct,
+    getdetailsProduct,
+    deleteProduct,
+    getAllProduct,
+    getAllType,
+    getProductsByTypeName,
+    getProductsByPrescriptionStatus
+};

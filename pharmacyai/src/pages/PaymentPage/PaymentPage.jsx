@@ -8,7 +8,7 @@ import { Label, WrapperInfo, WrapperInfodiv, WrapperInfospan, WrapperItemOrder,
 
 import { DeleteOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined, 
   RightOutlined, InfoCircleOutlined, EnvironmentOutlined, UserOutlined, PhoneOutlined,
-  HomeOutlined, EditOutlined, PlusCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+  HomeOutlined, EditOutlined, PlusCircleOutlined, CloseCircleOutlined, FileProtectOutlined } from '@ant-design/icons'
 import { WrapperInputNumber } from '../../components/ProductDetailComponents/style';
 import { increaseAmount, decreaseAmount, removeOrderProduct, removeAllOrderProduct, selectedOrder } from '../../redux/slide/orderSlide';
 import { convertPrice } from '../../utils';
@@ -22,6 +22,7 @@ import * as PaymentService from '../../services/PaymentService'
 import * as AddressService from '../../services/AddressService'
 import Loading from '../../components/LoadingComponent/Loading';
 import { updateUser } from '../../redux/slide/userSlide';
+import PrescriptionBadge from '../../components/PrescriptionBadge/PrescriptionBadge';
 
 // Import icons
 import momoIcon from '../../assets/img/momo_logo.png';
@@ -56,7 +57,8 @@ const PaymentPage = () => {
   const [isEditing, setIsEditing] = useState(false)
   const [currentAddress, setCurrentAddress] = useState(null)
   const [isLoadingAddress, setIsLoadingAddress] = useState(false)
-
+  const [prescriptionItems, setPrescriptionItems] = useState([]);
+  const [prescriptionStatus, setPrescriptionStatus] = useState({});
   const [form] = Form.useForm();
   const [addressForm] = Form.useForm();
   const dispatch = useDispatch()
@@ -84,6 +86,26 @@ const PaymentPage = () => {
       form.setFieldsValue(stateUserDetails);
     }
   }, [form, stateUserDetails])
+  useEffect(() => {
+    // Lọc ra các sản phẩm kê đơn từ đơn hàng
+    if (order?.orderItems && Array.isArray(order.orderItems)) {
+      const prescItems = order.orderItems.filter(item => 
+        item.requiresPrescription && listChecked.includes(item.product)
+      );
+      
+      if (prescItems.length > 0) {
+        setPrescriptionItems(prescItems);
+        
+        // Tạo trạng thái cho mỗi sản phẩm kê đơn
+        const statusObj = {};
+        prescItems.forEach(item => {
+          statusObj[item.product] = item.hasPrescription ? 'verified' : 'pending';
+        });
+        
+        setPrescriptionStatus(statusObj);
+      }
+    }
+  }, [order?.orderItems, listChecked]);
 
   useEffect(() => {
     if (isOpenModalUpdateInfo) {
