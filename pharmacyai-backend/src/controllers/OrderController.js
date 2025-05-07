@@ -172,6 +172,48 @@ const cancelOrder = async (req, res) => {
         })
     }
 }
+const validateOrder = async (req, res, next) => {
+    try {
+      const { orderId } = req.body;
+      
+      // Kiểm tra đơn hàng tồn tại
+      const order = await Order.findById(orderId);
+      if (!order) {
+        return res.status(404).json({
+          status: 'ERR',
+          message: 'Đơn hàng không tồn tại'
+        });
+      }
+      
+      // Kiểm tra xem đơn hàng có cần đơn thuốc không
+      const hasPrescriptionProducts = false;
+      for (const item of order.orderItems) {
+        const product = await Product.findById(item.product);
+        if (product && product.requiresPrescription) {
+          hasPrescriptionProducts = true;
+          break;
+        }
+      }
+      
+      // Nếu có sản phẩm cần đơn thuốc, kiểm tra đơn thuốc đã được phê duyệt chưa
+      if (hasPrescriptionProducts) {
+        if (!order.prescriptionVerified) {
+          return res.status(400).json({
+            status: 'ERR',
+            message: 'Đơn thuốc của bạn chưa được phê duyệt. Vui lòng đợi đơn thuốc được xác minh trước khi thanh toán.'
+          });
+        }
+      }
+      
+      // Nếu tất cả điều kiện đều thỏa mãn, tiếp tục thanh toán
+      next();
+    } catch (error) {
+      return res.status(500).json({
+        status: 'ERR',
+        message: error.message
+      });
+    }
+  };
 
 module.exports = {
     createOrder,
@@ -179,5 +221,6 @@ module.exports = {
     getUserOrders,
     getAllOrders,
     updateOrderStatus,
-    cancelOrder
+    cancelOrder,
+    validateOrder,
 }

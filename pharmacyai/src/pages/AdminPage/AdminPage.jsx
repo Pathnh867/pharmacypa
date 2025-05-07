@@ -12,6 +12,7 @@ import AdminUser from '../../components/AdminUser/AdminUser';
 import AdminProduct from '../../components/AdminProduct/AdminProduct';
 import AdminOrder from '../../components/AdminOrder/AdminOrder';
 import RevenueManagement from '../../components/RevenueManagement/RevenueManagement';
+import PrescriptionManagement from '../../components/PrescriptionManagement/PrescriptionManagement';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { resetUser } from '../../redux/slide/userSlide';
@@ -53,6 +54,7 @@ function AdminPage() {
         getItem('Sản phẩm', 'product', <ProductOutlined />),
         getItem('Đơn hàng', 'order', <ShoppingOutlined />),
         getItem('Báo cáo doanh thu', 'revenue', <DollarOutlined />),
+        getItem('Quản lý đơn thuốc', 'prescription', <FileProtectOutlined />),
         getItem('Cài đặt', 'settings', <SettingOutlined />),
     ];
 
@@ -147,6 +149,8 @@ function AdminPage() {
                 return <AdminOrder />;
             case 'revenue':
                 return <RevenueManagement />;
+            case 'prescription':
+                return <PrescriptionManagement />;
             case 'dashboard':
             default:
                 return (
@@ -200,6 +204,7 @@ function AdminPage() {
                                 {keySelected === 'product' && 'Quản lý sản phẩm'}
                                 {keySelected === 'order' && 'Quản lý đơn hàng'}
                                 {keySelected === 'revenue' && 'Báo cáo doanh thu'}
+                                {keySelected === 'prescription' && 'Quản lý đơn thuốc'}
                                 {keySelected === 'settings' && 'Cài đặt hệ thống'}
                             </AdminTitle>
                         </div>
