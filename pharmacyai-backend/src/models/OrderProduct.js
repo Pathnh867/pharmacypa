@@ -30,7 +30,6 @@ const orderSchema = new mongoose.Schema({
     paidAt: {type: Date},
     isDeliverd: {type: Boolean, default: false},
     deliverdAt: {type: Date},
-    // Thêm trường trạng thái chi tiết cho đơn hàng
     status: {
         type: String, 
         enum: ['pending', 'processing', 'shipping', 'delivered', 'cancelled'],

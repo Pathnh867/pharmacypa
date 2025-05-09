@@ -346,42 +346,62 @@ const ProductDetailComponent = ({ idProduct }) => {
   };
   const handleSubmitPrescription = async () => {
     try {
-      await prescriptionForm.validateFields();
-      
-      if (!prescriptionFile) {
-        message.error('Vui lòng tải lên đơn thuốc');
-        return;
-      }
-      
-      message.loading({ content: 'Đang gửi đơn thuốc...', key: 'prescriptionUpload' });
-      
-      // Tạo FormData 
-      const formData = new FormData();
-      formData.append('prescription', prescriptionFile); // Đảm bảo tên field này khớp với tên multer đang mong đợi
-      
-      if (prescriptionForm.getFieldValue('note')) {
-        formData.append('note', prescriptionForm.getFieldValue('note'));
-      }
-      
-      // Gọi API
-      const response = await PrescriptionService.uploadPrescription(
-        productDetails._id,
-        formData,
-        user?.access_token
-      );
-      
-      if (response?.status === 'OK') {
-        message.success({ content: 'Tải lên đơn thuốc thành công', key: 'prescriptionUpload' });
-        setIsModalVisible(false);
-        handleAddOrderProduct();
-      } else {
-        message.error({ content: response?.message || 'Có lỗi xảy ra khi tải lên đơn thuốc', key: 'prescriptionUpload' });
-      }
+        await prescriptionForm.validateFields();
+        
+        if (!prescriptionFile) {
+            message.error('Vui lòng tải lên đơn thuốc');
+            return;
+        }
+        
+        message.loading({ content: 'Đang gửi đơn thuốc...', key: 'prescriptionUpload' });
+        
+        // Tạo FormData 
+        const formData = new FormData();
+        formData.append('prescription', prescriptionFile);
+        
+        if (prescriptionForm.getFieldValue('note')) {
+            formData.append('note', prescriptionForm.getFieldValue('note'));
+        }
+        
+        // Gọi API với ID sản phẩm thay vì ID đơn hàng
+        const response = await PrescriptionService.uploadPrescription(
+            productDetails._id, // ID sản phẩm
+            formData,
+            user?.access_token
+        );
+        
+        if (response?.status === 'OK') {
+            message.success({ 
+                content: 'Tải lên đơn thuốc thành công. Quản trị viên sẽ xem xét và xác nhận đơn thuốc của bạn.', 
+                key: 'prescriptionUpload' 
+            });
+            setIsModalVisible(false);
+            // Thêm sản phẩm vào giỏ hàng với trạng thái đặc biệt
+            dispatch(addOrderProduct({
+                orderItem: {
+                    name: productDetails?.name,
+                    amount: numProduct,
+                    image: productDetails?.image,
+                    price: productDetails?.price,
+                    discount: productDetails?.discount,
+                    product: productDetails?._id,
+                    requiresVerification: true,
+                    prescriptionId: response.data.prescriptionId
+                }
+            }));
+            
+            navigate('/order');
+        } else {
+            message.error({ 
+                content: response?.message || 'Có lỗi xảy ra khi tải lên đơn thuốc', 
+                key: 'prescriptionUpload' 
+            });
+        }
     } catch (error) {
-      console.error('Error uploading prescription:', error);
-      message.error('Có lỗi xảy ra khi tải lên đơn thuốc');
+        console.error('Error uploading prescription:', error);
+        message.error('Có lỗi xảy ra khi tải lên đơn thuốc');
     }
-  };
+};
   const renderPrescriptionInfo = () => {
     if (!productDetails?.requiresPrescription) return null;
     
@@ -537,72 +557,71 @@ const ProductDetailComponent = ({ idProduct }) => {
               </div>
               
               <WrapperActions>
-          {productDetails?.requiresPrescription ? (
-            <>
-              <ButtonComponent
-                size={40}
-                styleButton={{
-                  background: '#c41d7f',
-                  height: '48px',
-                  width: '220px',
-                  border: 'none',
-                  borderRadius: '8px'
-                }}
-                onClick={showPrescriptionModal}
-                textButton={'Tải lên đơn thuốc'}
-                styleTextButton={{color:'#fff', fontSize:'16px', fontWeight:'600'}}
-                icon={<FileProtectOutlined style={{fontSize: '20px'}} />}
-                disabled={!productDetails?.countInStock}
-              />
-              <ButtonComponent
-                size={40}
-                styleButton={{
-                  background: '#fff',
-                  height: '48px',
-                  width: '220px',
-                  border: '1px solid #4cb551',
-                  borderRadius: '8px'
-                }}
-                icon={<InfoCircleOutlined style={{fontSize: '20px'}} />}
-                onClick={() => setActiveTab('4')}
-                textButton={'Xem thông tin kê đơn'}
-                styleTextButton={{color:'#4cb551', fontSize:'16px', fontWeight: '500'}}
-              />
-            </>
-          ) : (
-            <>
-              <ButtonComponent
-                size={40}
-                styleButton={{
-                  background: '#4cb551',
-                  height: '48px',
-                  width: '220px',
-                  border: 'none',
-                  borderRadius: '8px'
-                }}
-                onClick={handleBuyNow}
-                textButton={'Mua ngay'}
-                styleTextButton={{color:'#fff', fontSize:'16px', fontWeight:'600'}}
-                disabled={!productDetails?.countInStock}
-              />
-              <ButtonComponent
-                size={40}
-                styleButton={{
-                  background: '#fff',
-                  height: '48px',
-                  width: '220px',
-                  border: '1px solid #4cb551',
-                  borderRadius: '8px'
-                }}
-                icon={<ShoppingCartOutlined style={{fontSize: '20px'}} />}
-                onClick={handleAddOrderProduct}
-                textButton={'Thêm vào giỏ hàng'}
-                styleTextButton={{color:'#4cb551', fontSize:'16px', fontWeight: '500'}}
-                disabled={!productDetails?.countInStock}
-              />
-            </>
-          )}
-                      </WrapperActions>
+                {productDetails?.requiresPrescription ? (
+                  <>
+                    <ButtonComponent
+                      size={40}
+                      styleButton={{
+                        background: '#c41d7f',
+                        height: '48px',
+                        width: '220px',
+                        border: 'none',
+                        borderRadius: '8px'
+                      }}
+                      onClick={showPrescriptionModal}
+                      textButton={'Tải lên đơn thuốc'}
+                      styleTextButton={{color:'#fff', fontSize:'16px', fontWeight:'600'}}
+                      disabled={!productDetails?.countInStock}
+                    />
+                    <ButtonComponent
+                      size={40}
+                      styleButton={{
+                        background: '#fff',
+                        height: '48px',
+                        width: '220px',
+                        border: '1px solid #4cb551',
+                        borderRadius: '8px'
+                      }}
+                      icon={<InfoCircleOutlined style={{fontSize: '20px'}} />}
+                      onClick={() => setActiveTab('4')}
+                      textButton={'Xem thông tin kê đơn'}
+                      styleTextButton={{color:'#4cb551', fontSize:'16px', fontWeight: '500'}}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <ButtonComponent
+                      size={40}
+                      styleButton={{
+                        background: '#4cb551',
+                        height: '48px',
+                        width: '220px',
+                        border: 'none',
+                        borderRadius: '8px'
+                      }}
+                      onClick={handleBuyNow}
+                      textButton={'Mua ngay'}
+                      styleTextButton={{color:'#fff', fontSize:'16px', fontWeight:'600'}}
+                      disabled={!productDetails?.countInStock}
+                    />
+                    <ButtonComponent
+                      size={40}
+                      styleButton={{
+                        background: '#fff',
+                        height: '48px',
+                        width: '220px',
+                        border: '1px solid #4cb551',
+                        borderRadius: '8px'
+                      }}
+                      icon={<ShoppingCartOutlined style={{fontSize: '20px'}} />}
+                      onClick={handleAddOrderProduct}
+                      textButton={'Thêm vào giỏ hàng'}
+                      styleTextButton={{color:'#4cb551', fontSize:'16px', fontWeight: '500'}}
+                      disabled={!productDetails?.countInStock}
+                    />
+                  </>
+                )}
+              </WrapperActions>
               
               <Divider style={{ margin: '24px 0' }} />
               

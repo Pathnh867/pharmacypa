@@ -4,7 +4,6 @@ const express = require("express");
 const router = express.Router()
 const OrderController = require('../controllers/OrderController');
 const { authMiddleware, authUserMiddleware } = require("../middleware/authMiddleware");
-
 // API tạo đơn hàng mới
 router.post('/create', OrderController.createOrder);
 
@@ -22,5 +21,11 @@ router.put('/status/:id', authMiddleware, OrderController.updateOrderStatus);
 
 // API hủy đơn hàng
 router.put('/cancel/:id', authUserMiddleware, OrderController.cancelOrder);
+
+// API xác minh đơn thuốc
+router.put('/verify-prescription/:id', authMiddleware, OrderController.verifyPrescription);
+
+router.use('/validate', authUserMiddleware, OrderController.validateOrder);
+
 
 module.exports = router

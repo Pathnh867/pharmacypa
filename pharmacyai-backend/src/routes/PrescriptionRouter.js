@@ -49,9 +49,11 @@ router.use((req, res, next) => {
 });
 
 // Routes cho đơn thuốc - đảm bảo tên tham số đúng
-router.post('/:orderId/upload', authUserMiddleware, upload.single('prescription'), PrescriptionController.uploadPrescription);
-router.get('/:orderId/status', authUserMiddleware, PrescriptionController.getPrescriptionStatus);
+router.post('/:productId/upload', authUserMiddleware, upload.single('prescription'), PrescriptionController.uploadPrescription);
+router.get('/:productId/status', authUserMiddleware, PrescriptionController.getPrescriptionStatus);
 router.get('/admin/list', authMiddleware, PrescriptionController.getAllPrescriptions);
 router.post('/:prescriptionId/verify', authMiddleware, PrescriptionController.verifyPrescription);
+router.get('/user-prescriptions', authUserMiddleware, PrescriptionController.getUserPrescriptions);
+router.get('/product/:productId/prescription', authUserMiddleware, PrescriptionController.getProductPrescription);
 
 module.exports = router;

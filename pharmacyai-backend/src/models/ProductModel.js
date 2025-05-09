@@ -17,6 +17,9 @@ const productSchema = new mongoose.Schema(
             dosage: { type: String },
             interactions: { type: String },
             sideEffects: { type: String }
+        },pendingPrescription: { 
+            type: mongoose.Schema.Types.ObjectId, 
+            ref: 'Prescription'
         }
     },
     {

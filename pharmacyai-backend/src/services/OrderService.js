@@ -296,6 +296,44 @@ const cancelOrder = (orderId, reason) => {
         }
     });
 };
+const verifyPrescription = (orderId, isApproved, adminId, note) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const order = await Order.findById(orderId);
+            
+            if (!order) {
+                resolve({
+                    status: 'ERR',
+                    message: 'Order not found'
+                });
+                return;
+            }
+            
+            // Cập nhật trạng thái đơn thuốc
+            order.prescriptionVerified = isApproved;
+            order.prescriptionStatus = isApproved ? 'approved' : 'rejected';
+            
+            // Thêm ghi chú vào lịch sử trạng thái
+            order.statusHistory.push({
+                status: order.status,
+                timestamp: new Date(),
+                note: isApproved 
+                    ? 'Đơn thuốc đã được phê duyệt' 
+                    : `Đơn thuốc đã bị từ chối: ${note || 'Không hợp lệ'}`
+            });
+            
+            const updatedOrder = await order.save();
+            
+            resolve({
+                status: 'OK',
+                message: isApproved ? 'Prescription approved' : 'Prescription rejected',
+                data: updatedOrder
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
 
 module.exports = {
     createOrder,
@@ -304,5 +342,6 @@ module.exports = {
     getOrdersByUser,
     getAllOrders,
     updateOrderStatus,
-    cancelOrder
+    cancelOrder,
+    verifyPrescription
 };

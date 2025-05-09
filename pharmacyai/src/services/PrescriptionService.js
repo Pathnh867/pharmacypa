@@ -32,34 +32,33 @@ export const getTypesByPrescriptionStatus = async (requiresPrescription = false)
 };
 
 // Tải lên đơn thuốc cho đơn hàng
-export const uploadPrescription = async (orderId, formData, access_token) => {
-    try {
-      if (!access_token) {
-        throw new Error('Không có token xác thực');
-      }
-      
-      console.log(`Đang gửi đơn thuốc đến API: /api/prescription/${orderId}/upload`);
-      
-      const url = `${process.env.REACT_APP_API_URL}/prescription/${orderId}/upload`;
-      
-      const res = await axiosJWT.post(url, formData, {
-        headers: {
-          'token': `Bearer ${access_token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      return res.data;
-    } catch (error) {
-      console.error('Error uploading prescription:', error);
-      // Thêm chi tiết lỗi để debug
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-        console.error('Error status:', error.response.status);
-      }
-      throw error;
+export const uploadPrescription = async (productId, formData, access_token) => {
+  try {
+    if (!access_token) {
+      throw new Error('Không có token xác thực');
     }
-  };
+    
+    console.log(`Đang gửi đơn thuốc đến API: /api/prescription/${productId}/upload`);
+    
+    const url = `${process.env.REACT_APP_API_URL}/prescription/${productId}/upload`;
+    
+    const res = await axiosJWT.post(url, formData, {
+      headers: {
+        'token': `Bearer ${access_token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    return res.data;
+  } catch (error) {
+    console.error('Error uploading prescription:', error);
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+      console.error('Error status:', error.response.status);
+    }
+    throw error;
+  }
+};
 
 // Lấy tất cả đơn thuốc (cho admin)
 export const getAllPrescriptions = async (status, page = 0, limit = 10, access_token) => {
@@ -110,13 +109,13 @@ export const verifyPrescription = async (prescriptionId, status, notes, adminId,
 };
 
 // Kiểm tra trạng thái đơn thuốc
-export const checkPrescriptionStatus = async (orderId, access_token) => {
+export const checkPrescriptionStatus = async (productId, access_token) => {
   try {
     if (!access_token) {
       throw new Error('Không có token xác thực');
     }
     
-    const url = `${process.env.REACT_APP_API_URL}/prescription/${orderId}/status`;
+    const url = `${process.env.REACT_APP_API_URL}/prescription/${productId}/status`;
     
     const res = await axiosJWT.get(url, {
       headers: {
@@ -127,6 +126,27 @@ export const checkPrescriptionStatus = async (orderId, access_token) => {
     return res.data;
   } catch (error) {
     console.error('Error checking prescription status:', error);
+    throw error;
+  }
+};
+
+export const getUserPrescriptions = async (access_token) => {
+  try {
+    if (!access_token) {
+      throw new Error('Không có token xác thực');
+    }
+    
+    const url = `${process.env.REACT_APP_API_URL}/prescription/user-prescriptions`;
+    
+    const res = await axiosJWT.get(url, {
+      headers: {
+        'token': `Bearer ${access_token}`
+      }
+    });
+    
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching user prescriptions:', error);
     throw error;
   }
 };

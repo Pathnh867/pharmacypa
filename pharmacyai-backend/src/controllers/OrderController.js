@@ -1,6 +1,8 @@
 // Cập nhật OrderController trong pharmacyai-backend/src/controllers/OrderController.js
 
 const OrderService = require('../services/OrderService')
+const Order = require('../models/OrderProduct');
+const Product = require('../models/ProductModel');
 
 const createOrder = async (req, res) => {
     try {
@@ -213,7 +215,36 @@ const validateOrder = async (req, res, next) => {
         message: error.message
       });
     }
-  };
+};
+const verifyPrescription = async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        const { isApproved, note } = req.body;
+        
+        if (!orderId) {
+            return res.status(400).json({
+                status: 'ERR',
+                message: 'Order ID is required'
+            });
+        }
+        
+        if (isApproved === undefined) {
+            return res.status(400).json({
+                status: 'ERR',
+                message: 'Approval status is required'
+            });
+        }
+        
+        const adminId = req.user.id;
+        const response = await OrderService.verifyPrescription(orderId, isApproved, adminId, note);
+        return res.status(200).json(response);
+    } catch (e) {
+        return res.status(500).json({
+            status: 'ERR',
+            message: e.message || 'Internal server error'
+        });
+    }
+};
 
 module.exports = {
     createOrder,
@@ -223,4 +254,5 @@ module.exports = {
     updateOrderStatus,
     cancelOrder,
     validateOrder,
+    verifyPrescription
 }

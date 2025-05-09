@@ -15,7 +15,8 @@ import {
   HomeOutlined,
   MedicineBoxOutlined,
   PhoneOutlined,
-  ShoppingOutlined
+  ShoppingOutlined,
+  FileProtectOutlined
 } from '@ant-design/icons';
 import ButtonInputSearch from '../ButtonInputSearch/ButtonInputSearch'
 import { useNavigate } from 'react-router-dom';
@@ -135,6 +136,11 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
     setMobileMenuOpen(false)
   }
 
+  const handleNavigatePrescriptions = () => {
+    navigate('/prescriptions')
+    setMobileMenuOpen(false)
+  }
+
   const handleNavigateCategory = (category) => {
     let path;
     let stateData;
@@ -170,6 +176,12 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
       label: 'Lịch sử đơn hàng',
       icon: <ShoppingOutlined />,
       onClick: handleNavigateOrderHistory
+    },
+    {
+      key: 'prescriptions',
+      label: 'Đơn thuốc của tôi',
+      icon: <FileProtectOutlined />,
+      onClick: handleNavigatePrescriptions
     },
     {
       key: 'divider',

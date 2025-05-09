@@ -181,17 +181,20 @@ useEffect(() => {
       setLoading(true);
       
       try {
-        // Trong thực tế, gọi API để cập nhật trạng thái đơn thuốc
-        // await PrescriptionService.verifyPrescription(
-        //   selectedPrescription._id,
-        //   'approved',
-        //   values.notes,
-        //   user?.access_token
-        // );
+        const response = await PrescriptionService.verifyPrescription(
+          selectedPrescription._id,
+          'approved',
+          values.notes,
+          user?.access_token
+        );
         
-        message.success('Đơn thuốc đã được phê duyệt');
-        setVerifyModalVisible(false);
-        fetchPrescriptions();
+        if (response?.status === 'OK') {
+          message.success('Đơn thuốc đã được phê duyệt');
+          setVerifyModalVisible(false);
+          fetchPrescriptions();
+        } else {
+          message.error(response?.message || 'Không thể phê duyệt đơn thuốc');
+        }
       } catch (error) {
         console.error('Error approving prescription:', error);
         message.error('Không thể phê duyệt đơn thuốc');

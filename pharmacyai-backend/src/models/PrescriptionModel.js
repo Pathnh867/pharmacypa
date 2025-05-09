@@ -3,9 +3,9 @@ const mongoose = require('mongoose');
 
 const prescriptionSchema = new mongoose.Schema(
   {
-    order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true },
+    order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' }, // Có thể null nếu chưa tạo đơn hàng
+    product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    products: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
     imageUrl: { type: String, required: true },
     status: { 
       type: String, 

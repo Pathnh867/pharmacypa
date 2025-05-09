@@ -6,53 +6,30 @@ const fs = require('fs');
 const path = require('path');
 
 // Hàm tải lên đơn thuốc
-const uploadPrescription = async (orderId, file, userId) => {
+const uploadPrescription = async (productId, file, userId) => {
   return new Promise(async (resolve, reject) => {
     try {
-      console.log(`Đang xử lý đơn thuốc cho orderId: ${orderId}`);
+      console.log(`Đang xử lý đơn thuốc cho sản phẩm ID: ${productId}`);
       console.log('File đã nhận:', file);
       
-      // Kiểm tra đơn hàng tồn tại
-      const order = await Order.findById(orderId);
-      if (!order) {
-        console.error(`Không tìm thấy đơn hàng với ID: ${orderId}`);
-        reject(new Error('Đơn hàng không tồn tại'));
+      // Kiểm tra sản phẩm tồn tại và yêu cầu đơn thuốc
+      const product = await Product.findById(productId);
+      if (!product) {
+        console.error(`Không tìm thấy sản phẩm với ID: ${productId}`);
+        reject(new Error('Sản phẩm không tồn tại'));
         return;
       }
       
-      // Lấy thông tin từ file đã được xử lý bởi multer
+      if (!product.requiresPrescription) {
+        console.error(`Sản phẩm này không yêu cầu đơn thuốc: ${productId}`);
+        reject(new Error('Sản phẩm này không yêu cầu đơn thuốc'));
+        return;
+      }
+      
+      // Kiểm tra file
       if (!file) {
         console.error('Không có file được tải lên');
         reject(new Error('Không tìm thấy file đơn thuốc'));
-        return;
-      }
-      
-      // Kiểm tra sản phẩm trong đơn hàng có yêu cầu đơn thuốc không
-      const prescriptionProductIds = [];
-      
-      // Nếu không có orderItems, đây là một sản phẩm đơn lẻ
-      if (!order.orderItems || order.orderItems.length === 0) {
-        // Kiểm tra sản phẩm này có yêu cầu đơn thuốc không
-        console.log('Sản phẩm đơn lẻ, đang kiểm tra yêu cầu đơn thuốc');
-        const product = await Product.findById(orderId);
-        if (product && product.requiresPrescription) {
-          prescriptionProductIds.push(product._id);
-        }
-      } else {
-        // Trường hợp đơn hàng bình thường
-        console.log('Đơn hàng có', order.orderItems.length, 'sản phẩm, đang kiểm tra đơn thuốc');
-        for (const item of order.orderItems) {
-          const product = await Product.findById(item.product);
-          if (product && product.requiresPrescription) {
-            prescriptionProductIds.push(product._id);
-          }
-        }
-      }
-      
-      console.log('Sản phẩm yêu cầu đơn thuốc:', prescriptionProductIds);
-      
-      if (prescriptionProductIds.length === 0) {
-        reject(new Error('Đơn hàng không có sản phẩm yêu cầu đơn thuốc'));
         return;
       }
       
@@ -60,11 +37,11 @@ const uploadPrescription = async (orderId, file, userId) => {
       const fileUrl = `/uploads/prescriptions/${file.filename}`;
       console.log('File URL:', fileUrl);
       
-      // Tạo bản ghi đơn thuốc mới
+      // Tạo đơn thuốc tạm thời cho sản phẩm này
+      // Lưu ý: Chúng ta sẽ liên kết đơn thuốc với đơn hàng sau khi người dùng đặt hàng
       const prescription = await Prescription.create({
-        order: orderId,
+        product: productId,
         user: userId,
-        products: prescriptionProductIds,
         imageUrl: fileUrl,
         status: 'pending',
         expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 ngày
@@ -72,23 +49,24 @@ const uploadPrescription = async (orderId, file, userId) => {
       
       console.log('Đơn thuốc đã được tạo:', prescription._id);
       
-      // Cập nhật đơn hàng với ID đơn thuốc
-      await Order.findByIdAndUpdate(orderId, { 
-        prescription: prescription._id,
-        prescriptionStatus: 'pending'
-      });
+      // Cập nhật sản phẩm với thông tin đơn thuốc
+      product.pendingPrescription = prescription._id;
+      await product.save();
       
       resolve({
         status: 'OK',
         message: 'Tải lên đơn thuốc thành công',
-        data: prescription
+        data: {
+          prescriptionId: prescription._id,
+          status: 'pending'
+        }
       });
     } catch (error) {
       console.error('Error in uploadPrescription service:', error);
       reject(error);
     }
   });
-};
+}; 
 
 // Hàm lấy trạng thái đơn thuốc
 const getPrescriptionStatus = async (orderId) => {
@@ -157,7 +135,9 @@ const getAllPrescriptions = async (status, page, limit) => {
 const verifyPrescription = async (prescriptionId, status, notes, adminId) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const prescription = await Prescription.findById(prescriptionId);
+      const prescription = await Prescription.findById(prescriptionId)
+        .populate('user')
+        .populate('product');
       
       if (!prescription) {
         reject(new Error('Đơn thuốc không tồn tại'));
@@ -175,11 +155,26 @@ const verifyPrescription = async (prescriptionId, status, notes, adminId) => {
       
       await prescription.save();
       
-      // Nếu đơn thuốc được phê duyệt, cập nhật đơn hàng có thể thanh toán
+      // Nếu đơn thuốc được phê duyệt, thêm vào danh sách được phép mua của người dùng
       if (status === 'approved') {
-        await Order.findByIdAndUpdate(prescription.order, { 
-          prescriptionVerified: true 
-        });
+        // Tính ngày hết hạn (ví dụ: 30 ngày kể từ khi duyệt)
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + 30);
+        
+        // Thêm vào danh sách đơn thuốc được phê duyệt của người dùng
+        await User.findByIdAndUpdate(
+          prescription.user._id,
+          {
+            $push: {
+              approvedPrescriptions: {
+                productId: prescription.product._id,
+                prescriptionId: prescription._id,
+                approvedAt: new Date(),
+                expiryDate: expiryDate
+              }
+            }
+          }
+        );
       }
       
       resolve({
@@ -192,10 +187,57 @@ const verifyPrescription = async (prescriptionId, status, notes, adminId) => {
     }
   });
 };
+const getUserPrescriptions = async (userId) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const prescriptions = await Prescription.find({ user: userId })
+        .populate('product')
+        .sort({ createdAt: -1 });
+      
+      resolve({
+        status: 'OK',
+        message: 'SUCCESS',
+        data: prescriptions
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}; 
+const getProductPrescription = async (productId, userId) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Tìm đơn thuốc gần nhất của sản phẩm này cho người dùng
+      const prescription = await Prescription.findOne({
+        product: productId,
+        user: userId
+      }).sort({ createdAt: -1 });
+      
+      if (!prescription) {
+        resolve({
+          status: 'OK',
+          message: 'No prescription found for this product',
+          data: null
+        });
+        return;
+      }
+      
+      resolve({
+        status: 'OK',
+        message: 'SUCCESS',
+        data: prescription
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
 
 module.exports = {
   uploadPrescription,
   getPrescriptionStatus,
   getAllPrescriptions,
-  verifyPrescription
+  verifyPrescription,
+  getUserPrescriptions,
+  getProductPrescription
 };

@@ -10,6 +10,12 @@ const userSchema = new mongoose.Schema(
         avatar: {type: String},
         access_token: { type: String, require: true },
         refresh_token: { type: String, require: true },
+        approvedPrescriptions: [{
+            productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+            prescriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Prescription' },
+            approvedAt: { type: Date, default: Date.now },
+            expiryDate: { type: Date }
+        }]
     },
     {
         timestamps: true
