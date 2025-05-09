@@ -81,10 +81,36 @@ const PrescriptionManagement = () => {
   const user = useSelector((state) => state.user);
   
   // Tải danh sách đơn thuốc khi component mount và khi tab thay đổi
-  useEffect(() => {
+  // Trong useEffect
+useEffect(() => {
+    const fetchPrescriptions = async () => {
+      setLoading(true);
+      try {
+        // Gọi API với đường dẫn đúng
+        const response = await PrescriptionService.getAllPrescriptions(
+          activeTab,
+          0,
+          10,
+          user?.access_token
+        );
+        
+        console.log("Prescription response:", response);
+        
+        if (response?.status === 'OK') {
+          setPrescriptions(response.data || []);
+        } else {
+          message.error(response?.message || 'Không thể tải danh sách đơn thuốc');
+        }
+      } catch (error) {
+        console.error("Error fetching prescriptions:", error);
+        message.error('Lỗi khi tải danh sách đơn thuốc: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     fetchPrescriptions();
-  }, [activeTab]);
-  
+  }, [activeTab, user?.access_token]);
   // Hàm tải danh sách đơn thuốc - hiện tại chỉ sử dụng dữ liệu mẫu
   const fetchPrescriptions = async () => {
     setLoading(true);

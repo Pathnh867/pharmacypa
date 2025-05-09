@@ -186,7 +186,7 @@ const validateOrder = async (req, res, next) => {
       }
       
       // Kiểm tra xem đơn hàng có cần đơn thuốc không
-      const hasPrescriptionProducts = false;
+      let hasPrescriptionProducts = false;
       for (const item of order.orderItems) {
         const product = await Product.findById(item.product);
         if (product && product.requiresPrescription) {

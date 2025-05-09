@@ -36,6 +36,19 @@ const orderSchema = new mongoose.Schema({
         enum: ['pending', 'processing', 'shipping', 'delivered', 'cancelled'],
         default: 'pending'
     },
+    prescription: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Prescription'
+    },
+    prescriptionStatus: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected', 'needs_info'],
+        default: null
+    },
+    prescriptionVerified: {
+        type: Boolean,
+        default: false
+    },
     // Lịch sử trạng thái
     statusHistory: [{
         status: {
@@ -54,9 +67,9 @@ const orderSchema = new mongoose.Schema({
     estimatedDeliveryDate: {
         type: Date
     }
-}, {
+},  {
     timestamps: true // Thêm timestamps để theo dõi thời gian tạo và cập nhật
-})
+},)
 
 const Order = mongoose.model('Order', orderSchema);
 module.exports = Order;

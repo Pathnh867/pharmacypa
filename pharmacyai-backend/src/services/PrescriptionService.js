@@ -1,6 +1,6 @@
 // pharmacyai-backend/src/services/PrescriptionService.js
 const Prescription = require('../models/PrescriptionModel');
-const Order = require('../models/OrderModel');
+const Order = require('../models/OrderProduct');
 const Product = require('../models/ProductModel');
 const fs = require('fs');
 const path = require('path');
@@ -9,50 +9,74 @@ const path = require('path');
 const uploadPrescription = async (orderId, file, userId) => {
   return new Promise(async (resolve, reject) => {
     try {
+      console.log(`Đang xử lý đơn thuốc cho orderId: ${orderId}`);
+      console.log('File đã nhận:', file);
+      
       // Kiểm tra đơn hàng tồn tại
       const order = await Order.findById(orderId);
       if (!order) {
+        console.error(`Không tìm thấy đơn hàng với ID: ${orderId}`);
         reject(new Error('Đơn hàng không tồn tại'));
+        return;
+      }
+      
+      // Lấy thông tin từ file đã được xử lý bởi multer
+      if (!file) {
+        console.error('Không có file được tải lên');
+        reject(new Error('Không tìm thấy file đơn thuốc'));
         return;
       }
       
       // Kiểm tra sản phẩm trong đơn hàng có yêu cầu đơn thuốc không
       const prescriptionProductIds = [];
-      for (const item of order.orderItems) {
-        const product = await Product.findById(item.product);
+      
+      // Nếu không có orderItems, đây là một sản phẩm đơn lẻ
+      if (!order.orderItems || order.orderItems.length === 0) {
+        // Kiểm tra sản phẩm này có yêu cầu đơn thuốc không
+        console.log('Sản phẩm đơn lẻ, đang kiểm tra yêu cầu đơn thuốc');
+        const product = await Product.findById(orderId);
         if (product && product.requiresPrescription) {
           prescriptionProductIds.push(product._id);
         }
+      } else {
+        // Trường hợp đơn hàng bình thường
+        console.log('Đơn hàng có', order.orderItems.length, 'sản phẩm, đang kiểm tra đơn thuốc');
+        for (const item of order.orderItems) {
+          const product = await Product.findById(item.product);
+          if (product && product.requiresPrescription) {
+            prescriptionProductIds.push(product._id);
+          }
+        }
       }
+      
+      console.log('Sản phẩm yêu cầu đơn thuốc:', prescriptionProductIds);
       
       if (prescriptionProductIds.length === 0) {
         reject(new Error('Đơn hàng không có sản phẩm yêu cầu đơn thuốc'));
         return;
       }
       
-      // Lưu file đơn thuốc
-      const uploadDir = path.join(__dirname, '../../uploads/prescriptions');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      
-      const uniqueFileName = `${Date.now()}-${file.originalname}`;
-      const filePath = path.join(uploadDir, uniqueFileName);
-      
-      fs.writeFileSync(filePath, file.buffer);
+      // Tạo đường dẫn tương đối cho file
+      const fileUrl = `/uploads/prescriptions/${file.filename}`;
+      console.log('File URL:', fileUrl);
       
       // Tạo bản ghi đơn thuốc mới
       const prescription = await Prescription.create({
         order: orderId,
         user: userId,
         products: prescriptionProductIds,
-        imageUrl: `/uploads/prescriptions/${uniqueFileName}`,
+        imageUrl: fileUrl,
         status: 'pending',
         expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 ngày
       });
       
+      console.log('Đơn thuốc đã được tạo:', prescription._id);
+      
       // Cập nhật đơn hàng với ID đơn thuốc
-      await Order.findByIdAndUpdate(orderId, { prescription: prescription._id });
+      await Order.findByIdAndUpdate(orderId, { 
+        prescription: prescription._id,
+        prescriptionStatus: 'pending'
+      });
       
       resolve({
         status: 'OK',
@@ -60,6 +84,7 @@ const uploadPrescription = async (orderId, file, userId) => {
         data: prescription
       });
     } catch (error) {
+      console.error('Error in uploadPrescription service:', error);
       reject(error);
     }
   });

@@ -75,9 +75,12 @@ import {
   RelatedProductCard,
   NoRelatedProducts,
   LoadingRelatedProducts,
-  ViewMoreButton
+  ViewMoreButton,
+  WrapperUploadFile,
+  PrescriptionPreview
 } from './style';
 import * as PrescriptionService from '../../services/PrescriptionService';
+import { getBase64 } from '../../utils';
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
@@ -120,6 +123,7 @@ const ProductDetailComponent = ({ idProduct }) => {
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [prescriptionFile, setPrescriptionFile] = useState(null);
+  const [prescriptionPreview, setPrescriptionPreview] = useState(null);
   const [prescriptionForm] = Form.useForm();  
   
 
@@ -132,6 +136,20 @@ const ProductDetailComponent = ({ idProduct }) => {
   // Thay đổi số lượng sản phẩm
   const onChange = (value) => {
     setNumProduct(Number(value));
+  };
+  const handleOnchangePrescription = async ({ fileList }) => {
+    if (fileList.length > 0) {
+      const file = fileList[0];
+      if (!file.url && !file.preview) {
+        file.preview = await getBase64(file.originFileObj);
+      }
+      setPrescriptionFile(file.originFileObj);
+      setPrescriptionPreview(file.preview);
+      console.log('Đã lưu file:', file.originFileObj);
+    } else {
+      setPrescriptionFile(null);
+      setPrescriptionPreview(null);
+    }
   };
   
   // Xử lý tăng/giảm số lượng
@@ -330,34 +348,38 @@ const ProductDetailComponent = ({ idProduct }) => {
     try {
       await prescriptionForm.validateFields();
       
-      // Tạo FormData để gửi file
-      const formData = new FormData();
-      formData.append('prescription', prescriptionFile);
+      if (!prescriptionFile) {
+        message.error('Vui lòng tải lên đơn thuốc');
+        return;
+      }
       
-      // Thêm các dữ liệu khác nếu cần
+      message.loading({ content: 'Đang gửi đơn thuốc...', key: 'prescriptionUpload' });
+      
+      // Tạo FormData 
+      const formData = new FormData();
+      formData.append('prescription', prescriptionFile); // Đảm bảo tên field này khớp với tên multer đang mong đợi
+      
       if (prescriptionForm.getFieldValue('note')) {
         formData.append('note', prescriptionForm.getFieldValue('note'));
       }
       
-      // Gọi API upload đơn thuốc thực tế
+      // Gọi API
       const response = await PrescriptionService.uploadPrescription(
-        productDetails._id, 
-        formData, 
+        productDetails._id,
+        formData,
         user?.access_token
       );
       
       if (response?.status === 'OK') {
-        message.success('Đơn thuốc đã được gửi thành công');
+        message.success({ content: 'Tải lên đơn thuốc thành công', key: 'prescriptionUpload' });
         setIsModalVisible(false);
-        
-        // Thêm sản phẩm vào giỏ hàng sau khi đơn thuốc được chấp nhận
         handleAddOrderProduct();
       } else {
-        message.error(response?.message || 'Có lỗi xảy ra khi gửi đơn thuốc');
+        message.error({ content: response?.message || 'Có lỗi xảy ra khi tải lên đơn thuốc', key: 'prescriptionUpload' });
       }
     } catch (error) {
-      console.error('Error submitting prescription:', error);
-      message.error('Có lỗi xảy ra khi gửi đơn thuốc');
+      console.error('Error uploading prescription:', error);
+      message.error('Có lỗi xảy ra khi tải lên đơn thuốc');
     }
   };
   const renderPrescriptionInfo = () => {
@@ -920,22 +942,36 @@ const ProductDetailComponent = ({ idProduct }) => {
             label="Đơn thuốc"
             rules={[{ required: true, message: 'Vui lòng tải lên đơn thuốc' }]}
           >
-            <Upload.Dragger
-              name="prescription"
-              accept=".jpg,.jpeg,.png,.pdf"
-              multiple={false}
-              maxCount={1}
-              onChange={handlePrescriptionUpload}
-              beforeUpload={() => false}
-            >
-              <p className="ant-upload-drag-icon">
-                <FileProtectOutlined style={{ color: '#c41d7f', fontSize: '32px' }} />
-              </p>
-              <p className="ant-upload-text">Nhấp hoặc kéo thả file đơn thuốc vào đây</p>
-              <p className="ant-upload-hint">
-                Hỗ trợ định dạng: JPG, PNG, PDF. Tối đa 5MB.
-              </p>
-            </Upload.Dragger>
+            <div>
+              <WrapperUploadFile 
+                onChange={handleOnchangePrescription} 
+                maxCount={1}
+                showUploadList={false}
+                accept=".jpg,.jpeg,.png,.pdf"
+                beforeUpload={() => false}
+              >
+                <Button icon={<UploadOutlined />}>
+                  {prescriptionFile ? 'Thay đổi đơn thuốc' : 'Tải đơn thuốc lên'}
+                </Button>
+              </WrapperUploadFile>
+              
+              {prescriptionFile && (
+                <div style={{ marginTop: '12px' }}>
+                  <div style={{ color: '#52c41a', marginBottom: '8px' }}>
+                    <CheckCircleOutlined /> Đã tải lên: {prescriptionFile.name}
+                  </div>
+                  
+                  {prescriptionPreview && (
+                    <PrescriptionPreview>
+                      <img 
+                        src={prescriptionPreview} 
+                        alt="Đơn thuốc" 
+                      />
+                    </PrescriptionPreview>
+                  )}
+                </div>
+              )}
+            </div>
           </Form.Item>
           
           <Form.Item
@@ -953,7 +989,13 @@ const ProductDetailComponent = ({ idProduct }) => {
               <Button onClick={() => setIsModalVisible(false)}>
                 Hủy
               </Button>
-              <Button type="primary" htmlType="submit" style={{ background: '#c41d7f', borderColor: '#c41d7f' }}>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                style={{ background: '#c41d7f', borderColor: '#c41d7f' }}
+                icon={<FileProtectOutlined />}
+                disabled={!prescriptionFile}
+              >
                 Gửi đơn thuốc và thêm vào giỏ hàng
               </Button>
             </div>

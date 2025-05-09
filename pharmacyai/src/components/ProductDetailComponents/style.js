@@ -1,7 +1,7 @@
 import styled from "styled-components";
-import { Tabs, InputNumber } from "antd";
+import { Tabs, InputNumber, Upload } from "antd";
 import { Image as AntImage } from 'antd'; // Đổi tên import để tránh xung đột
-
+import { UploadOutlined, FileProtectOutlined } from '@ant-design/icons';
 // Thêm style cho container ảnh chính
 export const MainImageContainer = styled.div`
   width: 100%;
@@ -692,5 +692,49 @@ export const ViewMoreButton = styled.button`
   
   .icon {
     margin-left: 8px;
+  }
+`;
+export const WrapperUploadFile = styled(Upload)`
+  display: flex;
+  align-items: center;
+  
+  .ant-upload-select {
+    margin-right: 16px;
+  }
+  
+  .ant-upload.ant-upload-select {
+    margin-bottom: 0;
+  }
+  
+  .ant-upload-list-item-info {
+    display: none;
+  }
+  
+  .ant-upload-list-item-name {
+    display: none;
+  }
+  
+  .ant-btn {
+    border-color: #c41d7f;
+    color: #c41d7f;
+    
+    &:hover {
+      color: white;
+      background-color: #c41d7f;
+      border-color: #c41d7f;
+    }
+  }
+`;
+export const PrescriptionPreview = styled.div`
+  display: flex;
+  align-items: center;
+  margin-top: 16px;
+  
+  img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 4px;
+    object-fit: contain;
+    border: 1px solid #eee;
   }
 `;
