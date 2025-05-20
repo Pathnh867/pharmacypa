@@ -47,7 +47,7 @@ const getPrescriptionStatus = async (req, res) => {
   }
 };
 
-const getAllPrescriptions = async (status, page, limit) => {
+const getAllPrescriptionsService = async (status, page, limit) => {
   return new Promise(async (resolve, reject) => {
     try {
       const query = status ? { status } : {};
@@ -55,7 +55,7 @@ const getAllPrescriptions = async (status, page, limit) => {
       const options = {
         populate: [
           { path: 'user', select: 'name email phone' },
-          { path: 'products', select: 'name image price' },
+          { path: 'product', select: 'name image price' }, // Sửa từ 'products' thành 'product'
           { path: 'order', select: 'orderItems totalPrice' },
           { path: 'verifiedBy', select: 'name email' }
         ],
@@ -152,11 +152,46 @@ const getProductPrescription = async (req, res) => {
     });
   }
 };
+const getAllPrescriptionsHandler = async (req, res) => {
+  try {
+    const { status, page = 0, limit = 10 } = req.query;
+    console.log('Processing prescription list request:', { status, page, limit });
+    
+    // Gọi service function đã sửa
+    const result = await getAllPrescriptions(status, parseInt(page), parseInt(limit));
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Error in getAllPrescriptionsHandler:', error);
+    return res.status(500).json({
+      status: 'ERR',
+      message: error.message || 'Internal server error'
+    });
+  }
+};
+const getAllPrescriptions = async (req, res) => {
+  try {
+    const { status, page = 0, limit = 10 } = req.query;
+    console.log('Processing prescription list request:', { status, page, limit });
+    
+    // Gọi service function
+    const result = await getAllPrescriptionsService(status, parseInt(page), parseInt(limit));
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Error in getAllPrescriptions controller:', error);
+    return res.status(500).json({
+      status: 'ERR',
+      message: error.message || 'Internal server error'
+    });
+  }
+};
 
 module.exports = {
   uploadPrescription,
   getPrescriptionStatus,
-  getAllPrescriptions,
+  getAllPrescriptions, // Đây là route handler mới
+  getAllPrescriptionsService, // Thêm service vào export nếu cần
   verifyPrescription,
   getUserPrescriptions,
   getProductPrescription

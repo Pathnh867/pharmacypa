@@ -21,7 +21,10 @@ import {
   Alert,
   Row,
   Col,
-  Descriptions
+  Descriptions,
+  Skeleton,
+  Empty,
+  Result
 } from 'antd';
 import { 
   EyeOutlined, 
@@ -37,11 +40,12 @@ import {
   PhoneOutlined,
   MailOutlined,
   EnvironmentOutlined,
-  ShoppingOutlined
+  ShoppingOutlined,
+  LockOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import moment from 'moment';
-import axios from 'axios';
 import {
   AdminSectionTitle,
   AdminCard,
@@ -51,15 +55,17 @@ import {
   AdminSelect,
   AdminSearchContainer,
   colors
-} from '../../pages/AdminPage/style';
+} from '../AdminProduct/style';
 import * as PrescriptionService from '../../services/PrescriptionService';
+import { convertPrice } from '../../utils';
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
 const { Option } = Select;
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 const PrescriptionManagement = () => {
+  // State
   const [loading, setLoading] = useState(false);
   const [prescriptions, setPrescriptions] = useState([]);
   const [selectedPrescription, setSelectedPrescription] = useState(null);
@@ -68,146 +74,224 @@ const PrescriptionManagement = () => {
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState(null);
-  const [form] = Form.useForm();
-  const [rejectForm] = Form.useForm();
   const [activeTab, setActiveTab] = useState('pending');
+  const [actionLoading, setActionLoading] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0
   });
   
-  // Lấy thông tin user từ redux store
+  // Forms
+  const [form] = Form.useForm();
+  const [rejectForm] = Form.useForm();
+  
+  // Redux
   const user = useSelector((state) => state.user);
   
-  // Tải danh sách đơn thuốc khi component mount và khi tab thay đổi
-  // Trong useEffect
-useEffect(() => {
-    const fetchPrescriptions = async () => {
-      setLoading(true);
-      try {
-        // Gọi API với đường dẫn đúng
-        const response = await PrescriptionService.getAllPrescriptions(
-          activeTab,
-          0,
-          10,
-          user?.access_token
-        );
-        
-        console.log("Prescription response:", response);
-        
-        if (response?.status === 'OK') {
-          setPrescriptions(response.data || []);
-        } else {
-          message.error(response?.message || 'Không thể tải danh sách đơn thuốc');
-        }
-      } catch (error) {
-        console.error("Error fetching prescriptions:", error);
-        message.error('Lỗi khi tải danh sách đơn thuốc: ' + error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchPrescriptions();
+  // Fetch prescriptions when component mounts or tab changes
+  useEffect(() => {
+    // Kiểm tra token trước khi gọi API
+    if (user?.access_token) {
+      console.log('Fetching prescriptions with token:', user.access_token ? 'Token exists' : 'No token');
+      fetchPrescriptions();
+    } else {
+      console.warn('No access token available, cannot fetch prescriptions');
+      message.warning('Bạn cần đăng nhập lại để xem danh sách đơn thuốc');
+    }
   }, [activeTab, user?.access_token]);
-  // Hàm tải danh sách đơn thuốc - hiện tại chỉ sử dụng dữ liệu mẫu
-  const fetchPrescriptions = async () => {
+  
+  // Functions
+  const fetchPrescriptions = async (page = 0, limit = 10) => {
+    if (!user?.access_token) {
+      message.error('Không có thông tin xác thực. Vui lòng đăng nhập lại.');
+      return;
+    }
+    
     setLoading(true);
+    
     try {
-      // Gọi API thực tế thay vì sử dụng dữ liệu mẫu
+      console.log(`Fetching prescriptions with status: ${activeTab}`);
+      
       const response = await PrescriptionService.getAllPrescriptions(
-        activeTab, // 'pending', 'approved', hoặc 'rejected'
-        0, // page
-        10, // limit
+        activeTab,
+        page,
+        limit,
         user?.access_token
       );
       
+      console.log("Prescription response:", response);
+      
       if (response?.status === 'OK') {
         setPrescriptions(response.data || []);
+        
+        if (response.total !== undefined) {
+          setPagination({
+            ...pagination,
+            total: response.total,
+            current: page + 1
+          });
+        }
+        
+        // Debug first prescription if exists
+        if (response.data && response.data.length > 0) {
+          console.log("First prescription structure:", response.data[0]);
+        }
       } else {
-        setPrescriptions([]);
-        message.error(response?.message || 'Không thể tải danh sách đơn thuốc');
+        // Không xóa danh sách trước đó nếu có lỗi API
+        // setPrescriptions([]);
+        message.warning(response?.message || 'Không có đơn thuốc nào trong hệ thống');
+        
+        // Nếu lỗi là do token, thử đăng nhập lại
+        if (response?.message?.includes('token')) {
+          message.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
+        }
       }
     } catch (error) {
-      console.error('Error fetching prescriptions:', error);
-      message.error('Không thể tải danh sách đơn thuốc');
+      console.error("Error fetching prescriptions:", error);
+      message.error('Lỗi khi tải danh sách đơn thuốc: ' + (error.message || 'Lỗi không xác định'));
+      // Không xóa danh sách trước đó nếu có lỗi
+      // setPrescriptions([]);
     } finally {
       setLoading(false);
     }
   };
   
-  // Hàm lấy màu và text cho trạng thái đơn thuốc
+  // Get status info (color, text, icon)
   const getStatusInfo = (status) => {
     switch (status) {
       case 'pending':
-        return { color: colors.warning, text: 'Chờ xác minh' };
+        return { 
+          color: colors.warning, 
+          text: 'Chờ xác minh',
+          icon: <ClockCircleOutlined />
+        };
       case 'approved':
-        return { color: colors.success, text: 'Đã phê duyệt' };
+        return { 
+          color: colors.success, 
+          text: 'Đã phê duyệt',
+          icon: <CheckCircleOutlined />
+        };
       case 'rejected':
-        return { color: colors.error, text: 'Đã từ chối' };
+        return { 
+          color: colors.error, 
+          text: 'Đã từ chối',
+          icon: <CloseCircleOutlined />
+        };
       case 'needs_info':
-        return { color: colors.info, text: 'Cần thêm thông tin' };
+        return { 
+          color: colors.info, 
+          text: 'Cần thêm thông tin',
+          icon: <InfoCircleOutlined />
+        };
       default:
-        return { color: 'default', text: 'Không xác định' };
+        return { 
+          color: 'default', 
+          text: 'Không xác định',
+          icon: <InfoCircleOutlined />
+        };
     }
   };
   
-  // Hàm xử lý xem chi tiết đơn thuốc
+  // Handle prescription view
   const handleViewPrescription = (prescription) => {
+    console.log("Viewing prescription:", prescription);
     setSelectedPrescription(prescription);
     setViewModalVisible(true);
   };
   
-  // Hàm xử lý phê duyệt đơn thuốc
+  // Handle prescription approval
   const handleApprove = (prescription) => {
+    console.log("Approving prescription:", prescription);
     setSelectedPrescription(prescription);
     form.resetFields();
     setVerifyModalVisible(true);
   };
   
-  // Hàm xử lý từ chối đơn thuốc
+  // Handle prescription rejection
   const handleReject = (prescription) => {
+    console.log("Rejecting prescription:", prescription);
     setSelectedPrescription(prescription);
     rejectForm.resetFields();
     setRejectModalVisible(true);
   };
   
-  // Hàm xử lý lưu phê duyệt
+  // Submit verify form
   const handleSubmitVerify = async () => {
+    if (!selectedPrescription?._id) {
+      message.error('Không thể xác định đơn thuốc');
+      return;
+    }
+    
+    if (!user?.access_token) {
+      message.error('Bạn cần đăng nhập lại để thực hiện thao tác này');
+      return;
+    }
+    
     try {
       const values = await form.validateFields();
+      setActionLoading(true);
       
-      setLoading(true);
+      // Log thông tin cho việc debug
+      console.log('Submitting prescription approval:', {
+        id: selectedPrescription._id,
+        status: 'approved',
+        notes: values.notes || '',
+        token: user.access_token ? 'Token exists' : 'No token'
+      });
       
       try {
         const response = await PrescriptionService.verifyPrescription(
           selectedPrescription._id,
           'approved',
-          values.notes,
-          user?.access_token
+          values.notes || '',
+          user.access_token
         );
         
+        console.log('Verify prescription response:', response);
+        
         if (response?.status === 'OK') {
-          message.success('Đơn thuốc đã được phê duyệt');
+          message.success('Đơn thuốc đã được phê duyệt thành công');
           setVerifyModalVisible(false);
-          fetchPrescriptions();
+          fetchPrescriptions(); // Refresh list
         } else {
           message.error(response?.message || 'Không thể phê duyệt đơn thuốc');
+          
+          // Nếu lỗi là do token, thử fetch lại danh sách để xem đơn đã được cập nhật chưa
+          if (response?.message?.includes('token')) {
+            setTimeout(() => {
+              fetchPrescriptions();
+            }, 1000);
+          }
         }
       } catch (error) {
         console.error('Error approving prescription:', error);
-        message.error('Không thể phê duyệt đơn thuốc');
+        message.error('Lỗi khi phê duyệt đơn thuốc: ' + (error.message || 'Lỗi không xác định'));
+        
+        // Thử fetch lại danh sách kể cả khi có lỗi để kiểm tra xem server đã xử lý request chưa
+        setTimeout(() => {
+          fetchPrescriptions();
+        }, 1000);
       }
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Form validation failed:', error);
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
   
-  // Hàm xử lý lưu từ chối
+  // Submit reject form
   const handleSubmitReject = async () => {
+    if (!selectedPrescription?._id) {
+      message.error('Không thể xác định đơn thuốc');
+      return;
+    }
+    
+    if (!user?.access_token) {
+      message.error('Bạn cần đăng nhập lại để thực hiện thao tác này');
+      return;
+    }
+    
     try {
       const values = await rejectForm.validateFields();
       
@@ -216,92 +300,131 @@ useEffect(() => {
         return;
       }
       
-      setLoading(true);
+      setActionLoading(true);
+      
+      // Log thông tin cho việc debug
+      console.log('Submitting prescription rejection:', {
+        id: selectedPrescription._id,
+        status: 'rejected',
+        reason: values.rejectReason,
+        token: user.access_token ? 'Token exists' : 'No token'
+      });
       
       try {
-        // Trong thực tế, gọi API để cập nhật trạng thái đơn thuốc
-        // await PrescriptionService.verifyPrescription(
-        //   selectedPrescription._id,
-        //   'rejected',
-        //   values.rejectReason,
-        //   user?.access_token
-        // );
+        const response = await PrescriptionService.verifyPrescription(
+          selectedPrescription._id,
+          'rejected',
+          values.rejectReason,
+          user.access_token
+        );
         
-        message.success('Đơn thuốc đã bị từ chối');
-        setRejectModalVisible(false);
-        fetchPrescriptions();
+        console.log('Reject prescription response:', response);
+        
+        if (response?.status === 'OK') {
+          message.success('Đơn thuốc đã bị từ chối');
+          setRejectModalVisible(false);
+          fetchPrescriptions(); // Refresh list
+        } else {
+          message.error(response?.message || 'Không thể từ chối đơn thuốc');
+          
+          // Nếu lỗi là do token, thử fetch lại danh sách để xem đơn đã được cập nhật chưa
+          if (response?.message?.includes('token')) {
+            setTimeout(() => {
+              fetchPrescriptions();
+            }, 1000);
+          }
+        }
       } catch (error) {
         console.error('Error rejecting prescription:', error);
-        message.error('Không thể từ chối đơn thuốc');
+        message.error('Lỗi khi từ chối đơn thuốc: ' + (error.message || 'Lỗi không xác định'));
+        
+        // Thử fetch lại danh sách kể cả khi có lỗi để kiểm tra xem server đã xử lý request chưa
+        setTimeout(() => {
+          fetchPrescriptions();
+        }, 1000);
       }
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Form validation failed:', error);
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
   
-  // Hàm xử lý tìm kiếm và lọc
+  // Handle search and filter
   const handleSearch = () => {
     fetchPrescriptions();
   };
   
-  // Hàm reset tìm kiếm và lọc
+  // Reset search and filter
   const handleResetSearch = () => {
     setSearchText('');
     setStatusFilter(null);
     fetchPrescriptions();
   };
   
-  // Định nghĩa các cột cho bảng
+  // Handle pagination change
+  const handleTableChange = (pagination) => {
+    fetchPrescriptions(pagination.current - 1, pagination.pageSize);
+  };
+  
+  // Format date
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    return moment(date).format('DD/MM/YYYY HH:mm');
+  };
+  
+  // Table columns
   const columns = [
     {
-      title: 'Mã đơn hàng',
-      dataIndex: 'orderNumber',
-      key: 'orderNumber',
-      render: (text) => <a>{text}</a>,
-      width: 120,
+      title: 'Mã đơn',
+      dataIndex: '_id',
+      key: '_id',
+      render: (id) => <span>{id.substring(id.length - 8).toUpperCase()}</span>,
+      width: 100,
     },
     {
       title: 'Khách hàng',
       dataIndex: 'user',
       key: 'user',
-      render: (user) => (
-        <div>
-          <div style={{ fontWeight: '500' }}>{user.name}</div>
-          <div style={{ fontSize: '12px', color: colors.textSecondary }}>{user.email}</div>
-        </div>
-      ),
+      render: (user) => {
+        if (!user) return <span>Không xác định</span>;
+        
+        return (
+          <div>
+            <div style={{ fontWeight: '500' }}>{user.name || 'Không tên'}</div>
+            <div style={{ fontSize: '12px', color: colors.textSecondary }}>{user.email || 'Không email'}</div>
+          </div>
+        );
+      },
       width: 200,
     },
     {
       title: 'Sản phẩm',
-      dataIndex: 'products',
-      key: 'products',
-      render: (products) => (
-        <div>
-          {products.map((product, index) => (
-            <div key={index} style={{ display: 'flex', alignItems: 'center', marginBottom: index < products.length - 1 ? '8px' : 0 }}>
-              <img 
-                src={product.image} 
-                alt={product.name} 
-                style={{ width: '40px', height: '40px', objectFit: 'cover', marginRight: '8px', borderRadius: '4px' }}
-              />
-              <div>
-                <div style={{ fontWeight: '500' }}>{product.name}</div>
-                <div style={{ fontSize: '12px', color: colors.textSecondary }}>SL: {product.quantity}</div>
-              </div>
+      dataIndex: 'product',
+      key: 'product',
+      render: (product) => {
+        if (!product) return <span>Không có thông tin</span>;
+        
+        return (
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <img 
+              src={product.image} 
+              alt={product.name} 
+              style={{ width: '40px', height: '40px', objectFit: 'cover', marginRight: '8px', borderRadius: '4px' }}
+            />
+            <div>
+              <div style={{ fontWeight: '500' }}>{product.name}</div>
             </div>
-          ))}
-        </div>
-      ),
+          </div>
+        );
+      },
       width: 250,
     },
     {
       title: 'Ngày tạo',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date) => moment(date).format('DD/MM/YYYY HH:mm'),
+      render: (date) => formatDate(date),
       width: 150,
     },
     {
@@ -309,8 +432,12 @@ useEffect(() => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
-        const { color, text } = getStatusInfo(status);
-        return <Tag color={color}>{text}</Tag>;
+        const { color, text, icon } = getStatusInfo(status);
+        return (
+          <Tag color={color} icon={icon}>
+            {text}
+          </Tag>
+        );
       },
       width: 120,
       filters: [
@@ -363,7 +490,7 @@ useEffect(() => {
     <div>
       <AdminSectionTitle>Quản lý đơn thuốc</AdminSectionTitle>
       
-      {/* Tabs trạng thái */}
+      {/* Status Tabs */}
       <Tabs 
         activeKey={activeTab} 
         onChange={setActiveTab}
@@ -399,12 +526,12 @@ useEffect(() => {
         />
       </Tabs>
       
-      {/* Tìm kiếm và lọc */}
+      {/* Search and Filter */}
       <AdminCard style={{ marginBottom: '24px' }}>
         <AdminSearchContainer>
           <div className="search-item">
             <AdminInput 
-              placeholder="Tìm kiếm theo mã đơn hàng hoặc tên khách hàng" 
+              placeholder="Tìm kiếm theo mã đơn hoặc tên khách hàng" 
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               prefix={<SearchOutlined />}
@@ -431,42 +558,65 @@ useEffect(() => {
         </AdminSearchContainer>
       </AdminCard>
       
-      {/* Bảng dữ liệu */}
+      {/* Prescriptions Table */}
       <AdminCard>
         <AdminTable
           columns={columns}
           dataSource={prescriptions}
           rowKey="_id"
           loading={loading}
-          pagination={{ pageSize: 10 }}
+          pagination={pagination}
+          onChange={handleTableChange}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <span>
+                    {activeTab === 'pending' 
+                      ? 'Không có đơn thuốc nào đang chờ xác minh' 
+                      : activeTab === 'approved'
+                        ? 'Không có đơn thuốc nào đã được phê duyệt'
+                        : 'Không có đơn thuốc nào đã bị từ chối'}
+                  </span>
+                }
+              />
+            )
+          }}
         />
       </AdminCard>
       
-      {/* Modal xem chi tiết đơn thuốc */}
+      {/* View Prescription Modal */}
       <Modal
-        title="Chi tiết đơn thuốc"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <FileProtectOutlined style={{ marginRight: '8px', color: colors.primary }} />
+            <span>Chi tiết đơn thuốc</span>
+          </div>
+        }
         open={viewModalVisible}
         onCancel={() => setViewModalVisible(false)}
         footer={null}
-        width={700}
+        width={800}
+        destroyOnClose
       >
-        {selectedPrescription && (
+        {selectedPrescription ? (
           <div>
             <Row gutter={16}>
               <Col span={12}>
                 <Card title="Thông tin đơn hàng" bordered={false}>
                   <Descriptions column={1} size="small">
-                    <Descriptions.Item label="Mã đơn hàng">
-                      {selectedPrescription.orderNumber}
+                    <Descriptions.Item label="Mã đơn thuốc">
+                      {selectedPrescription._id}
                     </Descriptions.Item>
                     <Descriptions.Item label="Khách hàng">
-                      {selectedPrescription.user.name}
+                      {selectedPrescription.user?.name || 'Không xác định'}
                     </Descriptions.Item>
                     <Descriptions.Item label="Email">
-                      {selectedPrescription.user.email}
+                      {selectedPrescription.user?.email || 'Không có email'}
                     </Descriptions.Item>
                     <Descriptions.Item label="Ngày tạo">
-                      {moment(selectedPrescription.createdAt).format('DD/MM/YYYY HH:mm')}
+                      {formatDate(selectedPrescription.createdAt)}
                     </Descriptions.Item>
                     <Descriptions.Item label="Trạng thái">
                       <Tag color={getStatusInfo(selectedPrescription.status).color}>
@@ -479,7 +629,7 @@ useEffect(() => {
                           {selectedPrescription.verifiedBy.name}
                         </Descriptions.Item>
                         <Descriptions.Item label="Ngày xác minh">
-                          {moment(selectedPrescription.verifiedAt).format('DD/MM/YYYY HH:mm')}
+                          {formatDate(selectedPrescription.verifiedAt)}
                         </Descriptions.Item>
                       </>
                     )}
@@ -488,34 +638,33 @@ useEffect(() => {
                         {selectedPrescription.notes}
                       </Descriptions.Item>
                     )}
+                    {selectedPrescription.rejectReason && (
+                      <Descriptions.Item label="Lý do từ chối">
+                        {selectedPrescription.rejectReason}
+                      </Descriptions.Item>
+                    )}
                   </Descriptions>
                 </Card>
                 
                 <Card title="Sản phẩm" bordered={false} style={{ marginTop: '16px' }}>
-                  {selectedPrescription.products.map((product, index) => (
-                    <div key={index} style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      marginBottom: index < selectedPrescription.products.length - 1 ? '16px' : 0,
-                      padding: index < selectedPrescription.products.length - 1 ? '0 0 16px 0' : 0,
-                      borderBottom: index < selectedPrescription.products.length - 1 ? '1px solid #f0f0f0' : 'none'
-                    }}>
+                  {selectedPrescription.product && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
                       <img 
-                        src={product.image} 
-                        alt={product.name} 
+                        src={selectedPrescription.product.image} 
+                        alt={selectedPrescription.product.name} 
                         style={{ width: '60px', height: '60px', objectFit: 'cover', marginRight: '12px', borderRadius: '4px' }}
                       />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: '500', marginBottom: '4px' }}>{product.name}</div>
+                        <div style={{ fontWeight: '500', marginBottom: '4px' }}>{selectedPrescription.product.name}</div>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Số lượng: {product.quantity}</span>
+                          <span>Số lượng: 1</span>
                           <span style={{ color: colors.primary, fontWeight: '500' }}>
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
+                            {convertPrice(selectedPrescription.product.price)}
                           </span>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </Card>
               </Col>
               
@@ -533,7 +682,9 @@ useEffect(() => {
                     <div style={{ textAlign: 'left' }}>
                       <Text strong>Thông tin đơn thuốc:</Text>
                       <br />
-                      <Text>Ngày hết hạn: {moment(selectedPrescription.expiryDate).format('DD/MM/YYYY')}</Text>
+                      {selectedPrescription.expiryDate && (
+                        <Text>Ngày hết hạn: {formatDate(selectedPrescription.expiryDate)}</Text>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -561,10 +712,12 @@ useEffect(() => {
               </Col>
             </Row>
           </div>
+        ) : (
+          <Skeleton active paragraph={{ rows: 10 }} />
         )}
       </Modal>
       
-      {/* Modal phê duyệt đơn thuốc */}
+      {/* Approve Prescription Modal */}
       <Modal
         title={
           <div style={{ display: 'flex', alignItems: 'center', color: colors.success }}>
@@ -577,31 +730,64 @@ useEffect(() => {
         onOk={handleSubmitVerify}
         okText="Xác nhận phê duyệt"
         cancelText="Hủy"
-        confirmLoading={loading}
+        confirmLoading={actionLoading}
+        destroyOnClose
       >
-        <div style={{ marginBottom: '16px' }}>
+        {selectedPrescription ? (
+          <>
+            <div style={{ marginBottom: '16px' }}>
+              <Alert
+                message="Xác nhận phê duyệt đơn thuốc"
+                description="Khi bạn phê duyệt đơn thuốc này, khách hàng sẽ có thể thanh toán và nhận được sản phẩm. Vui lòng kiểm tra kỹ thông tin đơn thuốc trước khi phê duyệt."
+                type="info"
+                showIcon
+              />
+            </div>
+            
+            {/* Product info */}
+            {selectedPrescription.product && (
+              <div style={{ marginBottom: '16px', padding: '12px', border: '1px solid #f0f0f0', borderRadius: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <img 
+                    src={selectedPrescription.product.image} 
+                    alt={selectedPrescription.product.name} 
+                    style={{ width: '50px', height: '50px', objectFit: 'cover', marginRight: '12px', borderRadius: '4px' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 'bold' }}>{selectedPrescription.product.name}</div>
+                    <div>
+                      <Tag color={colors.primary}>
+                        {convertPrice(selectedPrescription.product.price)}
+                      </Tag>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <Form form={form} layout="vertical">
+              <Form.Item
+                name="notes"
+                label="Ghi chú (không bắt buộc)"
+              >
+                <TextArea
+                  rows={4}
+                  placeholder="Nhập ghi chú về đơn thuốc nếu cần"
+                />
+              </Form.Item>
+            </Form>
+          </>
+        ) : (
           <Alert
-            message="Xác nhận phê duyệt đơn thuốc"
-            description="Khi bạn phê duyệt đơn thuốc này, khách hàng sẽ có thể thanh toán và nhận được sản phẩm. Vui lòng kiểm tra kỹ thông tin đơn thuốc trước khi phê duyệt."
-            type="info"
+            message="Lỗi dữ liệu"
+            description="Không thể tải thông tin đơn thuốc. Vui lòng thử lại."
+            type="error"
             showIcon
           />
-        </div>
-        
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="notes"
-            label="Ghi chú (không bắt buộc)"
-          >
-            <TextArea
-              rows={4}
-              placeholder="Nhập ghi chú về đơn thuốc nếu cần"
-            />
-          </Form.Item>
-        </Form>
+        )}
       </Modal>
       
-      {/* Modal từ chối đơn thuốc */}
+      {/* Reject Prescription Modal */}
       <Modal
         title={
           <div style={{ display: 'flex', alignItems: 'center', color: colors.error }}>
@@ -614,29 +800,62 @@ useEffect(() => {
         onOk={handleSubmitReject}
         okText="Xác nhận từ chối"
         cancelText="Hủy"
-        confirmLoading={loading}
+        confirmLoading={actionLoading}
+        destroyOnClose
       >
-        <div style={{ marginBottom: '16px' }}>
+        {selectedPrescription ? (
+          <>
+            <div style={{ marginBottom: '16px' }}>
+              <Alert
+                message="Từ chối đơn thuốc"
+                description="Khi bạn từ chối đơn thuốc này, khách hàng sẽ được thông báo và cần phải gửi lại đơn thuốc mới. Vui lòng cung cấp lý do từ chối rõ ràng để khách hàng có thể hiểu và khắc phục vấn đề."
+                type="warning"
+                showIcon
+              />
+            </div>
+            
+            {/* Product info */}
+            {selectedPrescription.product && (
+              <div style={{ marginBottom: '16px', padding: '12px', border: '1px solid #f0f0f0', borderRadius: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <img 
+                    src={selectedPrescription.product.image} 
+                    alt={selectedPrescription.product.name} 
+                    style={{ width: '50px', height: '50px', objectFit: 'cover', marginRight: '12px', borderRadius: '4px' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 'bold' }}>{selectedPrescription.product.name}</div>
+                    <div>
+                      <Tag color={colors.primary}>
+                        {convertPrice(selectedPrescription.product.price)}
+                      </Tag>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <Form form={rejectForm} layout="vertical">
+              <Form.Item
+                name="rejectReason"
+                label="Lý do từ chối"
+                rules={[{ required: true, message: 'Vui lòng nhập lý do từ chối' }]}
+              >
+                <TextArea
+                  rows={4}
+                  placeholder="Nhập lý do từ chối đơn thuốc"
+                />
+              </Form.Item>
+            </Form>
+          </>
+        ) : (
           <Alert
-            message="Từ chối đơn thuốc"
-            description="Khi bạn từ chối đơn thuốc này, khách hàng sẽ được thông báo và cần phải gửi lại đơn thuốc mới. Vui lòng cung cấp lý do từ chối rõ ràng để khách hàng có thể hiểu và khắc phục vấn đề."
-            type="warning"
+            message="Lỗi dữ liệu"
+            description="Không thể tải thông tin đơn thuốc. Vui lòng thử lại."
+            type="error"
             showIcon
           />
-        </div>
-        
-        <Form form={rejectForm} layout="vertical">
-          <Form.Item
-            name="rejectReason"
-            label="Lý do từ chối"
-            rules={[{ required: true, message: 'Vui lòng nhập lý do từ chối' }]}
-          >
-            <TextArea
-              rows={4}
-              placeholder="Nhập lý do từ chối đơn thuốc"
-            />
-          </Form.Item>
-        </Form>
+        )}
       </Modal>
     </div>
   );

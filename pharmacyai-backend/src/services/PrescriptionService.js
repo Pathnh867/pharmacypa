@@ -105,7 +105,7 @@ const getAllPrescriptions = async (status, page, limit) => {
       const options = {
         populate: [
           { path: 'user', select: 'name email phone' },
-          { path: 'products', select: 'name image price' },
+          { path: 'product', select: 'name image price' },
           { path: 'order', select: 'orderItems totalPrice' },
           { path: 'verifiedBy', select: 'name email' }
         ],
