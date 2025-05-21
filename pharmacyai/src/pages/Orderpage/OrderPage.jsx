@@ -7,10 +7,16 @@ import { WrapperCountOrder, WrapperInfo, WrapperInfodiv, WrapperInfospan, Wrappe
   ItemPrice, QuantityControl, DeleteButton, CartSummary, SummaryTitle, SummaryRow, 
   DeliveryInfo, TotalAmount, TotalDetail, UserAddressInfo, UpdateAddressButton,
   OriginalPrice, DiscountedPrice, PriceContainer } from './style';
+<<<<<<< HEAD
 import { Badge, Alert, Checkbox, Form, message, Modal, Radio, Steps, Empty, Tooltip, Card, Button, Typography, Upload, Input } from 'antd';
 import { DeleteOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined, 
   RightOutlined, InfoCircleOutlined, EnvironmentOutlined, UserOutlined, PhoneOutlined,
   HomeOutlined, EditOutlined, PlusCircleOutlined, FileProtectOutlined } from '@ant-design/icons'
+=======
+import { Badge, Alert, Checkbox, Form, message, Modal, Radio, Steps, Empty, Tooltip } from 'antd';
+import { DeleteOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined, 
+  RightOutlined, InfoCircleOutlined, EnvironmentOutlined, UserOutlined, PhoneOutlined } from '@ant-design/icons'
+>>>>>>> parent of dd4e1c8f (Update OrderPage.jsx)
 import { WrapperInputNumber } from '../../components/ProductDetailComponents/style';
 import { increaseAmount, decreaseAmount, removeOrderProduct, removeAllOrderProduct, selectedOrder } from '../../redux/slide/orderSlide';
 import { convertPrice } from '../../utils';
@@ -19,19 +25,23 @@ import { useNavigate } from 'react-router-dom';
 import InputComponents from '../../components/InputComponents/InputComponents';
 import { useMutationHooks } from '../../hooks/useMutationHook';
 import * as UserService from '../../services/UserService'
-import * as AddressService from '../../services/AddressService'
 import Loading from '../../components/LoadingComponent/Loading';
 import { updateUser } from '../../redux/slide/userSlide';
+<<<<<<< HEAD
 import * as PrescriptionService from '../../services/PrescriptionService';
 import PrescriptionBadge from '../../components/PrescriptionBadge/PrescriptionBadge';
 const { Text } = Typography;
 const { TextArea } = Input;
+=======
+
+>>>>>>> parent of dd4e1c8f (Update OrderPage.jsx)
 const OrderPage = () => {
   const order = useSelector((state) => state.order)
   const navigate = useNavigate()
   const user = useSelector((state) => state.user)
-  const [isOpenModalAddress, setIsOpenModalAddress] = useState(false)
+  const [isOpenModalUpdateInfo, setIsOpenModalUpdateInfo] = useState(false)
   const [listChecked, setListChecked] = useState([])
+<<<<<<< HEAD
   const [addresses, setAddresses] = useState([])
   const [selectedAddress, setSelectedAddress] = useState(null)
   const [isEditing, setIsEditing] = useState(false)
@@ -43,9 +53,16 @@ const OrderPage = () => {
   const [prescriptionFile, setPrescriptionFile] = useState(null);
   const [prescriptionLoading, setPrescriptionLoading] = useState(false);
   const [prescriptionForm] = Form.useForm();
+=======
+  const [stateUserDetails, setStateUserDetails] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    city: ''
+  })
+>>>>>>> parent of dd4e1c8f (Update OrderPage.jsx)
 
   const [form] = Form.useForm();
-  const [addressForm] = Form.useForm();
   const dispatch = useDispatch()
   
   const onChange = (e) => {
@@ -84,6 +101,7 @@ const OrderPage = () => {
   useEffect(() => {
     dispatch(selectedOrder({ listChecked }))
   }, [listChecked, dispatch])
+<<<<<<< HEAD
   useEffect(() => {
     // Lọc ra các sản phẩm cần đơn thuốc từ danh sách giỏ hàng
     if (order?.orderItems?.length > 0) {
@@ -224,10 +242,29 @@ const OrderPage = () => {
       setIsLoadingAddress(false);
     }
   };
+=======
 
   useEffect(() => {
-    fetchAddresses();
-  }, [user?.access_token]);
+    form.setFieldValue(stateUserDetails)
+  }, [form, stateUserDetails])
+>>>>>>> parent of dd4e1c8f (Update OrderPage.jsx)
+
+  useEffect(() => {
+    if (isOpenModalUpdateInfo) {
+      setStateUserDetails({
+        name: user?.name || '',
+        phone: user?.phone || '',
+        address: user?.address || '',
+        city: user?.city || ''
+      });
+    }
+  }, [isOpenModalUpdateInfo, user]);
+  
+  useEffect(() => {
+    if (form && stateUserDetails) {
+      form.setFieldsValue(stateUserDetails);
+    }
+  }, [form, stateUserDetails]);
   
   const priceMemo = useMemo(() => {
     const result = order?.ordersItemSelected?.reduce((total, cur) => {
@@ -264,6 +301,13 @@ const OrderPage = () => {
     return Number(priceMemo) + Number(DeliveryPriceMemo) - Number(priceDiscountMemo)
   }, [priceMemo, DeliveryPriceMemo, priceDiscountMemo])
 
+  const handleOnchangeDetails = (e) => {
+    setStateUserDetails({
+      ...stateUserDetails,
+      [e.target.name]: e.target.value
+    })
+  }
+  
   const handleRemoveAllOrder = () => {
     if (listChecked?.length > 1) {
       dispatch(removeAllOrderProduct({ listChecked }))
@@ -273,6 +317,7 @@ const OrderPage = () => {
   const handleAddCard = () => {
     if (!order?.ordersItemSelected?.length) {
       message.error('Vui lòng chọn sản phẩm');
+<<<<<<< HEAD
       return;
     } 
     
@@ -306,100 +351,105 @@ const OrderPage = () => {
         address: address.address,
         city: address.city,
         label: address.label || 'Nhà'
+=======
+    } else if (
+      !user?.name || String(user?.name).trim() === '' ||
+      !user?.phone || String(user?.phone).trim() === '' ||
+      !user?.address || String(user?.address).trim() === '' ||
+      !user?.city || String(user?.city).trim() === ''
+    ) {
+      setStateUserDetails({
+        name: user?.name || '',
+        phone: user?.phone || '',
+        address: user?.address || '',
+        city: user?.city || ''
+>>>>>>> parent of dd4e1c8f (Update OrderPage.jsx)
       });
+
+      // Hiển thị thông báo cụ thể về thông tin còn thiếu
+      let missingFields = [];
+      if (!user?.name || String(user?.name).trim() === '') missingFields.push('tên');
+      if (!user?.phone || String(user?.phone).trim() === '') missingFields.push('số điện thoại');
+      if (!user?.address || String(user?.address).trim() === '') missingFields.push('địa chỉ');
+      if (!user?.city || String(user?.city).trim() === '') missingFields.push('thành phố');
+
+      if (missingFields.length > 0) {
+        message.info(`Vui lòng cập nhật ${missingFields.join(', ')} để tiếp tục đặt hàng`);
+      }
+
+      setIsOpenModalUpdateInfo(true);
     } else {
-      setIsEditing(false);
-      setCurrentAddress(null);
-      addressForm.resetFields();
-      addressForm.setFieldsValue({
-        label: 'Nhà'
-      });
-    }
-    setIsOpenModalAddress(true);
-  };
-
-  // Lưu địa chỉ
-  const handleSaveAddress = async () => {
-    try {
-      const values = await addressForm.validateFields();
-      
-      const addressData = {
-        ...values,
-        label: values.label || 'Nhà',
-        isDefault: false
-      };
-
-      setIsLoadingAddress(true);
-      
-      if (user?.access_token) {
-        if (isEditing && currentAddress) {
-          // Cập nhật địa chỉ
-          await AddressService.updateAddress(
-            user.access_token, 
-            currentAddress._id, 
-            addressData
-          );
-          message.success('Cập nhật địa chỉ thành công');
-        } else {
-          // Tạo địa chỉ mới
-          await AddressService.createAddress(user.access_token, addressData);
-          message.success('Thêm địa chỉ mới thành công');
-        }
-
-        fetchAddresses();
-        setIsOpenModalAddress(false);
-      }
-    } catch (error) {
-      console.error("Error saving address:", error);
-      message.error('Lỗi khi lưu địa chỉ');
-    } finally {
-      setIsLoadingAddress(false);
+      navigate('/payment', { state: { order, user, listChecked } });
     }
   };
 
-  // Đặt địa chỉ mặc định
-  const handleSetDefaultAddress = async (addressId) => {
-    try {
-      setIsLoadingAddress(true);
-      if (user?.access_token) {
-        await AddressService.setDefaultAddress(user.access_token, addressId);
-        message.success('Đã đặt địa chỉ này làm mặc định');
-        fetchAddresses();
-      }
-    } catch (error) {
-      console.error("Error setting default address:", error);
-      message.error('Không thể đặt địa chỉ mặc định');
-    } finally {
-      setIsLoadingAddress(false);
+  const mutationUpdate = useMutationHooks(
+    (data) => {
+      const { id, token, ...rests } = data
+      const res = UserService.updateUser(id, token, { ...rests })
+      return res
     }
-  };
-
-  // Xóa địa chỉ
-  const handleDeleteAddress = async (addressId) => {
-    try {
-      setIsLoadingAddress(true);
-      if (user?.access_token) {
-        await AddressService.deleteAddress(user.access_token, addressId);
-        message.success('Xóa địa chỉ thành công');
-        
-        // Nếu địa chỉ bị xóa đang được chọn, bỏ chọn
-        if (selectedAddress?._id === addressId) {
-          setSelectedAddress(null);
-        }
-        
-        fetchAddresses();
-      }
-    } catch (error) {
-      console.error("Error deleting address:", error);
-      message.error('Không thể xóa địa chỉ');
-    } finally {
-      setIsLoadingAddress(false);
+  )
+  
+  const { isPending, data } = mutationUpdate
+  
+  const handleCancelUpdate = () => {
+    setStateUserDetails({
+      name: '',
+      email: '',
+      phone: '',
+      isAdmin: false
+    })
+    setIsOpenModalUpdateInfo(false)
+  }
+  
+  
+  const handleUpdateInforUser = () => {
+    const { name, phone, address, city } = stateUserDetails;
+  
+    // Chuẩn hóa dữ liệu (xóa khoảng trắng thừa)
+    const updateData = {
+        name: name?.trim(),
+        phone: phone?.trim(),
+        address: address?.trim(),
+        city: city?.trim(),
+        // Quan trọng: Giữ lại giá trị isAdmin từ user hiện tại
+        isAdmin: user.isAdmin 
+    };
+  
+    if (updateData.name && updateData.phone && updateData.address && updateData.city) {
+        mutationUpdate.mutate(
+            { id: user?.id, token: user?.access_token, ...updateData },
+            {
+                onSuccess: (data) => {
+                    if (data?.status === 'OK') {
+                        // Cập nhật Redux store với dữ liệu mới
+                        dispatch(updateUser({
+                            ...user,
+                            name: updateData.name,
+                            phone: updateData.phone,
+                            address: updateData.address,
+                            city: updateData.city,
+                            // Đảm bảo giữ nguyên giá trị isAdmin
+                            isAdmin: user.isAdmin,
+                            // Đảm bảo giữ refreshToken
+                            refreshToken: user?.refreshToken
+                        }));
+                        message.success('Cập nhật thông tin thành công!');
+                        setIsOpenModalUpdateInfo(false);
+                    } else {
+                        message.error(data?.message || 'Cập nhật thông tin thất bại');
+                    }
+                },
+                onError: (error) => {
+                    console.error('Lỗi cập nhật:', error);
+                    message.error('Có lỗi xảy ra: ' + (error.message || 'Không xác định'));
+                }
+            }
+        );
+    } else {
+        message.error('Vui lòng điền đầy đủ thông tin');
     }
-  };
-
-  // Tính giá sau khi giảm giá
-  const calculateDiscountedPrice = (price, discount) => {
-    return price - (price * discount / 100);
   };
 
   // Bước hiện tại trong quy trình thanh toán
@@ -420,6 +470,11 @@ const OrderPage = () => {
       icon: <RightOutlined />
     }
   ];
+
+  // Tính giá sau khi giảm giá
+  const calculateDiscountedPrice = (price, discount) => {
+    return price - (price * discount / 100);
+  };
 
   return (
     <PageContainer>
@@ -576,106 +631,26 @@ const OrderPage = () => {
                 {/* Thông tin địa chỉ giao hàng */}
                 <DeliveryInfo>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <SummaryTitle>Địa chỉ giao hàng</SummaryTitle>
-                    <Button 
-                      type="primary" 
-                      size="small"
-                      icon={<PlusOutlined />} 
-                      onClick={() => showAddressModal()}
-                      style={{ background: '#4cb551', borderColor: '#4cb551' }}
-                    >
-                      Thêm địa chỉ
-                    </Button>
+                    <SummaryTitle>Thông tin giao hàng</SummaryTitle>
+                    <UpdateAddressButton onClick={() => setIsOpenModalUpdateInfo(true)}>
+                      Cập nhật
+                    </UpdateAddressButton>
                   </div>
                   
-                  {isLoadingAddress ? (
-                    <div style={{ textAlign: 'center', padding: '20px' }}>
-                      <Loading isPending={true} />
-                    </div>
-                  ) : addresses.length === 0 ? (
+                  {user?.name && user?.address ? (
+                    <UserAddressInfo>
+                      <div><UserOutlined /> <strong>{user?.name}</strong></div>
+                      <div><PhoneOutlined /> {user?.phone}</div>
+                      <div><EnvironmentOutlined /> {user?.address}, {user?.city}</div>
+                    </UserAddressInfo>
+                  ) : (
                     <Alert
-                      message="Bạn chưa có địa chỉ giao hàng"
-                      description="Vui lòng thêm địa chỉ giao hàng để tiếp tục đặt hàng."
+                      message="Thông tin giao hàng chưa đầy đủ"
+                      description="Vui lòng cập nhật thông tin giao hàng để tiếp tục đặt hàng."
                       type="info"
                       showIcon
                       style={{ marginBottom: '10px' }}
                     />
-                  ) : (
-                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                      <Radio.Group 
-                        onChange={handleAddressSelect} 
-                        value={selectedAddress?._id}
-                        style={{ width: '100%' }}
-                      >
-                        {addresses.map(address => (
-                          <Card 
-                            key={address._id} 
-                            size="small"
-                            style={{ 
-                              marginBottom: 12, 
-                              border: address.isDefault ? '1px solid #4cb551' : '1px solid #d9d9d9',
-                              backgroundColor: selectedAddress?._id === address._id ? '#f0f7f0' : 'white'
-                            }}
-                            hoverable
-                          >
-                            <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                              <Radio value={address._id} style={{ marginRight: 12, marginTop: 4 }} />
-                              <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Text strong>{address.fullName}</Text>
-                                  <div>
-                                    <Tooltip title="Chỉnh sửa">
-                                      <Button 
-                                        type="text" 
-                                        size="small"
-                                        icon={<EditOutlined />} 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          showAddressModal(address);
-                                        }}
-                                        style={{ marginRight: '4px' }}
-                                      />
-                                    </Tooltip>
-                                    <Tooltip title="Xóa">
-                                      <Button 
-                                        type="text" 
-                                        size="small"
-                                        danger
-                                        icon={<DeleteOutlined />}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDeleteAddress(address._id);
-                                        }}
-                                      />
-                                    </Tooltip>
-                                  </div>
-                                </div>
-                                <div style={{ fontSize: '13px', color: '#666' }}>{address.phone}</div>
-                                <div style={{ fontSize: '13px', marginTop: '4px' }}>{address.address}, {address.city}</div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-                                  {address.isDefault ? (
-                                    <Text type="success" style={{ fontSize: '12px' }}>Địa chỉ mặc định</Text>
-                                  ) : (
-                                    <Button 
-                                      type="link" 
-                                      size="small"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSetDefaultAddress(address._id);
-                                      }}
-                                      style={{ padding: 0, height: 'auto', fontSize: '12px' }}
-                                    >
-                                      Đặt làm mặc định
-                                    </Button>
-                                  )}
-                                  <Text type="secondary" style={{ fontSize: '12px' }}>{address.label}</Text>
-                                </div>
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
-                      </Radio.Group>
-                    </div>
                   )}
                 </DeliveryInfo>
                 
@@ -730,90 +705,66 @@ const OrderPage = () => {
                 
                 <ActionButton 
                   onClick={handleAddCard}
-                  disabled={!order?.ordersItemSelected?.length || !selectedAddress}
+                  disabled={!order?.ordersItemSelected?.length}
                 >
                   Tiến hành thanh toán
                 </ActionButton>
-                
-                {!selectedAddress && order?.ordersItemSelected?.length > 0 && (
-                  <div style={{ color: '#ff4d4f', fontSize: '13px', textAlign: 'center', marginTop: '10px' }}>
-                    Vui lòng chọn địa chỉ giao hàng
-                  </div>
-                )}
               </CartSummary>
             </WrapperRight>
           </div>
         )}
       </PageContent>
       
-      {/* Modal thêm/sửa địa chỉ */}
+      {/* Modal cập nhật thông tin người dùng */}
       <Modal
-        title={isEditing ? "Chỉnh sửa địa chỉ" : "Thêm địa chỉ mới"}
-        open={isOpenModalAddress}
-        onOk={handleSaveAddress}
-        onCancel={() => setIsOpenModalAddress(false)}
-        okText="Lưu địa chỉ"
+        title="Cập nhật thông tin giao hàng"
+        open={isOpenModalUpdateInfo}
+        onCancel={handleCancelUpdate}
+        onOk={handleUpdateInforUser}
+        okText="Cập nhật"
         cancelText="Hủy"
-        confirmLoading={isLoadingAddress}
       >
-        <Form 
-          form={addressForm} 
-          layout="vertical"
-          requiredMark={false}
-          initialValues={{
-            label: 'Nhà'
-          }}
-        >
-          <Form.Item
-            name="fullName"
-            label="Họ và tên"
-            rules={[{ required: true, message: 'Vui lòng nhập họ và tên' }]}
+        <Loading isPending={isPending}>
+          <div style={{ marginBottom: '15px', color: '#ff4d4f' }}>
+            * Vui lòng điền đầy đủ các trường bắt buộc
+          </div>
+          <Form
+            name="basic"
+            labelCol={{ span: 6 }}
+            wrapperCol={{ span: 18 }}
+            autoComplete="on"
+            form={form}
           >
-            <InputComponents placeholder="Nhập họ và tên" />
-          </Form.Item>
-          
-          <Form.Item
-            name="phone"
-            label="Số điện thoại"
-            rules={[
-              { required: true, message: 'Vui lòng nhập số điện thoại' },
-              { 
-                pattern: /^(0|\+84)[3|5|7|8|9]\d{8}$/, 
-                message: 'Số điện thoại không hợp lệ' 
-              }
-            ]}
-          >
-            <InputComponents placeholder="Nhập số điện thoại" />
-          </Form.Item>
-          
-          <Form.Item
-            name="address"
-            label="Địa chỉ chi tiết"
-            rules={[{ required: true, message: 'Vui lòng nhập địa chỉ chi tiết' }]}
-          >
-            <InputComponents placeholder="Số nhà, đường..." />
-          </Form.Item>
-          
-          <Form.Item
-            name="city"
-            label="Thành phố/Tỉnh"
-            rules={[{ required: true, message: 'Vui lòng nhập thành phố/tỉnh' }]}
-          >
-            <InputComponents placeholder="Nhập thành phố/tỉnh" />
-          </Form.Item>
-          
-          <Form.Item
-            name="label"
-            label="Nhãn địa chỉ (tùy chọn)"
-            initialValue="Nhà"
-          >
-            <Radio.Group buttonStyle="solid">
-              <Radio.Button value="Nhà">Nhà</Radio.Button>
-              <Radio.Button value="Công ty">Công ty</Radio.Button>
-              <Radio.Button value="Khác">Khác</Radio.Button>
-            </Radio.Group>
-          </Form.Item>
-        </Form>
+            <Form.Item
+              label="Tên người nhận"
+              name="name"
+              rules={[{ required: true, message: 'Hãy nhập tên người nhận' }]}
+            >
+              <InputComponents value={stateUserDetails.name} onChange={handleOnchangeDetails} name="name" />
+            </Form.Item>
+            <Form.Item
+              label="Số điện thoại"
+              name="phone"
+              rules={[{ required: true, message: 'Hãy nhập số điện thoại' }]}
+            >
+              <InputComponents value={stateUserDetails.phone} onChange={handleOnchangeDetails} name="phone" />
+            </Form.Item>
+            <Form.Item
+              label="Địa chỉ"
+              name="address"
+              rules={[{ required: true, message: 'Hãy nhập địa chỉ' }]}
+            >
+              <InputComponents value={stateUserDetails.address} onChange={handleOnchangeDetails} name="address" />
+            </Form.Item>
+            <Form.Item
+              label="Thành phố"
+              name="city"
+              rules={[{ required: true, message: 'Hãy nhập thành phố của bạn' }]}
+            >
+              <InputComponents value={stateUserDetails.city} onChange={handleOnchangeDetails} name="city" />
+            </Form.Item>
+          </Form>
+        </Loading>
       </Modal>
       <Modal
         title={`Tải lên đơn thuốc cho ${activePrescriptionItem?.name || 'sản phẩm'}`}
