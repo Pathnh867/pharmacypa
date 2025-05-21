@@ -15,7 +15,8 @@ import {
   HomeOutlined,
   MedicineBoxOutlined,
   PhoneOutlined,
-  ShoppingOutlined
+  ShoppingOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import ButtonInputSearch from '../ButtonInputSearch/ButtonInputSearch'
 import { useNavigate } from 'react-router-dom';
@@ -157,6 +158,11 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
     dispatch(searchProduct(e.target.value))
   }
 
+  const handleNavigatePrescriptions = () => {
+    navigate('/my-prescriptions')
+    setMobileMenuOpen(false)
+  }
+
   // User dropdown menu items
   const userMenuItems = [
     {
@@ -170,6 +176,12 @@ const HeaderComponent = ({isHiddenSearch = false, isHiddenCart= false}) => {
       label: 'Lịch sử đơn hàng',
       icon: <ShoppingOutlined />,
       onClick: handleNavigateOrderHistory
+    },
+    {
+      key: 'prescriptions',
+      label: 'Đơn thuốc của tôi',
+      icon: <FileTextOutlined />,
+      onClick: handleNavigatePrescriptions
     },
     {
       key: 'divider',

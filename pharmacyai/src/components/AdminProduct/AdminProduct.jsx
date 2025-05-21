@@ -1,9 +1,9 @@
 // pharmacyai/src/components/AdminProduct/AdminProduct.jsx
 
 import React, { useEffect, useState } from 'react'
-import { Button, Form, Modal, Select, Input, Tag, Tooltip, Space, Upload, message, Divider } from 'antd'
+import { Button, Form, Modal, Select, Input, Tag, Tooltip, Space, Upload, message, Divider, Switch } from 'antd'
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined, 
-  FilterOutlined, ReloadOutlined, UploadOutlined, EyeOutlined } from '@ant-design/icons'
+  FilterOutlined, ReloadOutlined, UploadOutlined, EyeOutlined, FileTextOutlined, MedicineBoxOutlined, SafetyOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { useSelector } from 'react-redux'
 import * as ProductService from '../../services/ProductService'
@@ -34,6 +34,7 @@ const AdminProduct = () => {
   const [typeSelect, setTypeSelect] = useState('');
   const [searchText, setSearchText] = useState('');
   const [filterType, setFilterType] = useState(null);
+  const [prescriptionFilter, setPrescriptionFilter] = useState(null);
   const user = useSelector((state) => state?.user);
   
   const [stateProduct, setStateProduct] = useState({
@@ -44,7 +45,8 @@ const AdminProduct = () => {
     countInStock:'',
     rating: '',
     description: '',
-    discount: ''
+    discount: '',
+    requiresPrescription: false
   });
 
   const [stateProductDetails, setStateProductDetails] = useState({
@@ -55,7 +57,8 @@ const AdminProduct = () => {
     countInStock:'',
     rating: '',
     description: '',
-    discount: ''
+    discount: '',
+    requiresPrescription: false
   });
 
   const [form] = Form.useForm();
@@ -116,7 +119,8 @@ const AdminProduct = () => {
           countInStock: res?.data?.countInStock,
           rating: res?.data?.rating,
           description: res?.data?.description,
-          discount: res?.data?.discount
+          discount: res?.data?.discount,
+          requiresPrescription: res?.data?.requiresPrescription || false
         });
       }
     } catch (error) {
@@ -213,7 +217,6 @@ const AdminProduct = () => {
     });
   };
 
-  // Handle input changes
   const handleOnchange = (e) => {
     setStateProduct({
       ...stateProduct,
@@ -226,6 +229,21 @@ const AdminProduct = () => {
       ...stateProductDetails,
       [e.target.name]: e.target.value
     });
+  };
+  const handleSwitchChange = (field, value) => {
+    setStateProduct({
+      ...stateProduct,
+      [field]: value
+    });
+  };
+  const handleSwitchChangeDetails = (field, value) => {
+    setStateProductDetails({
+      ...stateProductDetails,
+      [field]: value
+    });
+  };
+  const handlePrescriptionFilterChange = (value) => {
+    setPrescriptionFilter(value);
   };
 
   const handleOnchangeAvatar = async ({ fileList }) => {
@@ -334,6 +352,7 @@ const AdminProduct = () => {
   const resetFilters = () => {
     setSearchText('');
     setFilterType(null);
+    setPrescriptionFilter(null);
   };
 
   // Xử lý phản hồi từ mutations
@@ -431,6 +450,28 @@ const AdminProduct = () => {
       },
     },
     {
+      title: 'Kê đơn',
+      dataIndex: 'requiresPrescription',
+      key: 'requiresPrescription',
+      width: '10%',
+      render: (requiresPrescription) => (
+        requiresPrescription ? (
+          <Tag color="#f50" icon={<FileTextOutlined />}>Yêu cầu</Tag>
+        ) : (
+          <Tag color="#87d068" icon={<SafetyOutlined />}>Không</Tag>
+        )
+      ),
+      filters: [
+        { text: 'Yêu cầu đơn thuốc', value: true },
+        { text: 'Không yêu cầu đơn thuốc', value: false }
+      ],
+      onFilter: (value, record) => {
+        return value === "true" ? 
+          record.requiresPrescription === true : 
+          record.requiresPrescription === false;
+      }
+    },
+    {
       title: 'Tồn kho',
       dataIndex: 'countInStock',
       key: 'countInStock',
@@ -506,8 +547,12 @@ const AdminProduct = () => {
                        (typeof item.type === 'object' ? 
                         item.type._id === filterType : 
                         item.type === filterType);
+      const prescriptionMatch = prescriptionFilter === null || 
+                              (prescriptionFilter === "true" ? 
+                               item.requiresPrescription === true : 
+                               item.requiresPrescription === false);
       
-      return nameMatch && typeMatch;
+      return nameMatch && typeMatch && prescriptionMatch;
     });
   };
 
@@ -552,6 +597,18 @@ const AdminProduct = () => {
               {typeProducts?.data?.map(type => (
                 <Select.Option key={type._id} value={type._id}>{type.name}</Select.Option>
               ))}
+            </AdminSelect>
+          </div>
+          <div className="search-item">
+            <AdminSelect
+              placeholder="Lọc theo yêu cầu đơn thuốc"
+              value={prescriptionFilter}
+              onChange={handlePrescriptionFilterChange}
+              style={{ width: '100%' }}
+              allowClear
+            >
+              <Select.Option value="true">Yêu cầu đơn thuốc</Select.Option>
+              <Select.Option value="false">Không yêu cầu đơn thuốc</Select.Option>
             </AdminSelect>
           </div>
           
@@ -755,6 +812,17 @@ const AdminProduct = () => {
                     />
                   </Form.Item>
                 </div>
+                <Form.Item
+                  label="Yêu cầu đơn thuốc"
+                  name="requiresPrescription"
+                  valuePropName="checked"
+                >
+                  <Switch
+                    checkedChildren="Có"
+                    unCheckedChildren="Không"
+                    onChange={(checked) => handleSwitchChange('requiresPrescription', checked)}
+                  />
+                </Form.Item>
                 
                 <Form.Item
                   label="Mô tả sản phẩm"
@@ -948,6 +1016,19 @@ const AdminProduct = () => {
                     />
                   </Form.Item>
                 </div>
+                <Form.Item
+                  label="Yêu cầu đơn thuốc"
+                  name="requiresPrescription"
+                  valuePropName="checked"
+                  tooltip="Nếu bật, khách hàng sẽ cần tải lên đơn thuốc được duyệt trước khi mua"
+                >
+                  <Switch
+                    checkedChildren="Có"
+                    unCheckedChildren="Không"
+                    defaultChecked={stateProductDetails.requiresPrescription}
+                    onChange={(checked) => handleSwitchChangeDetails('requiresPrescription', checked)}
+                  />
+                </Form.Item>
                 
                 <Form.Item
                   label="Mô tả sản phẩm"

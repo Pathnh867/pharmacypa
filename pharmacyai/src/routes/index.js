@@ -12,6 +12,7 @@ import PaymentResultPage from "../pages/PaymentResultPage/PaymentResultPage";
 import ProfilePage from "../pages/Profile/ProfilePage";
 import OrderHistory from "../pages/OrderHistory/OrderHistory";
 // import PaymentPage from "../pages/Payment/PaymentPage";
+import MyPrescriptions from "../pages/MyPrescriptions/MyPrescriptions";
 
 export const routes = [
     {
@@ -80,6 +81,11 @@ export const routes = [
     {
         path: '/order-history',
         page: OrderHistory,
+        isShowHeader: true
+    },
+    {
+        path: '/my-prescriptions',
+        page: MyPrescriptions,
         isShowHeader: true
     }
 ]

@@ -16,7 +16,9 @@ import {
   Empty,
   Alert,
   Image as AntImage,
-  Spin
+  Spin,
+  Upload,
+  message
 } from 'antd';
 import { Comment } from '@ant-design/compatible';
 import { 
@@ -33,12 +35,14 @@ import {
   UserOutlined,
   LoadingOutlined,
   WarningOutlined,
-  RightOutlined
+  RightOutlined,
+  UploadOutlined
 } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import * as ProductService from '../../services/ProductService';
+import * as PrescriptionService from '../../services/PrescriptionService';
 import { addOrderProduct } from '../../redux/slide/orderSlide';
 import Loading from '../../components/LoadingComponent/Loading';
 import ButtonComponent from '../ButtonComponents/ButtonComponent';
@@ -109,6 +113,12 @@ const ProductDetailComponent = ({ idProduct }) => {
   const [activeTab, setActiveTab] = useState('1');
   const [similarProducts, setSimilarProducts] = useState([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
+  const [isPrescriptionRequired, setIsPrescriptionRequired] = useState(false)
+  const [hasPrescriptionApproved, setHasPrescriptionApproved] = useState(false)
+  const [prescriptionStatus, setPrescriptionStatus] = useState(null) // 'pending', 'approved', 'rejected'
+  const [uploadModalVisible, setUploadModalVisible] = useState(false)
+  const [prescriptionFile, setPrescriptionFile] = useState(null)
+  const [uploadLoading, setUploadLoading] = useState(false)
   
   const user = useSelector((state) => state.user);
   const navigate = useNavigate();
@@ -299,7 +309,76 @@ const ProductDetailComponent = ({ idProduct }) => {
     
     // Chuyển tab đến phần đánh giá
     setActiveTab('3');
+
   };
+  useEffect(() => {
+    const checkPrescriptionStatus = async () => {
+        if (productDetails?.requiresPrescription && user?.access_token) {
+            try {
+                const response = await PrescriptionService.getUserPrescriptions(user.access_token)
+                if (response?.status === 'OK') {
+                    // Kiểm tra xem người dùng đã có đơn thuốc được duyệt cho sản phẩm này chưa
+                    const prescription = response.data.find(
+                        p => p.product._id === productDetails._id
+                    )
+                    
+                    if (prescription) {
+                        setPrescriptionStatus(prescription.status)
+                        setHasPrescriptionApproved(prescription.status === 'approved')
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking prescription status:', error)
+            }
+        }
+        
+        setIsPrescriptionRequired(productDetails?.requiresPrescription || false)
+    }
+    
+    checkPrescriptionStatus()
+}, [productDetails, user?.access_token])
+
+// Thêm hàm xử lý tải lên đơn thuốc
+const handleUploadPrescription = async () => {
+    if (!prescriptionFile) {
+        message.error('Vui lòng chọn đơn thuốc để tải lên')
+        return
+    }
+    
+    if (!user?.access_token) {
+        message.info('Vui lòng đăng nhập để tải lên đơn thuốc')
+        navigate('/sign-in', { state: location?.pathname })
+        return
+    }
+    
+    setUploadLoading(true)
+    
+    try {
+        // Trong ứng dụng thực tế, bạn nên tải file lên một dịch vụ lưu trữ và lấy URL
+        // Ở đây, vì mục đích demo, chúng ta sẽ giả định URL
+        // Giả sử đây là URL hình ảnh đã tải lên
+        const prescriptionImageUrl = 'https://example.com/prescription.jpg'
+        
+        const response = await PrescriptionService.uploadPrescription({
+            productId: productDetails._id,
+            prescriptionImage: prescriptionImageUrl
+        }, user.access_token)
+        
+        if (response?.status === 'OK') {
+            message.success('Đơn thuốc đã được tải lên, vui lòng chờ duyệt')
+            setUploadModalVisible(false)
+            setPrescriptionStatus('pending')
+            // Sau khi tải lên, bạn có thể cập nhật lại trạng thái đơn thuốc
+        } else {
+            message.error(response?.message || 'Không thể tải lên đơn thuốc')
+        }
+    } catch (error) {
+        console.error('Error uploading prescription:', error)
+        message.error('Đã xảy ra lỗi khi tải lên đơn thuốc')
+    } finally {
+        setUploadLoading(false)
+    }
+    }
 
   return (
     <Loading isPending={isPending}>
@@ -396,35 +475,92 @@ const ProductDetailComponent = ({ idProduct }) => {
               </div>
               
               <WrapperActions>
-                <ButtonComponent
-                  size={40}
-                  styleButton={{
-                    background: '#4cb551',
-                    height: '48px',
-                    width: '220px',
-                    border: 'none',
-                    borderRadius: '8px'
-                  }}
-                  onClick={handleBuyNow}
-                  textButton={'Mua ngay'}
-                  styleTextButton={{color:'#fff', fontSize:'16px', fontWeight:'600'}}
-                  disabled={!productDetails?.countInStock}
+              <ButtonComponent
+                    size={40}
+                    styleButton={{
+                        background: '#4cb551',
+                        height: '48px',
+                        width: '220px',
+                        border: 'none',
+                        borderRadius: '8px'
+                    }}
+                    onClick={handleBuyNow}
+                    textButton={'Mua ngay'}
+                    styleTextButton={{color:'#fff', fontSize:'16px', fontWeight:'600'}}
+                    disabled={
+                        !productDetails?.countInStock || 
+                        (isPrescriptionRequired && prescriptionStatus !== 'approved')
+                    }
                 />
+
                 <ButtonComponent
-                  size={40}
-                  styleButton={{
-                    background: '#fff',
-                    height: '48px',
-                    width: '220px',
-                    border: '1px solid #4cb551',
-                    borderRadius: '8px'
-                  }}
-                  icon={<ShoppingCartOutlined style={{fontSize: '20px'}} />}
-                  onClick={handleAddOrderProduct}
-                  textButton={'Thêm vào giỏ hàng'}
-                  styleTextButton={{color:'#4cb551', fontSize:'16px', fontWeight: '500'}}
-                  disabled={!productDetails?.countInStock}
+                    size={40}
+                    styleButton={{
+                        background: '#fff',
+                        height: '48px',
+                        width: '220px',
+                        border: '1px solid #4cb551',
+                        borderRadius: '8px'
+                    }}
+                    icon={<ShoppingCartOutlined style={{fontSize: '20px'}} />}
+                    onClick={handleAddOrderProduct}
+                    textButton={'Thêm vào giỏ hàng'}
+                    styleTextButton={{color:'#4cb551', fontSize:'16px', fontWeight: '500'}}
+                    disabled={
+                        !productDetails?.countInStock || 
+                        (isPrescriptionRequired && prescriptionStatus !== 'approved')
+                    }
                 />
+
+                // Thêm modal tải lên đơn thuốc
+                <Modal
+                    title="Tải lên đơn thuốc"
+                    open={uploadModalVisible}
+                    onCancel={() => setUploadModalVisible(false)}
+                    footer={[
+                        <Button key="back" onClick={() => setUploadModalVisible(false)}>
+                            Hủy
+                        </Button>,
+                        <Button 
+                            key="submit" 
+                            type="primary" 
+                            loading={uploadLoading} 
+                            onClick={handleUploadPrescription}
+                            disabled={!prescriptionFile}
+                        >
+                            Tải lên
+                        </Button>
+                    ]}
+                >
+                    <div style={{ marginBottom: '16px' }}>
+                        <p>Vui lòng tải lên hình ảnh đơn thuốc của bạn.</p>
+                        <p>Đơn thuốc sẽ được xem xét trước khi bạn có thể mua sản phẩm này.</p>
+                    </div>
+                    
+                    <Upload
+                        beforeUpload={(file) => {
+                            const isImage = file.type.startsWith('image/');
+                            if (!isImage) {
+                                message.error('Bạn chỉ có thể tải lên hình ảnh!');
+                                return Upload.LIST_IGNORE;
+                            }
+                            
+                            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                                message.error('Tệp quá lớn! Kích thước tối đa là 5MB');
+                                return Upload.LIST_IGNORE;
+                            }
+                            
+                            setPrescriptionFile(file);
+                            return false; // Ngăn tải lên tự động
+                        }}
+                        maxCount={1}
+                        listType="picture"
+                        accept="image/*"
+                        onRemove={() => setPrescriptionFile(null)}
+                    >
+                        <Button icon={<UploadOutlined />}>Chọn ảnh đơn thuốc</Button>
+                    </Upload>
+                </Modal>
               </WrapperActions>
               
               <Divider style={{ margin: '24px 0' }} />
@@ -454,6 +590,41 @@ const ProductDetailComponent = ({ idProduct }) => {
                   </div>
                 </WrapperFeatureItem>
               </WrapperFeatures>
+              {isPrescriptionRequired && (
+                  <div style={{ marginTop: '16px', padding: '16px', background: '#f5f5f5', borderRadius: '8px' }}>
+                      <Alert
+                          message="Sản phẩm này yêu cầu đơn thuốc"
+                          description={
+                              prescriptionStatus === 'approved' ? (
+                                  "Đơn thuốc của bạn đã được duyệt. Bạn có thể mua sản phẩm này."
+                              ) : prescriptionStatus === 'pending' ? (
+                                  "Đơn thuốc của bạn đang chờ duyệt. Vui lòng đợi được duyệt trước khi mua."
+                              ) : prescriptionStatus === 'rejected' ? (
+                                  "Đơn thuốc của bạn đã bị từ chối. Vui lòng tải lên đơn thuốc mới."
+                              ) : (
+                                  "Sản phẩm này yêu cầu đơn thuốc. Vui lòng tải lên đơn thuốc để được duyệt trước khi mua."
+                              )
+                          }
+                          type={
+                              prescriptionStatus === 'approved' ? "success" :
+                              prescriptionStatus === 'pending' ? "warning" :
+                              prescriptionStatus === 'rejected' ? "error" : "info"
+                          }
+                          showIcon
+                          action={
+                              (!prescriptionStatus || prescriptionStatus === 'rejected') && (
+                                  <Button 
+                                      type="primary" 
+                                      onClick={() => setUploadModalVisible(true)}
+                                      style={{ marginTop: '8px' }}
+                                  >
+                                      Tải lên đơn thuốc
+                                  </Button>
+                              )
+                          }
+                      />
+                  </div>
+              )}
             </WrapperProductInfo>
           </Col>
         </WrapperMainContent>

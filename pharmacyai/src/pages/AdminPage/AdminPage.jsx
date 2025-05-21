@@ -6,11 +6,12 @@ import { UserOutlined, ProductOutlined, DashboardOutlined,
   LogoutOutlined, BellOutlined, SettingOutlined, OrderedListOutlined,
   AppstoreOutlined, MenuFoldOutlined, MenuUnfoldOutlined, BarChartOutlined,
   ShoppingOutlined, TeamOutlined, NotificationOutlined, HomeOutlined,
-  DollarOutlined } from '@ant-design/icons'
+  DollarOutlined, FileTextOutlined, FileProtectOutlined } from '@ant-design/icons'
 import { getItem } from '../../utils';
 import AdminUser from '../../components/AdminUser/AdminUser';
 import AdminProduct from '../../components/AdminProduct/AdminProduct';
 import AdminOrder from '../../components/AdminOrder/AdminOrder';
+import AdminPrescription from '../../components/AdminPrescription/AdminPrescription';
 import RevenueManagement from '../../components/RevenueManagement/RevenueManagement';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +53,7 @@ function AdminPage() {
         getItem('Người dùng', 'user', <TeamOutlined />),
         getItem('Sản phẩm', 'product', <ProductOutlined />),
         getItem('Đơn hàng', 'order', <ShoppingOutlined />),
+        getItem('Đơn thuốc', 'prescription', <FileTextOutlined />),
         getItem('Báo cáo doanh thu', 'revenue', <DollarOutlined />),
         getItem('Cài đặt', 'settings', <SettingOutlined />),
     ];
@@ -145,6 +147,8 @@ function AdminPage() {
                 return <AdminProduct />;
             case 'order':
                 return <AdminOrder />;
+            case 'prescription':
+                return <AdminPrescription />;
             case 'revenue':
                 return <RevenueManagement />;
             case 'dashboard':
