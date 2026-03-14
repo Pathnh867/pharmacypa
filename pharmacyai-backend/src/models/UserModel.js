@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema(
         avatar: {type: String},
         access_token: { type: String, require: true },
         refresh_token: { type: String, require: true },
+        walletAddress: { type: String, default: '' },
+        loyaltyLinked: { type: Boolean, default: false }
     },
     {
         timestamps: true

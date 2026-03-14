@@ -3,6 +3,8 @@ const https = require('https');
 const EmailService = require('../services/EmailService');
 const Order = require('../models/OrderProduct');
 const OrderService = require('../services/OrderService');
+const LoyaltyController = require('./LoyaltyController');
+const LoyaltyService = require('../services/LoyaltyService');
 
 // Cấu hình MoMo từ biến môi trường
 const accessKey = process.env.MOMO_ACCESS_KEY;
@@ -135,11 +137,23 @@ const momoIpnCallback = async (req, res) => {
                         amount
                     };
                     
-                    await OrderService.updateOrderPaymentStatus(orderId, paymentInfo);
+                    const updatedOrderResult = await OrderService.updateOrderPaymentStatus(orderId, paymentInfo);
                     console.log(`Order ${orderId} payment status updated successfully`);
+                    const paidOrder = updatedOrderResult?.data || orderResult.data;
+
+                    const loyaltyWallet = orderResult?.data?.user?.walletAddress || paidOrder?.user?.walletAddress || paidOrder?.walletAddress;
+                    if (loyaltyWallet && !paidOrder?.blockchainTxHash) {
+                        const points = Math.floor((paidOrder.totalPrice || 0) / 1000);
+                        if (points > 0) {
+                            const loyaltyResult = await LoyaltyService.addPoints(loyaltyWallet, points, paidOrder._id);
+                            paidOrder.pointsEarned = points;
+                            paidOrder.blockchainTxHash = loyaltyResult.txHash;
+                            await paidOrder.save();
+                        }
+                    }
                     
                     // Gửi email xác nhận đơn hàng
-                    await EmailService.sendEmailOrderSuccess(orderResult.data);
+                    await EmailService.sendEmailOrderSuccess(paidOrder);
                 } else {
                     console.error(`Order ${orderId} not found or invalid`);
                 }

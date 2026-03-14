@@ -53,7 +53,9 @@ const orderSchema = new mongoose.Schema({
     // Dự kiến giao hàng
     estimatedDeliveryDate: {
         type: Date
-    }
+    },
+    pointsEarned: {type: Number, default: 0},
+    blockchainTxHash: {type: String, default: ''},
 }, {
     timestamps: true // Thêm timestamps để theo dõi thời gian tạo và cập nhật
 })

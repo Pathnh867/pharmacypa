@@ -60,7 +60,7 @@ const getDetailsOrder = (orderId) => {
     return new Promise(async (resolve, reject) => {
         try {
             const order = await Order.findById(orderId)
-                .populate('user', 'name email')
+                .populate('user', 'name email walletAddress')
                 .populate('orderItems.product');
                 
             if (!order) {
@@ -139,7 +139,7 @@ const getOrdersByUser = (userId) => {
         try {
             const orders = await Order.find({ user: userId })
                 .sort({ createdAt: -1 }) // Sắp xếp mới nhất trước
-                .populate('user', 'name email')
+                .populate('user', 'name email walletAddress')
                 .select('-__v'); // Loại bỏ trường __v
                 
             resolve({

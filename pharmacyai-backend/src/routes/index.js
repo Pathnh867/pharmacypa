@@ -8,6 +8,7 @@ const TypeRouter = require('./TypeRouter');
 const AddressRouter = require('./AddressRouter');
 const OrderStatsRouter = require('./OrderStatsRouter');
 const PrescriptionRouter = require('./PrescriptionRouter');
+const LoyaltyRouter = require('./LoyaltyRouter');
 const routes = (app) => {
     app.use('/api/user', UserRouter);
     app.use('/api/product', ProductRouter);
@@ -17,6 +18,7 @@ const routes = (app) => {
     app.use('/api/address', AddressRouter);
     app.use('/api/stats', OrderStatsRouter);
     app.use('/api/prescription', PrescriptionRouter);
+    app.use('/api/loyalty', LoyaltyRouter);
 };
 
 module.exports = routes;
