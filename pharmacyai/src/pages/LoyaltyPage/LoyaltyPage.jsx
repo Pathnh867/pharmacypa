@@ -26,6 +26,18 @@ const LoyaltyPage = () => {
         setPoints(Number(balanceRes?.points || 0))
         setHistory(historyRes?.data || [])
     }
+    const syncWalletFromMetamask = async () => {
+        if (!window.ethereum || !user?.access_token) return
+
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' })
+        const selectedWallet = accounts?.[0]
+        if (!selectedWallet) return
+
+        setWallet(selectedWallet)
+        if (user?.walletAddress?.toLowerCase() !== selectedWallet.toLowerCase()) {
+            await LoyaltyService.linkWallet(selectedWallet, user?.access_token)
+        }
+    }
 
     const handleConnectWallet = async () => {
         try {
@@ -58,6 +70,30 @@ const LoyaltyPage = () => {
             message.error(error?.response?.data?.message || 'Không thể đổi điểm')
         }
     }
+
+    useEffect(() => {
+        if (user?.walletAddress) {
+            setWallet(user.walletAddress)
+        }
+    }, [user?.walletAddress])
+
+    useEffect(() => {
+        if (!user?.access_token) return
+
+        syncWalletFromMetamask().catch(() => {
+            // ignore silent wallet sync errors
+        })
+
+        if (window.ethereum?.on) {
+            const handleAccountsChanged = (accounts) => {
+                setWallet(accounts?.[0] || '')
+            }
+
+            window.ethereum.on('accountsChanged', handleAccountsChanged)
+            return () => window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+        }
+    }, [user?.access_token, user?.walletAddress])
+
 
     useEffect(() => {
         if (wallet && user?.access_token) {

@@ -141,16 +141,7 @@ const momoIpnCallback = async (req, res) => {
                     console.log(`Order ${orderId} payment status updated successfully`);
                     const paidOrder = updatedOrderResult?.data || orderResult.data;
 
-                    const loyaltyWallet = orderResult?.data?.user?.walletAddress || paidOrder?.user?.walletAddress || paidOrder?.walletAddress;
-                    if (loyaltyWallet && !paidOrder?.blockchainTxHash) {
-                        const points = Math.floor((paidOrder.totalPrice || 0) / 1000);
-                        if (points > 0) {
-                            const loyaltyResult = await LoyaltyService.addPoints(loyaltyWallet, points, paidOrder._id);
-                            paidOrder.pointsEarned = points;
-                            paidOrder.blockchainTxHash = loyaltyResult.txHash;
-                            await paidOrder.save();
-                        }
-                    }
+                    
                     
                     // Gửi email xác nhận đơn hàng
                     await EmailService.sendEmailOrderSuccess(paidOrder);

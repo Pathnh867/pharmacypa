@@ -2,6 +2,7 @@
 
 const Order = require("../models/OrderProduct")
 const EmailService = require("./EmailService")
+const LoyaltyService = require('./LoyaltyService')
 
 const createOrder = (newOrder) => {
     return new Promise(async (resolve, reject) => {
@@ -195,12 +196,42 @@ const getAllOrders = (limit, page, sort) => {
         }
     });
 };
+const ELIGIBLE_LOYALTY_PAYMENT_METHODS = new Set(['COD', 'MOMO', 'LATER_MONEY'])
 
+const rewardLoyaltyPointsIfEligible = async (order) => {
+    const paymentMethod = String(order.paymentMethod || '').toUpperCase()
+    if (!ELIGIBLE_LOYALTY_PAYMENT_METHODS.has(paymentMethod)) {
+        return null
+    }
+
+    if (order.blockchainTxHash || order.pointsEarned > 0) {
+        return null
+    }
+
+    const loyaltyWallet = order.user?.walletAddress || ''
+    if (!loyaltyWallet) {
+        return null
+    }
+
+    const points = Math.floor((order.totalPrice || 0) / 1000)
+    if (points <= 0) {
+        return null
+    }
+
+    const loyaltyResult = await LoyaltyService.addPoints(loyaltyWallet, points, order._id)
+    order.pointsEarned = points
+    order.blockchainTxHash = loyaltyResult.txHash
+
+    return {
+        points,
+        txHash: loyaltyResult.txHash
+    }
+}
 // Cập nhật trạng thái đơn hàng (cho admin)
 const updateOrderStatus = (orderId, newStatus, note) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const order = await Order.findById(orderId);
+            const order = await Order.findById(orderId).populate('user', 'walletAddress');
             
             if (!order) {
                 resolve({
@@ -219,7 +250,8 @@ const updateOrderStatus = (orderId, newStatus, note) => {
                 timestamp: new Date(),
                 note: note || `Trạng thái được cập nhật thành ${newStatus}`
             });
-            
+            let loyaltyReward = null;
+            let loyaltyRewardError = null;
             // Cập nhật các trường liên quan đến trạng thái
             if (newStatus === 'delivered') {
                 order.isDeliverd = true;
@@ -237,6 +269,34 @@ const updateOrderStatus = (orderId, newStatus, note) => {
                         { new: true }
                     );
                 }
+                try {
+                    loyaltyReward = await rewardLoyaltyPointsIfEligible(order);
+                } catch (rewardError) {
+                    if (rewardError?.code === 'ETHERS_MISSING') {
+                        const fallbackPoints = Math.floor((order.totalPrice || 0) / 1000)
+                        if (fallbackPoints > 0 && !order.pointsEarned && !order.blockchainTxHash) {
+                            order.pointsEarned = fallbackPoints
+                            order.blockchainTxHash = `OFFCHAIN-${order._id}`
+                            loyaltyReward = {
+                                points: fallbackPoints,
+                                txHash: order.blockchainTxHash,
+                                mode: 'offchain_fallback'
+                            }
+                            order.statusHistory.push({
+                                status: newStatus,
+                                timestamp: new Date(),
+                                note: 'Đã tích điểm theo chế độ fallback do thiếu ethers'
+                            })
+                        }
+                    } else {
+                        loyaltyRewardError = rewardError;
+                        order.statusHistory.push({
+                            status: newStatus,
+                            timestamp: new Date(),
+                            note: `Không thể tích điểm loyalty: ${rewardError.message}`
+                        });
+                    }
+                }
             }
             
             const updatedOrder = await order.save();
@@ -244,7 +304,9 @@ const updateOrderStatus = (orderId, newStatus, note) => {
             resolve({
                 status: 'OK',
                 message: 'Order status updated successfully',
-                data: updatedOrder
+                data: updatedOrder,
+                loyaltyReward,
+                loyaltyRewardError: loyaltyRewardError ? loyaltyRewardError.message : null
             });
         } catch (e) {
             reject(e);

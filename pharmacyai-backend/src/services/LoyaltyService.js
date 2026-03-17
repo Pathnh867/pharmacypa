@@ -1,12 +1,26 @@
 const loyaltyAbi = require('../blockchain/LoyaltyPoints.abi.json')
-
-const getEthers = () => {
+const User = require('../models/UserModel')
+const Order = require('../models/OrderProduct')
+const Voucher = require('../models/VoucherModel')
+const ETH_WALLET_REGEX = /^0x[a-fA-F0-9]{40}$/
+const loadEthers  = () => {
     try {
         return require('ethers')
     } catch (error) {
-        throw new Error('Missing dependency: ethers. Please install ethers in pharmacyai-backend before using loyalty APIs.')
+        return null
     }
 }
+const getEthers = () => {
+    const ethersPackage = loadEthers()
+    if (!ethersPackage) {
+        const error = new Error('Missing dependency: ethers. Please install ethers in pharmacyai-backend before using loyalty APIs.')
+        error.code = 'ETHERS_MISSING'
+        throw error
+    }
+
+    return ethersPackage
+}
+
 
 const ensureReadEnv = () => {
     if (!process.env.GANACHE_RPC || !process.env.LOYALTY_CONTRACT_ADDRESS) {
@@ -39,21 +53,76 @@ const getWriteContract = () => {
 }
 
 const assertValidAddress = (wallet) => {
-    const { ethers } = getEthers()
-    if (!ethers.isAddress(wallet)) {
+    if (!ETH_WALLET_REGEX.test(String(wallet || ''))) {
         const error = new Error('Invalid wallet address')
         error.statusCode = 400
         throw error
     }
 }
+const getOffchainBalance = async (wallet) => {
+    const normalizedWallet = String(wallet || '').toLowerCase()
+    const user = await User.findOne({
+        walletAddress: {
+            $regex: `^${normalizedWallet}$`,
+            $options: 'i'
+        }
+    }).select('_id')
+
+    if (!user?._id) {
+        return 0
+    }
+
+    const [earnedAgg, usedAgg] = await Promise.all([
+        Order.aggregate([
+            {
+                $match: {
+                    user: user._id,
+                    status: 'delivered'
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: { $ifNull: ['$pointsEarned', 0] } }
+                }
+            }
+        ]),
+        Voucher.aggregate([
+            {
+                $match: {
+                    userId: user._id
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: { $ifNull: ['$pointsUsed', 0] } }
+                }
+            }
+        ])
+    ])
+
+    const earnedPoints = Number(earnedAgg?.[0]?.total || 0)
+    const usedPoints = Number(usedAgg?.[0]?.total || 0)
+    return Math.max(earnedPoints - usedPoints, 0)
+}
+
 
 const balanceOf = async (wallet) => {
     assertValidAddress(wallet)
 
-    const { contract } = getReadContract()
-    const points = await contract.balanceOf(wallet)
-    return Number(points)
+    try {
+        const { contract } = getReadContract()
+        const points = await contract.balanceOf(wallet)
+        return Number(points)
+    } catch (error) {
+        if (error.code === 'ETHERS_MISSING') {
+            return 0
+        }
+        throw error
+    }
 }
+
 
 const addPoints = async (wallet, amount, orderId) => {
     assertValidAddress(wallet)
